@@ -618,10 +618,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    product_user_id: <?= json_encode($editOld['product_user_id']) ?>,
-    first_name: <?= json_encode($editOld['first_name']) ?>,
-    last_name: <?= json_encode($editOld['last_name']) ?>,
-    email: <?= json_encode($editOld['email']) ?>
+    product_user_id: <?= json_encode($editOld['product_user_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    first_name: <?= json_encode($editOld['first_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    last_name: <?= json_encode($editOld['last_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    email: <?= json_encode($editOld['email'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 

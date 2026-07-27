@@ -571,9 +571,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    location_id: <?= json_encode($editOld['location_id']) ?>,
-    name: <?= json_encode($editOld['name']) ?>,
-    room: <?= json_encode($editOld['room']) ?>
+    location_id: <?= json_encode($editOld['location_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    name: <?= json_encode($editOld['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    room: <?= json_encode($editOld['room'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 

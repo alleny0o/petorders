@@ -543,8 +543,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    nuclide_id: <?= json_encode($editOld['nuclide_id']) ?>,
-    name: <?= json_encode($editOld['name']) ?>
+    nuclide_id: <?= json_encode($editOld['nuclide_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    name: <?= json_encode($editOld['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 

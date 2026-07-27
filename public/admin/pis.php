@@ -605,10 +605,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    pi_id: <?= json_encode($editOld['pi_id']) ?>,
-    pi_name: <?= json_encode($editOld['pi_name']) ?>,
-    email: <?= json_encode($editOld['email']) ?>,
-    phone: <?= json_encode($editOld['phone']) ?>
+    pi_id: <?= json_encode($editOld['pi_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    pi_name: <?= json_encode($editOld['pi_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    email: <?= json_encode($editOld['email'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    phone: <?= json_encode($editOld['phone'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 

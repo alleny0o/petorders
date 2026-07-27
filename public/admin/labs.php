@@ -1043,13 +1043,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    lab_id: <?= json_encode($editOld['lab_id']) ?>,
-    lab_name: <?= json_encode($editOld['lab_name']) ?>,
-    institute_id: <?= json_encode($editOld['institute_id']) ?>,
-    building: <?= json_encode($editOld['building']) ?>,
-    room: <?= json_encode($editOld['room']) ?>,
-    pi_ids: <?= json_encode($editOld['pi_ids']) ?>,
-    pi_counts: <?= json_encode((object) array_combine(array_map('strval', array_keys($editPiCounts)), array_values($editPiCounts))) ?>
+    lab_id: <?= json_encode($editOld['lab_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    lab_name: <?= json_encode($editOld['lab_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    institute_id: <?= json_encode($editOld['institute_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    building: <?= json_encode($editOld['building'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    room: <?= json_encode($editOld['room'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    pi_ids: <?= json_encode($editOld['pi_ids'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    pi_counts: <?= json_encode((object) array_combine(array_map('strval', array_keys($editPiCounts)), array_values($editPiCounts)), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 
