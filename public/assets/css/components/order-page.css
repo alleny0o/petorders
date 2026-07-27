@@ -1,21 +1,18 @@
 /* ============================================================
    PETORDERS — components/order-page.css
-   Customer order pages: the new-order form (rendered inside the
-   new-order modal) and the order detail page, including its
-   print / save-as-PDF styles.
+   Order pages, both roles: the new-order form as themed inside the
+   New Order modal (customer), the .comment-list Activity feed
+   (staff/order_detail.php only), and order-detail bits shared by
+   both order_detail.php pages (.order-notes-text, .field-row--3).
+   Print / save-as-PDF styles live in components/print.css.
    ============================================================ */
-
-.customer-order-form-card {
-  max-width: 800px;
-}
 
 /* Inside the new-order modal the modal owns the chrome (background,
    border, radius, shadow, body padding) -- strip the card's own framing
-   there so the form doesn't render as a card inside a card, and drop
-   the base max-width so the form spans the exact same width as the
-   header and footer (shared --sp-5 horizontal padding, no narrower
-   centered island). The base 800px cap above is inert today -- the
-   form renders only inside the modal, where this override lifts it. */
+   here so the form doesn't render as a card inside a card, spanning the
+   exact same width as the header and footer (shared --sp-5 horizontal
+   padding, no narrower centered island). The modal is the only context
+   that renders this card. */
 .modal--order .customer-order-form-card {
   background: transparent;
   border: none;
@@ -23,7 +20,6 @@
   box-shadow: none;
   padding: 0;
   margin: 0;
-  max-width: none;
 }
 /* modals.css adds margin-top to any .modal__body .field (for confirm
    dialogs whose field follows a message) -- neutralized here so field
@@ -303,169 +299,3 @@
   }
 }
 
-/* ---- Print / save-as-PDF ---------------------------------------
-   A dedicated print-only document (.order-print, a sibling of
-   .app-shell in order_detail.php) rather than a patched version of
-   the on-screen cards: the screen UI is hidden wholesale and this
-   block is the only printed output. Triggered by the page's Print
-   button (window.print()); the browser dialog's "Save as PDF"
-   destination covers PDF export with no external libraries. Literal
-   colors and no backgrounds throughout -- printers may skip
-   backgrounds, and printed backgrounds waste ink even when they
-   don't. The only border is the single rule under the letterhead. */
-.order-print {
-  display: none; /* screen: the print document does not exist */
-}
-
-@media print {
-  /* 1cm (not the previous 1.5cm) -- still a comfortable margin for a
-     hole-punch/binder, just not so wide it pushes a single order onto a
-     2nd page on its own. */
-  @page {
-    margin: 1cm;
-  }
-
-  /* The entire screen UI disappears -- no per-element patching. */
-  .order-detail-page .app-shell,
-  .order-detail-page .toast-region,
-  .order-detail-page .modal-overlay {
-    display: none !important;
-  }
-
-  /* 10.5pt/1.25 -- still comfortably legible in print, but every line box
-     and every stacked margin below shrinks with it. */
-  .order-print {
-    display: block;
-    margin: 0;
-    padding: 0;
-    color: #000;
-    font-size: 10.5pt;
-    line-height: 1.25;
-  }
-
-  /* Letterhead: brand left, order identity (number + status pill) right,
-     one line each, with a rule underneath standing in for the card edges
-     we're not printing elsewhere. */
-  .order-print__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    border-bottom: 0.75pt solid #000;
-    padding-bottom: 6pt;
-    margin-bottom: 8pt;
-  }
-  .order-print__brand {
-    font-size: 12pt;
-    font-weight: bold;
-  }
-  .order-print__identity {
-    display: flex;
-    align-items: center;
-    gap: 6pt;
-  }
-  .order-print__title {
-    font-size: 12pt;
-    font-weight: bold;
-  }
-  /* Outlined, not filled -- same ink-conscious rule as the rest of this
-     stylesheet (no printed backgrounds), so one pill style covers every
-     status rather than replicating badges.css's per-status tint. */
-  .order-print__status-pill {
-    display: inline-block;
-    border: 0.75pt solid #000;
-    border-radius: 2pt;
-    padding: 1pt 5pt;
-    font-size: 8pt;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  /* Section heading mirrors .card__title -- the on-screen cue that a new
-     grouping (Order Details / Recipient & Lab / Notes / ...) has
-     started -- with a hairline standing in for the card edge we're not
-     printing. Every section title carries the same top margin (including
-     the first, stacking with .order-print__header's bottom margin above)
-     so sections read as evenly-spaced groupings. */
-  .order-print__section-title {
-    font-size: 11pt;
-    font-weight: bold;
-    margin: 8pt 0 3pt;
-    padding-bottom: 2pt;
-    border-bottom: 0.75pt solid #000;
-    /* A heading should never strand alone at the bottom of a page,
-       separated from its own section -- belt-and-suspenders spelling
-       for older print-engine support. */
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  /* 2-column grid of compact label/value pairs -- label stacked above
-     value, not side by side -- so a section's fields pack two to a row
-     instead of one, roughly halving the vertical space a field list
-     takes vs. the old single-column .order-print__row layout. An odd
-     field count just leaves one empty cell; no special-casing needed. */
-  .order-print__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 14pt;
-    margin: 0 0 4pt;
-  }
-  .order-print__field {
-    padding: 3pt 0;
-    border-bottom: 0.5pt solid #ccc;
-  }
-  .order-print__field dt {
-    display: block;
-    font-size: 8pt;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #555;
-    margin-bottom: 1pt;
-  }
-  .order-print__field dd {
-    display: block;
-    font-size: 10pt;
-    margin: 0; /* browsers indent dd by default */
-  }
-
-  /* Bordered box, not a grid -- Notes is free text, not label/value
-     pairs. */
-  .order-print__notes {
-    border: 0.5pt solid #ccc;
-    padding: 4pt 6pt;
-    white-space: pre-wrap; /* authored line breaks; may flow across pages */
-  }
-
-  /* Compact print-only Activity feed (staff/order_detail.php) -- full
-     order_audit_log history, but one 2-column row per entry rather than
-     .comment-list's screen-sized spacing, so a long trail doesn't eat
-     pages. minmax(0, ...) tracks (not a fixed label column) since actor
-     names/timestamps vary in length on each side. page-break-inside:
-     avoid per row so a single entry never splits across a page break. */
-  .order-print__activity {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .order-print__activity li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8pt;
-    padding: 1.5pt 0;
-    font-size: 9pt;
-    border-bottom: 0.5pt solid #ccc;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .order-print__activity li:last-child {
-    border-bottom: none;
-  }
-
-  .order-print__footer {
-    margin-top: 10pt;
-    text-align: right;
-    font-size: 8pt;
-    color: #555;
-  }
-}

@@ -24,6 +24,7 @@ $labId = current_customer_lab_id($pdo, $myUserId);
     = consume_arrival_flags(['created', 'updated', 'activated', 'deactivated']);
 
 $q = trim($_GET['q'] ?? '');
+$status = in_array($_GET['status'] ?? '', ['active', 'inactive'], true) ? $_GET['status'] : '';
 $page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
     ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
@@ -34,6 +35,7 @@ $pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
 // real applied values, never raw/invalid ones -- same convention as
 // orders.php / lab_delivery_locations.php.
 canonicalize_get([
+    'status' => $status,
     'page' => $page,
     'page_size' => $pageSize,
 ]);
@@ -207,9 +209,38 @@ if ($labId > 0) {
 
     $whereSql = where_clause($where);
 
-    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM lab_product_users $whereSql");
-    $countStmt->execute($params);
-    $totalCount = (int) $countStmt->fetchColumn();
+    // Built without the status condition -- reused for the tab counts
+    // (each tab's count reflects the current search scope, not global
+    // counts) and then extended with a status condition below for the
+    // actual list -- same pattern as admin/nuclides.php.
+    $countsStmt = $pdo->prepare(
+        "SELECT active, COUNT(*) AS c
+         FROM lab_product_users
+         $whereSql
+         GROUP BY active"
+    );
+    $countsStmt->execute($params);
+    $statusCounts = ['active' => 0, 'inactive' => 0];
+    foreach ($countsStmt->fetchAll() as $row) {
+        $statusCounts[$row['active'] ? 'active' : 'inactive'] = (int) $row['c'];
+    }
+    $allCount = $statusCounts['active'] + $statusCounts['inactive'];
+    $totalCount = $status !== '' ? $statusCounts[$status] : $allCount;
+
+    $statusTabs = [
+        ['value' => '',         'label' => 'All',      'count' => $allCount],
+        ['value' => 'active',   'label' => 'Active',   'count' => $statusCounts['active']],
+        ['value' => 'inactive', 'label' => 'Inactive', 'count' => $statusCounts['inactive']],
+    ];
+
+    $listWhere = $where;
+    if ($status === 'active') {
+        $listWhere[] = 'active = 1';
+    } elseif ($status === 'inactive') {
+        $listWhere[] = 'active = 0';
+    }
+    $listWhereSql = where_clause($listWhere);
+
     $pagination = paginate($totalCount, $page, $pageSize);
     $page = $pagination['page'];
     $totalPages = $pagination['totalPages'];
@@ -228,7 +259,7 @@ if ($labId > 0) {
     // lab_delivery_locations.php.
     $listStmt = $pdo->prepare(
         "SELECT product_user_id, first_name, last_name, email, active FROM lab_product_users
-         $whereSql
+         $listWhereSql
          ORDER BY last_name, first_name
          LIMIT $offset, $pageSize"
     );
@@ -237,7 +268,7 @@ if ($labId > 0) {
 }
 
 $formAction = form_action('/customer/lab_product_users.php');
-$hasFilters = $q !== '';
+$hasFilters = $q !== '' || $status !== '';
 
 $pageTitle = 'Product Users';
 ?>
@@ -279,6 +310,14 @@ $pageTitle = 'Product Users';
                     <p class="muted">No lab assigned to your account yet &mdash; contact an administrator.</p>
                 </div>
             <?php else: ?>
+                <nav class="status-tabs" aria-label="Filter by status">
+                    <?php foreach ($statusTabs as $tab): ?>
+                        <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                            <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </nav>
+
                 <div class="table-card">
                     <div class="table-card-header">
                         <?php // Explicit Search-button submit, never
@@ -286,6 +325,7 @@ $pageTitle = 'Product Users';
                               // orders.php's filter form /
                               // lab_delivery_locations.php's search. ?>
                         <form method="get" class="table-card-controls">
+                            <input type="hidden" name="status" value="<?= e($status) ?>">
                             <?php // Preserves the current page size across a
                                   // search-form submit -- that form has no
                                   // page_size field of its own, so without
@@ -385,7 +425,7 @@ $pageTitle = 'Product Users';
                         $tablePagination = [
                             'idPrefix' => 'product-user-',
                             'itemLabel' => 'Product users',
-                            'hiddenFields' => ['q' => $q],
+                            'hiddenFields' => ['q' => $q, 'status' => $status],
                             'page' => $page,
                             'totalPages' => $totalPages,
                             'pageSize' => $pageSize,
@@ -504,42 +544,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return values;
   }
 
-  // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as the New
-  // Order modal (src/partials/new_order_form.php) and
-  // lab_delivery_locations.php's Add/Edit modals, scaled down to a plain
-  // POST form. markPristine() must be called every time the modal's
-  // fields are (re)populated -- on open and on a validation-error reopen
-  // -- so only edits made AFTER that point ever count as dirty. ----
-  function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
-    var pristineValues = {};
-
-    function isDirty() {
-      var now = snapshotForm(form);
-      return Object.keys(pristineValues).some(function (name) {
-        return now[name] !== pristineValues[name];
-      });
-    }
-
-    overlay.petordersBeforeClose = function () {
-      if (!isDirty()) return true;
-      window.petordersConfirm({
-        title: discardCopy.title,
-        message: discardCopy.message,
-        verb: 'Discard',
-        danger: true
-      }).then(function (discard) {
-        if (!discard) return;
-        if (onDiscard) onDiscard();
-        window.petordersCloseModal(true);
-      });
-      return false;
-    };
-
-    return {
-      markPristine: function () { pristineValues = snapshotForm(form); }
-    };
-  }
+  // Dirty-tracking + discard-confirm-on-close wiring is shared:
+  // window.petordersWireModalDirtyTracking (script.js). snapshotForm()
+  // above stays page-local -- what counts as a field value varies per
+  // page.
 
   // ---- Add modal ----
   var addModal = document.getElementById('add-product-user-modal');
@@ -548,9 +556,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // JS-populated -- their rendered value="" already IS the correct
   // pristine state (blank on a fresh load, the attempted values on a
   // validation-error reopen), so form.reset() is safe here.
-  var addTracking = wireModalDirtyTracking(
+  var addTracking = window.petordersWireModalDirtyTracking(
     addModal,
     addForm,
+    snapshotForm,
     { title: 'Discard this product user?', message: 'Your entries will be discarded.' },
     function () { addForm.reset(); }
   );
@@ -582,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // values) would show stale data instead of the row actually being
   // edited. The next real open always repopulates from fresh data anyway
   // (a row click or a validation-error reopen), so nothing needs undoing.
-  var editTracking = wireModalDirtyTracking(editModal, editForm, {
+  var editTracking = window.petordersWireModalDirtyTracking(editModal, editForm, snapshotForm, {
     title: 'Discard these changes?',
     message: 'Your edits to this product user will be discarded.'
   });

@@ -167,11 +167,12 @@ $petordersLayout['directory_section_active'] = in_array($petordersLayout['curren
     </nav>
   </div>
 
-  <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+  <?php // Always rendered: every page including this layout is behind
+        // require_role('admin'). (layout_staff.php's same-shaped check IS
+        // meaningful there -- staff pages are admin-reachable.) ?>
   <div class="sidebar-mode-toggle">
     <a href="/admin/dashboard.php" class="sidebar-mode-toggle__option is-active">Admin</a>
     <a href="/staff/dashboard.php" class="sidebar-mode-toggle__option">Staff</a>
   </div>
-  <?php endif; ?>
 
   <?php include __DIR__ . '/_sidebar_footer.php'; ?>

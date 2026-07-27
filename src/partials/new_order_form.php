@@ -24,12 +24,14 @@
     }
     ?>
     <div class="card customer-order-form-card">
-        <?php // Always in the DOM (hidden when clean) -- the AJAX submit
-              // handler below unhides it when the server returns field
-              // errors, alongside the injected per-field messages. ?>
+        <?php // Always in the DOM (hidden when clean) -- script.js's shared
+              // AJAX pipeline (initAjaxForms -> renderFieldErrors) unhides
+              // it via the data-error-banner-for hookup when the server
+              // returns field errors, alongside the injected per-field
+              // messages. ?>
         <div class="alert alert--error" id="order-form-error-banner" data-error-banner-for="order-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
 
-        <form method="post" action="/customer/new_order.php" novalidate id="order-form">
+        <form method="post" action="/customer/new_order.php" novalidate id="order-form" data-ajax-submit>
             <?= csrf_field() ?>
 
             <div class="form-section">
@@ -236,72 +238,58 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---- Submit is always clickable (the app-wide convention -- no
     // disable-until-valid gating anywhere). The form is novalidate and
     // the server is authoritative: invalid input comes back as 422
-    // field errors, rendered below. ----
+    // field errors, rendered by the shared pipeline. ----
     var form = document.getElementById('order-form');
     var submitBtn = document.getElementById('order-submit');
-
-    // ---- AJAX field errors. Mirrors the server-side field_error()/
-    // field_class() markup (span.field-error appended inside the .field
-    // wrapper, field--invalid on the wrapper) so injected errors are
-    // indistinguishable from server-rendered ones. The modal always
-    // renders pristine, so clearing every .field-error/.field--invalid
-    // in the form only ever removes our own injections. ----
-    var errorBanner = document.getElementById('order-form-error-banner');
-
-    function clearInjectedErrors() {
-        errorBanner.hidden = true;
-        Array.prototype.forEach.call(form.querySelectorAll('.field-error'), function (el) {
-            el.remove();
-        });
-        Array.prototype.forEach.call(form.querySelectorAll('.field--invalid'), function (el) {
-            el.classList.remove('field--invalid');
-        });
-    }
-
-    function renderFieldErrors(errors) {
-        clearInjectedErrors();
-        var firstInvalidControl = null;
-        Object.keys(errors).forEach(function (name) {
-            var control = form.elements[name];
-            if (!control || !control.closest) return; // unknown key -- banner still shows
-            var fieldWrap = control.closest('.field');
-            if (!fieldWrap) return;
-            fieldWrap.classList.add('field--invalid');
-            var span = document.createElement('span');
-            span.className = 'field-error';
-            span.textContent = errors[name];
-            fieldWrap.appendChild(span);
-            if (!firstInvalidControl) firstInvalidControl = control;
-        });
-        errorBanner.hidden = false;
-        if (firstInvalidControl) firstInvalidControl.focus();
-    }
-
-    // ---- Dirty tracking: one on-demand snapshot comparison, no
-    // per-keystroke listeners. The pristine baseline is captured after
-    // the initial cascade run above, so it
-    // reflects the form's real settled load state. form.elements
-    // includes disabled controls (the pre-cascade product select, the
-    // hidden location select), so their values participate too -- their
-    // pristine value is '' either way. ----
     var overlay = document.getElementById('new-order-modal');
 
-    function snapshotFormValues() {
+    // ---- Submission rides the app-standard AJAX pipeline: the form
+    // tag's data-ajax-submit hands fetch, X-Requested-With, loading
+    // state, the double-submit guard, 422 field-error injection (shared
+    // renderFieldErrors + the banner's data-error-banner-for hookup),
+    // redirect-following, and error toasts to script.js's
+    // initAjaxForms. Only the unconditional "Place this order?" confirm
+    // stays inline: it cannot ride the data-confirm attribute because
+    // initConfirmForms opens its dialog through petordersOpenModal,
+    // which would first try to CLOSE the already-open New Order modal
+    // (single-active-modal rule) and trip the dirty-discard veto below;
+    // petordersConfirm() stacks over an open modal instead. This
+    // listener registers before script.js's (inline scripts register
+    // DOMContentLoaded handlers during parse; defer runs after), so the
+    // unconfirmed submit is preventDefault-ed before initAjaxForms sees
+    // it -- the same dataset.confirmed contract initConfirmForms uses. ----
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.confirmed === 'true') {
+            form.dataset.confirmed = 'false'; // re-arm for the next submit
+            return; // confirmed pass-through: initAjaxForms takes it from here
+        }
+        e.preventDefault();
+        window.petordersConfirm({
+            title: 'Place this order?',
+            message: 'Your order will be submitted for processing.',
+            verb: 'Place order'
+        }).then(function (confirmed) {
+            if (!confirmed) return;
+            form.dataset.confirmed = 'true';
+            if (typeof form.requestSubmit === 'function') {
+                // Pass the footer button (associated via form="order-form",
+                // so it lives OUTSIDE the <form> element) as the submitter:
+                // initAjaxForms reads e.submitter for loading state, and
+                // its in-form querySelector fallback can't find this one.
+                form.requestSubmit(submitBtn);
+            } else {
+                form.submit();
+            }
+        });
+    });
+
+    function snapshotForm(f) {
         var values = {};
-        Array.prototype.forEach.call(form.elements, function (el) {
+        Array.prototype.forEach.call(f.elements, function (el) {
             if (!el.name) return;
             values[el.name] = el.value;
         });
         return values;
-    }
-
-    var pristineValues = snapshotFormValues();
-
-    function isDirty() {
-        var now = snapshotFormValues();
-        return Object.keys(pristineValues).some(function (name) {
-            return now[name] !== pristineValues[name];
-        });
     }
 
     // Confirmed discard resets to pristine rather than preserving stale
@@ -311,107 +299,38 @@ document.addEventListener('DOMContentLoaded', function () {
     // exactly as on first load.
     function resetFormToPristine() {
         form.reset();
-        clearInjectedErrors();
+        clearFieldErrors(form); // script.js's shared clear, banner included
         cascade.refresh();
     }
 
-    // ---- Discard confirm on close. All four close paths (Esc,
-    // backdrop, X, footer Cancel) funnel through petordersCloseModal(),
-    // which consults this hook: clean form -> close proceeds untouched;
-    // dirty form -> veto the close, stack the confirm, and only a
-    // confirmed discard force-closes (petordersCloseModal(true) skips the
-    // hook). Cancelling the confirm leaves the modal open with every
-    // value intact. ----
-    overlay.petordersBeforeClose = function () {
-        if (!isDirty()) return true;
-        window.petordersConfirm({
-            title: 'Discard this order?',
-            message: 'Your entries will be discarded and the order will not be placed.',
-            verb: 'Discard',
-            danger: true
-        }).then(function (discard) {
-            if (!discard) return;
-            resetFormToPristine();
-            window.petordersCloseModal(true);
-        });
-        return false;
-    };
-
-    // ---- AJAX submission. Always intercepted -- there is no full-page
-    // POST fallback. initFormLoadingStates() (script.js) skips
-    // preventDefault-ed submits, so loading state and the double-submit
-    // guard are owned here. suppressBeforeUnload gates the native
-    // unsaved-changes prompt off for our OWN navigations (success
-    // redirect, session-expiry bounce) -- beforeunload fires on
-    // programmatic location changes too. ----
-    var submitting = false;
-    var suppressBeforeUnload = false;
-
-    function navigateTo(url) {
-        suppressBeforeUnload = true;
-        window.location.href = url;
-    }
-
-    function finishSubmitAttempt() {
-        submitting = false;
-        window.petordersClearButtonLoading(submitBtn);
-    }
-
-    function sendOrder() {
-        submitting = true;
-        window.petordersSetButtonLoading(submitBtn);
-        // FormData matches native submit semantics: carries csrf_token,
-        // excludes the disabled location select.
-        fetch(form.action, { method: 'POST', body: new FormData(form) })
-            .then(function (response) {
-                if (response.redirected) {
-                    // require_role() bounced us (idle timeout, forced
-                    // password change) -- follow its redirect for real.
-                    navigateTo(response.url);
-                    return null;
-                }
-                if (response.ok || response.status === 422) {
-                    return response.json();
-                }
-                // CSRF failure (403 text), 500s, anything non-JSON.
-                throw new Error('Unexpected response ' + response.status);
-            })
-            .then(function (data) {
-                if (!data) return; // already navigating
-                if (data.ok) {
-                    // Button stays in its loading state while the
-                    // browser navigates.
-                    navigateTo(data.redirect);
-                    return;
-                }
-                if (data.errors) renderFieldErrors(data.errors);
-                if (data.message) window.showToast('error', data.message);
-                finishSubmitAttempt();
-            })
-            .catch(function () {
-                window.showToast('error', 'Something went wrong placing your order. Please try again.');
-                finishSubmitAttempt();
-            });
-    }
-
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        if (submitting) return;
-        // Unconditional confirm on every submit, dirty or not.
-        window.petordersConfirm({
-            title: 'Place this order?',
-            message: 'Your order will be submitted for processing.',
-            verb: 'Place order'
-        }).then(function (confirmed) {
-            if (confirmed) sendOrder();
-        });
-    });
+    // ---- Dirty tracking + discard-confirm on close: shared wiring
+    // (window.petordersWireModalDirtyTracking, script.js), covering all
+    // four close paths (Esc, backdrop, X, footer Cancel) via the
+    // overlay's petordersBeforeClose hook. The pristine baseline is
+    // captured once here, after the initial cascade run above, so it
+    // reflects the form's real settled load state; the modal only ever
+    // renders pristine-empty (submission is AJAX, no server re-render),
+    // so unlike the CRUD Edit modals there is no reopen/repopulate
+    // recapture. form.elements includes disabled controls (the
+    // pre-cascade product select, the hidden location select), so their
+    // values participate too -- their pristine value is '' either way. ----
+    var tracking = window.petordersWireModalDirtyTracking(
+        overlay,
+        form,
+        snapshotForm,
+        { title: 'Discard this order?', message: 'Your entries will be discarded and the order will not be placed.' },
+        resetFormToPristine
+    );
+    tracking.markPristine();
 
     // ---- Native reload/navigate-away warning: only while the order
-    // modal is actually open AND holds unsaved changes. Browsers show
-    // their own generic prompt; the message is not customizable. ----
+    // modal is actually open AND holds unsaved changes. Skipped while a
+    // submit is in flight (initAjaxForms sets form.dataset.submitting)
+    // so our own navigations -- the success redirect, a session-expiry
+    // bounce -- don't trigger the browser's generic prompt, which fires
+    // on programmatic location changes too. ----
     window.addEventListener('beforeunload', function (e) {
-        if (suppressBeforeUnload || overlay.hidden || !isDirty()) return;
+        if (form.dataset.submitting === 'true' || overlay.hidden || !tracking.isDirty()) return;
         e.preventDefault();
         e.returnValue = '';
     });

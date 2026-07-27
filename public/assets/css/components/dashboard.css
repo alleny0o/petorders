@@ -68,8 +68,6 @@ a.stat-tile:hover {
   background: var(--status-neutral);
   flex-shrink: 0;
 }
-.dot--warning { background: var(--status-warning); }
-.dot--error   { background: var(--status-error); }
 .dot--info    { background: var(--status-info); }
 
 /* Two-column panel area below the tiles; stacks on tablets down.

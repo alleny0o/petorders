@@ -540,45 +540,18 @@ document.addEventListener('DOMContentLoaded', function () {
     return values;
   }
 
-  // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as
-  // nuclides.php / lab_product_users.php -- copied inline per convention. ----
-  function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
-    var pristineValues = {};
-
-    function isDirty() {
-      var now = snapshotForm(form);
-      return Object.keys(pristineValues).some(function (name) {
-        return now[name] !== pristineValues[name];
-      });
-    }
-
-    overlay.petordersBeforeClose = function () {
-      if (!isDirty()) return true;
-      window.petordersConfirm({
-        title: discardCopy.title,
-        message: discardCopy.message,
-        verb: 'Discard',
-        danger: true
-      }).then(function (discard) {
-        if (!discard) return;
-        if (onDiscard) onDiscard();
-        window.petordersCloseModal(true);
-      });
-      return false;
-    };
-
-    return {
-      markPristine: function () { pristineValues = snapshotForm(form); }
-    };
-  }
+  // Dirty-tracking + discard-confirm-on-close wiring is shared:
+  // window.petordersWireModalDirtyTracking (script.js). snapshotForm()
+  // above stays page-local -- what counts as a field value varies per
+  // page.
 
   // ---- Add modal ----
   var addModal = document.getElementById('add-pi-modal');
   var addForm = document.getElementById('add-pi-form');
-  var addTracking = wireModalDirtyTracking(
+  var addTracking = window.petordersWireModalDirtyTracking(
     addModal,
     addForm,
+    snapshotForm,
     { title: 'Discard this PI?', message: 'Your entries will be discarded.' },
     function () { addForm.reset(); }
   );
@@ -605,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var editNameField = document.getElementById('edit-pi-name');
   var editEmailField = document.getElementById('edit-pi-email');
   var editPhoneField = document.getElementById('edit-pi-phone');
-  var editTracking = wireModalDirtyTracking(editModal, editForm, {
+  var editTracking = window.petordersWireModalDirtyTracking(editModal, editForm, snapshotForm, {
     title: 'Discard these changes?',
     message: 'Your edits to this PI will be discarded.'
   });

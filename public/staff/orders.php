@@ -113,7 +113,10 @@ $queueTabs = [
 // first, since requested_datetime is no longer the operative date once
 // an order is done. All (a mixed bag of active and terminal orders) has
 // no single meaningful due-date ordering, so it falls back to newest-
-// placed-first, matching customer/orders.php's own default.
+// placed-first, matching customer/orders.php's own default. The
+// status-dependent sort is deliberate and queue-only: customer/
+// orders.php keeps a fixed chronological sort on every tab (it's
+// order history, not triage) -- not a bug, don't "align" them.
 if (in_array($queueStatus, ['pending', 'accepted'], true)) {
     $queueOrderBy = 'o.requested_datetime ASC';
 } elseif (in_array($queueStatus, ['completed', 'cancelled'], true)) {

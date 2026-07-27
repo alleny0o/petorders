@@ -50,7 +50,8 @@ function app_setting(string $key, $default = null)
 /**
  * Starts the session with hardened cookie flags. Every page must call
  * this instead of a bare session_start() so HttpOnly/Secure are never
- * missed (see CLAUDE.md page template).
+ * missed (CLAUDE.md documents it under "DRY -- check before writing
+ * new logic").
  */
 function bootstrap_session(): void
 {
@@ -219,9 +220,10 @@ function customer_display_name(?string $firstName, ?string $lastName, string $us
 
 /**
  * Nuclides/products/locations/product-users backing the new-order form's
- * cascading selects. Shared by new_order.php's own full-page render and
- * the new-order modal (src/partials/new_order_modal.php) so both pull
- * from the same queries instead of duplicating them. locations/
+ * cascading selects. Consumed by layout_customer.php, which feeds the
+ * new-order modal (src/partials/new_order_modal.php) on every customer
+ * page -- its only caller now that new_order.php is a POST-only JSON
+ * endpoint with no page render of its own. locations/
  * product_users come back empty when $labId <= 0 -- same as the inline
  * behavior this was extracted from. Each product row is one flat catalog
  * row (nuclide + name + its one fixed delivery_method); like nuclides,
@@ -445,8 +447,7 @@ function delivery_method_label(string $deliveryMethod): string
  */
 function format_activity_mci(string $activity): string
 {
-    $formatted = rtrim(rtrim(number_format((float) $activity, 3, '.', ''), '0'), '.');
-    return $formatted === '' ? '0' : $formatted;
+    return rtrim(rtrim(number_format((float) $activity, 3, '.', ''), '0'), '.');
 }
 
 /**
@@ -622,9 +623,11 @@ function fetch_order_audit_trail(PDO $pdo, int $orderId): array
 }
 
 /**
- * Plain-English description of one order_audit_log transition. Shared by
- * staff/order_detail.php's per-order Activity card and
- * staff/dashboard.php's system-wide Recent Activity card.
+ * Plain-English description of one order_audit_log transition. Used by
+ * staff/order_detail.php's per-order Activity card (on-screen and in
+ * its print document). The staff dashboard's Recent Activity card,
+ * this function's other original consumer, was removed in the
+ * dashboard refinement pass.
  */
 function describe_order_transition(?string $from, string $to): string
 {

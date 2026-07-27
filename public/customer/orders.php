@@ -49,15 +49,11 @@ canonicalize_get([
     'requested_to' => $requestedTo,
 ]);
 
-$orders = [];
-$totalCount = 0;
-$totalPages = 1;
-$offset = 0;
-$rangeStart = 0;
-$rangeEnd = 0;
+// Zero baseline for the tab counts below: the count query only returns
+// rows for statuses that have orders, so absent statuses must stay 0.
+// (Everything else the $labId > 0 branch produces is assigned in full
+// there and only read inside the lab-assigned render branch.)
 $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
-$allCount = 0;
-$tabs = [];
 
 if ($labId > 0) {
     // Lab-scoped: the c.lab_id join condition IS the access control (any
@@ -151,6 +147,11 @@ if ($labId > 0) {
     // against a fixed option set, offset is derived from a clamped,
     // ctype_digit-checked page number), same convention as
     // accounts.php/customers.php.
+    //
+    // Fixed newest-placed-first sort on every tab -- intentionally
+    // different from staff/orders.php, whose status-dependent sort
+    // serves triage. This page is order history for the lab; one
+    // predictable chronological order is the point.
     $listStmt = $pdo->prepare(
         "SELECT o.order_id, o.status, o.requested_datetime, o.updated_at, o.chargeable,
                 p.name AS product_name, p.delivery_method,

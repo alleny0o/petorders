@@ -365,44 +365,10 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                     </div>
                 </div>
 
-                <?php // Cancel-with-reason modal -- single order on this page, so
-                      // $orderId is hardcoded directly into the form rather than
-                      // JS-populated (contrast with staff/orders.php's shared,
-                      // multi-row version of this same modal). Modeled on the
-                      // reject-with-reason modal on admin/registrations.php:
-                      // required textarea, X-close + Cancel + Esc + backdrop all
-                      // wired automatically by petordersOpenModal(), reopens itself
-                      // below on a reason_required validation failure. ?>
+                <?php // Cancel-with-reason modal: shared partial (see its header
+                      // for the contract); the render guard stays page-owned. ?>
                 <?php if ($isOwnOrder && $order['status'] === 'pending'): ?>
-                    <div class="modal-overlay" id="cancel-order-modal" hidden>
-                        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-modal-title">
-                            <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>" novalidate data-ajax-submit>
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="action" value="cancel_order">
-                                <div class="modal__header">
-                                    <h2 class="modal__title" id="cancel-order-modal-title">Cancel order #<?= (int) $order['order_id'] ?>?</h2>
-                                    <button type="button" class="modal__close" data-modal-close aria-label="Close">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div class="modal__body">
-                                    <p class="modal__message">This cannot be undone.</p>
-                                    <div class="<?= field_class($cancelErrors, 'cancellation_reason', 'field mb-0') ?>">
-                                        <label for="cancellation_reason">Cancellation reason <span class="required-mark">*</span></label>
-                                        <textarea id="cancellation_reason" name="cancellation_reason" maxlength="500" required data-modal-focus><?= e($cancelReasonOld) ?></textarea>
-                                        <?= field_error($cancelErrors, 'cancellation_reason') ?>
-                                    </div>
-                                </div>
-                                <div class="modal__footer">
-                                    <button type="button" class="btn btn--ghost" data-modal-close>Keep Order</button>
-                                    <button type="submit" class="btn btn--danger-solid">Cancel Order</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    <?php include __DIR__ . '/../../src/partials/order_cancel_modal.php'; ?>
                 <?php endif; ?>
 
                 <?php if ($flash && $flash['type'] === 'error'): ?>
@@ -623,56 +589,12 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <?php endif; ?>
                 <?php endif; // $editing: edit form vs read-only detail cards ?>
 
-                <?php // Shown whenever the order is cancelled, regardless of who
-                      // cancelled it -- a customer already knows their own
-                      // reason from entering it, but a staff-initiated cancel is
-                      // the case this card actually exists for. Same
-                      // detail-list row styling as the Order Details/Delivery
-                      // cards above, not a bare paragraph. ?>
-                <?php if ($order['status'] === 'cancelled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
-                    <div class="card">
-                        <span class="card__title">Cancellation Reason</span>
-                        <div class="detail-list">
-                            <?php if ($cancelledByLabel !== null): ?>
-                                <div class="detail-list__row">
-                                    <span class="detail-list__label">Cancelled by</span>
-                                    <span class="detail-list__value"><?= e($cancelledByLabel) ?></span>
-                                </div>
-                            <?php endif; ?>
-                            <div class="detail-list__row">
-                                <span class="detail-list__label">Reason</span>
-                                <span class="detail-list__value"><?= e($order['cancellation_reason']) ?></span>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
+                <?php // Cancellation Reason + Notes cards: shared partials (see
+                      // their headers for the variable contracts; the
+                      // cancellation card self-guards on cancelled+reason). ?>
+                <?php include __DIR__ . '/../../src/partials/order_cancellation_card.php'; ?>
 
-                <div class="card">
-                    <span class="card__title">Notes</span>
-                    <?php if ($notesEditable): ?>
-                        <form method="post" action="/customer/order_detail.php?id=<?= (int) $order['order_id'] ?>" class="order-notes-form" novalidate data-ajax-submit>
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="action" value="save_notes">
-                            <div class="<?= field_class($notesErrors, 'notes', 'field mb-0') ?>">
-                                <?php // id is order-notes, not notes: the
-                                      // new-order modal (included on every
-                                      // customer page) already owns #notes. ?>
-                                <label for="order-notes" class="sr-only">Notes</label>
-                                <?php $orderNotesValue = $notesOld !== null ? $notesOld : (string) $order['notes']; ?>
-                                <textarea id="order-notes" name="notes" maxlength="500"><?= e($orderNotesValue) ?></textarea>
-                                <span class="field-hint char-count" id="order-notes-char-count"><?= mb_strlen($orderNotesValue) ?>/500</span>
-                                <?= field_error($notesErrors, 'notes') ?>
-                            </div>
-                            <div class="mt-2">
-                                <button type="submit" class="btn btn--primary">Save Notes</button>
-                            </div>
-                        </form>
-                    <?php elseif ($order['notes'] !== null && $order['notes'] !== ''): ?>
-                        <p class="order-notes-text mb-0"><?= e($order['notes']) ?></p>
-                    <?php else: ?>
-                        <p class="muted mb-0">No notes.</p>
-                    <?php endif; ?>
-                </div>
+                <?php include __DIR__ . '/../../src/partials/order_notes_card.php'; ?>
             <?php endif; ?>
         </main>
     </div>

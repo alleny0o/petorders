@@ -18,13 +18,12 @@ if (!isset($labId)) {
 
 // Backing data for the New Order modal below, needed on every customer
 // page since the sidebar trigger opens it from anywhere. Guarded so
-// get_new_order_form_data() only ever runs once per request.
+// get_new_order_form_data() only ever runs once per request. Merged
+// straight into $petordersLayout (adds exactly its four return keys:
+// nuclides, products, locations, product_users) -- no loose temp
+// variable, per the reserved-layout-variables rule above.
 if (!isset($petordersLayout['nuclides'])) {
-    $newOrderFormData = get_new_order_form_data(get_db(), $labId);
-    $petordersLayout['nuclides'] = $newOrderFormData['nuclides'];
-    $petordersLayout['products'] = $newOrderFormData['products'];
-    $petordersLayout['locations'] = $newOrderFormData['locations'];
-    $petordersLayout['product_users'] = $newOrderFormData['product_users'];
+    $petordersLayout += get_new_order_form_data(get_db(), $labId);
 }
 
 ?>
@@ -109,27 +108,10 @@ if (!isset($petordersLayout['nuclides'])) {
     </nav>
   </div>
 
-  <!-- Sidebar Footer -->
-  <div class="sidebar-footer">
-    <button type="button" class="sidebar-account" data-my-info-trigger aria-haspopup="dialog">
-      <div class="account-avatar"><?= e($petordersLayout['initials']) ?></div>
-      <span class="account-name"><?= e($petordersLayout['name']) ?></span>
-    </button>
-
-    <div class="sidebar-footer-actions">
-      <form method="post" action="/logout.php" class="logout-form">
-        <?= csrf_field() ?>
-        <button type="submit" class="logout-link" aria-label="Log out">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-        </button>
-      </form>
-    </div>
-  </div>
-</aside>
+  <?php // Shared footer + </aside> + script.js tag; renders the
+        // data-my-info-trigger variant for customers (role-branched
+        // inside the partial). ?>
+  <?php include __DIR__ . '/_sidebar_footer.php'; ?>
 
 <!-- My Info modal: read-only display of the signed-in customer's own
      profile, opened from the sidebar account block above. Self-service
@@ -205,9 +187,9 @@ if (!isset($petordersLayout['nuclides'])) {
 // renders (new_order.php is a POST-only JSON endpoint with no page of
 // its own), so there is no duplicate-ID risk on any customer page.
 include __DIR__ . '/new_order_modal.php';
+// script.js itself is loaded (defer) by _sidebar_footer.php above.
 ?>
 
-<script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   // My Info triggers are marked with data-my-info-trigger -- same

@@ -1,6 +1,10 @@
 <?php
-// Usage: set $pageTitle before including this partial, e.g.:
-//   <?php $pageTitle = 'Home'; include '../src/partials/head.php'; ?>
+// Usage: set $pageTitle before including this partial, from the
+// including page's own PHP block:
+//   $pageTitle = 'Home'; include '../src/partials/head.php';
+// (No PHP tags in the example -- a close tag inside a comment would
+// end PHP mode right there.)
+?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($pageTitle) ?> | <?= e(app_setting('app_name')) ?></title>
@@ -33,10 +37,14 @@
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/tables.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/alerts.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/badges.css') ?>">
-<link rel="stylesheet" href="<?= asset_url('/assets/css/components/utilities.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/toasts.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/modals.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/feedback.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/dashboard.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/radio-cards.css') ?>">
 <link rel="stylesheet" href="<?= asset_url('/assets/css/components/order-page.css') ?>">
+<link rel="stylesheet" href="<?= asset_url('/assets/css/components/print.css') ?>">
+
+<!-- Loads last on purpose: single-class utilities must beat any
+     equal-specificity component rule they're layered onto. -->
+<link rel="stylesheet" href="<?= asset_url('/assets/css/components/utilities.css') ?>">
