@@ -361,11 +361,12 @@ $pageTitle = 'Institutes';
                                     <tr>
                                         <td><?= e($i['name']) ?></td>
                                         <td class="muted"><?= e($i['shorthand_name']) ?></td>
-                                        <td class="muted">
+                                        <td>
                                             <?php if ($labCount === 0): ?>
-                                                &mdash;
+                                                <span class="muted">&mdash;</span>
                                             <?php else: ?>
                                                 <?= $activeLabCount ?>
+                                                <div class="text-sm muted"><?= $labCount ?> total</div>
                                             <?php endif; ?>
                                         </td>
                                         <td><span class="badge badge--<?= $i['active'] ? 'active' : 'inactive' ?>"><?= $i['active'] ? 'Active' : 'Inactive' ?></span></td>

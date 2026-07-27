@@ -321,11 +321,12 @@ $pageTitle = 'Nuclides';
                                     ?>
                                     <tr>
                                         <td><?= e($n['name']) ?></td>
-                                        <td class="muted">
+                                        <td>
                                             <?php if ($productCount === 0): ?>
-                                                &mdash;
+                                                <span class="muted">&mdash;</span>
                                             <?php else: ?>
-                                                <?= $productCount ?> (<?= $activeProductCount ?> active)
+                                                <?= $activeProductCount ?>
+                                                <div class="text-sm muted"><?= $productCount ?> total</div>
                                             <?php endif; ?>
                                         </td>
                                         <td><span class="badge badge--<?= $n['active'] ? 'active' : 'inactive' ?>"><?= $n['active'] ? 'Active' : 'Inactive' ?></span></td>
