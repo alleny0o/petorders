@@ -225,7 +225,7 @@ $pageTitle = 'Register';
                   <select id="institute_id" name="institute_id" required>
                     <option value="">Select institute…</option>
                     <?php foreach ($institutes as $institute): ?>
-                      <option value="<?= (int) $institute['institute_id'] ?>" title="<?= e($institute['name']) ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['shorthand_name']) ?></option>
+                      <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?> (<?= e($institute['shorthand_name']) ?>)</option>
                     <?php endforeach; ?>
                   </select>
                   <?= field_error($fieldErrors, 'institute_id') ?>
