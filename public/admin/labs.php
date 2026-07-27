@@ -513,7 +513,7 @@ $pageTitle = 'Labs';
                                         <td><?= e($l['lab_name']) ?></td>
                                         <td class="muted"><?= e($l['institute_shorthand']) ?><?= $l['institute_active'] ? '' : ' <span class="text-sm">(inactive)</span>' ?><div class="text-sm"><?= e($l['institute_name']) ?></div></td>
                                         <td class="muted"><?= $buildingRoom !== '' ? e($buildingRoom) : '&mdash;' ?></td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ((int) $l['pi_count'] === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>
@@ -521,7 +521,7 @@ $pageTitle = 'Labs';
                                                 <div class="text-sm muted"><?= (int) $l['pi_count'] ?> total</div>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ((int) $l['customer_count'] === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>

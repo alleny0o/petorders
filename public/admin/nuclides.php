@@ -321,7 +321,7 @@ $pageTitle = 'Nuclides';
                                     ?>
                                     <tr>
                                         <td><?= e($n['name']) ?></td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ($productCount === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>

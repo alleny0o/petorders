@@ -361,7 +361,7 @@ $pageTitle = 'Institutes';
                                     <tr>
                                         <td><?= e($i['name']) ?></td>
                                         <td class="muted"><?= e($i['shorthand_name']) ?></td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ($labCount === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>

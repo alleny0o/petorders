@@ -352,7 +352,7 @@ $pageTitle = 'PIs';
                                         <td><?= e($p['pi_name']) ?></td>
                                         <td class="muted"><?= $p['email'] !== null && $p['email'] !== '' ? e($p['email']) : '&mdash;' ?></td>
                                         <td class="muted"><?= $p['phone'] !== null && $p['phone'] !== '' ? e($p['phone']) : '&mdash;' ?></td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ((int) $p['lab_count'] === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>
@@ -360,7 +360,7 @@ $pageTitle = 'PIs';
                                                 <div class="text-sm muted"><?= (int) $p['lab_count'] ?> total</div>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td class="count-cell">
                                             <?php if ((int) $p['customer_count'] === 0): ?>
                                                 <span class="muted">&mdash;</span>
                                             <?php else: ?>
