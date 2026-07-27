@@ -9,7 +9,7 @@ require_once __DIR__ . '/../src/db.php';
 $pdo = get_db();
 
 // 2. Stress Test Settings
-$records_to_generate = 1000; // Change this number to generate more/less orders
+$records_to_generate = 19000; // Change this number to generate more/less orders
 
 echo "Starting Stress Test Generation for $records_to_generate orders...\n";
 

@@ -593,9 +593,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    institute_id: <?= json_encode($editOld['institute_id']) ?>,
-    name: <?= json_encode($editOld['name']) ?>,
-    shorthand_name: <?= json_encode($editOld['shorthand_name']) ?>
+    institute_id: <?= json_encode($editOld['institute_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    name: <?= json_encode($editOld['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    shorthand_name: <?= json_encode($editOld['shorthand_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 

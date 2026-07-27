@@ -732,11 +732,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   <?php if ($editErrors): ?>
   openEditModal({
-    product_id: <?= json_encode($editOld['product_id']) ?>,
-    name: <?= json_encode($editOld['name']) ?>,
-    nuclide_id: <?= json_encode($editOld['nuclide_id']) ?>,
-    delivery_method: <?= json_encode($editOld['delivery_method']) ?>,
-    has_orders: <?= json_encode($editOld['has_orders']) ?>
+    product_id: <?= json_encode($editOld['product_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    name: <?= json_encode($editOld['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    nuclide_id: <?= json_encode($editOld['nuclide_id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    delivery_method: <?= json_encode($editOld['delivery_method'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
+    has_orders: <?= json_encode($editOld['has_orders'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
   }, null);
   <?php endif; ?>
 
