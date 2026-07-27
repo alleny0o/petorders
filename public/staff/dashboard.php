@@ -114,7 +114,7 @@ $pageTitle = 'Dashboard';
                 <div class="table-card-header">
                     <span class="table-card-title">Due Today &amp; Overdue</span>
                     <div class="table-card-controls">
-                        <a href="/staff/orders.php?status=pending" class="table-action">View all</a>
+                        <a href="/staff/orders.php" class="table-action">View all</a>
                     </div>
                 </div>
                 <?php if (!$dashDueOrders): ?>
