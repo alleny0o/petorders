@@ -9,7 +9,6 @@ if (!empty($_SESSION['user_id']) && !empty($_SESSION['role'])) {
 }
 
 $error = '';
-$username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   verify_csrf();
@@ -58,16 +57,14 @@ $pageTitle = 'Log In';
       </div>
       <div class="auth-card__body">
 
-        <?php if ($error): ?>
-          <div class="alert alert--error"><?= e($error) ?></div>
-        <?php endif; ?>
+        <div class="alert alert--error" data-ajax-error<?= $error ? '' : ' hidden' ?>><?= $error ? e($error) : '' ?></div>
 
-        <form method="post" id="login-form" novalidate data-ajax-submit>
+        <form method="post" id="login-form" novalidate data-ajax-submit data-ajax-inline-error data-reset-on-error>
           <?= csrf_field() ?>
 
           <div class="field">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" value="<?= e($username) ?>" required autofocus>
+            <input type="text" id="username" name="username" value="" required autofocus>
           </div>
 
           <div class="field">

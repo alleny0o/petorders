@@ -348,10 +348,10 @@ All boxes checked = done.
 
 - **Sessions time out after 15 min idle.** Returns to login on next
   click. By design.
-- **Lockout:** 5 failed attempts locks the account for 15 min. User
-  sees the same generic "Invalid username or password" the whole time,
-  no indication they're locked out. Admins see recent lockouts on the
-  Admin Dashboard.
+- **Lockout:** 5 failed attempts locks the account for 15 min. The
+  login page tells the user the account is temporarily locked and how
+  many minutes remain. Admins see recent lockouts on the Admin
+  Dashboard.
 - **No email, ever.** Temp passwords and reset passwords are shown once
   to the admin, who relays them via NIH email manually.
 - Admins can trigger a password reset but never see or set the actual
