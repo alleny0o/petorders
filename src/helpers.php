@@ -667,10 +667,48 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
 
 /**
- * Builds a query string from the current $_GET with the given overrides
- * applied, dropping empty/null values. Shared by every list page's status
+ * Params whose value is a no-op default -- omitted from build_query()'s
+ * output entirely rather than appended, so a fresh list-page visit
+ * doesn't grow a ?page=1&page_size=10 tail the moment any status
+ * tab/pagination link (all built via build_query()) is clicked. Every
+ * list page canonicalizes 'page'/'page_size' into $_GET before building
+ * links (so build_query() reflects the real applied value), which means
+ * these two land in $_GET as non-empty strings even at their defaults --
+ * unlike 'status'/'role'/etc, whose "all" state is already the empty
+ * string and gets dropped by the empty/null check below.
+ */
+const BUILD_QUERY_DEFAULTS = [
+    'page' => '1',
+    'page_size' => DEFAULT_PAGE_SIZE,
+];
+
+/**
+ * Builds a query string -- INCLUDING its leading "?", or '' when there's
+ * nothing left to show -- from the current $_GET with the given overrides
+ * applied, dropping empty/null values and any param equal to its
+ * BUILD_QUERY_DEFAULTS no-op default. Shared by every list page's status
  * tabs, pagination links, and POST-form actions, so paging/filtering never
  * drops the rest of the active view.
+ *
+ * Callers must NOT prepend their own "?" -- e.g. `href="<?= e(build_query(...))
+ * ?>"` and `'/admin/labs.php' . build_query([...])`, never `href="?<?=
+ * ...`/`'path?' . ...`. Baking the "?" in here (instead of leaving each call
+ * site to add its own) is what lets an all-defaults/all-empty result collapse
+ * to a bare path/bare '?'-less href rather than a dangling trailing "?".
+ *
+ * This returns ONLY the query portion, never a path -- a real past bug:
+ * a same-page link built as `href="<?= e(build_query(...)) ?>"` with no
+ * path in front (status tabs, pagination prev/next, clear-filters) is
+ * BROKEN once the result collapses to '' -- `href=""` is not "this path,
+ * no query", it's an empty relative reference, which resolves to the
+ * exact current document (RFC 3986 empty-reference resolution), query
+ * string and all, so the link silently does nothing. Every same-page
+ * anchor built from build_query() must prepend $_SERVER['PHP_SELF']
+ * itself (`e($_SERVER['PHP_SELF'] . build_query(...))`), same convention
+ * as helpers.php's own current_page detection below. form_action() and
+ * the POST-handler redirect destinations (`'/admin/labs.php' .
+ * build_query([...])`) are unaffected -- they already carry an explicit
+ * path in front of build_query()'s output.
  */
 function build_query(array $overrides = []): string
 {
@@ -678,23 +716,28 @@ function build_query(array $overrides = []): string
     foreach ($params as $key => $value) {
         if ($value === '' || $value === null) {
             unset($params[$key]);
+            continue;
+        }
+        if (array_key_exists($key, BUILD_QUERY_DEFAULTS) && (string) $value === (string) BUILD_QUERY_DEFAULTS[$key]) {
+            unset($params[$key]);
         }
     }
-    return http_build_query($params);
+    $queryString = http_build_query($params);
+
+    return $queryString !== '' ? '?' . $queryString : '';
 }
 
 /**
  * Builds a list page's POST-form action: the given path with the current
- * search/filter/page state (via build_query()) appended, so create/edit/
- * toggle handlers redirect back to the exact view the person was on, not
- * page 1. Call after paginate() + canonicalize_get(['page' => $page]) so
- * the clamped page number is what gets embedded.
+ * search/filter/page state (via build_query(), which already supplies its
+ * own leading "?") appended, so create/edit/toggle handlers redirect back
+ * to the exact view the person was on, not page 1. Call after paginate() +
+ * canonicalize_get(['page' => $page]) so the clamped page number is what
+ * gets embedded.
  */
 function form_action(string $path): string
 {
-    $queryString = build_query();
-
-    return $queryString !== '' ? $path . '?' . $queryString : $path;
+    return $path . build_query();
 }
 
 /**

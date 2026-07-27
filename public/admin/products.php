@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$addErrors) {
             $pdo->prepare('INSERT INTO products (nuclide_id, name, delivery_method, active) VALUES (?, ?, ?, ?)')
                 ->execute([$nuclideId, $addOld['name'], $addOld['delivery_method'], (int) $addOld['active']]);
-            $dest = '/admin/products.php?' . build_query(['created' => '1']);
+            $dest = '/admin/products.php' . build_query(['created' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE products SET name = ?, nuclide_id = ?, delivery_method = ? WHERE product_id = ?')
                 ->execute([$editOld['name'], $nuclideId, $editOld['delivery_method'], $productId]);
-            $dest = '/admin/products.php?' . build_query(['updated' => '1']);
+            $dest = '/admin/products.php' . build_query(['updated' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE products SET active = ? WHERE product_id = ?')
                     ->execute([$newActive, $productId]);
-                redirect('/admin/products.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/admin/products.php' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -338,7 +338,7 @@ $pageTitle = 'Products';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
@@ -348,7 +348,9 @@ $pageTitle = 'Products';
                 <div class="table-card-header">
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php endif; ?>
 
                         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search by name&hellip;">
 

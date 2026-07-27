@@ -50,13 +50,15 @@
         <?php if ($tablePagination['page'] <= 1): ?>
             <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
         <?php else: ?>
-            <a href="?<?= e(build_query(['page' => $tablePagination['page'] - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
+            <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['page' => $tablePagination['page'] - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
         <?php endif; ?>
         <form method="get" class="table-card-controls table-pagination__jump">
             <?php foreach ($tablePagination['hiddenFields'] as $name => $value): ?>
                 <input type="hidden" name="<?= e($name) ?>" value="<?= e((string) $value) ?>">
             <?php endforeach; ?>
-            <input type="hidden" name="page_size" value="<?= e((string) $tablePagination['pageSize']) ?>">
+            <?php if ($tablePagination['pageSize'] !== DEFAULT_PAGE_SIZE): ?>
+                <input type="hidden" name="page_size" value="<?= e((string) $tablePagination['pageSize']) ?>">
+            <?php endif; ?>
             <label for="<?= e($tablePagination['idPrefix']) ?>page-jump" class="sr-only">Go to page</label>
             <input type="number" name="page" id="<?= e($tablePagination['idPrefix']) ?>page-jump" min="1" max="<?= $tablePagination['totalPages'] ?>" value="<?= $tablePagination['page'] ?>">
             <span class="table-pagination__status">of <?= $tablePagination['totalPages'] ?></span>
@@ -65,7 +67,7 @@
         <?php if ($tablePagination['page'] >= $tablePagination['totalPages']): ?>
             <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
         <?php else: ?>
-            <a href="?<?= e(build_query(['page' => $tablePagination['page'] + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
+            <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['page' => $tablePagination['page'] + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
         <?php endif; ?>
     </div>
 </div>

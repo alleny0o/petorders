@@ -88,7 +88,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // forward so the person lands back where they were. The AJAX
             // path navigates to the same destination itself, so the
             // arrival-flag toast works identically either way.
-            $dest = '/customer/lab_delivery_locations.php?' . build_query(['created' => '1']);
+            $dest = '/customer/lab_delivery_locations.php' . build_query(['created' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -124,7 +124,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE lab_delivery_locations SET name = ?, room = ? WHERE location_id = ? AND lab_id = ?')
                 ->execute([$editOld['name'], $editOld['room'] !== '' ? $editOld['room'] : null, $locationId, $labId]);
-            $dest = '/customer/lab_delivery_locations.php?' . build_query(['updated' => '1']);
+            $dest = '/customer/lab_delivery_locations.php' . build_query(['updated' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -141,7 +141,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE lab_delivery_locations SET active = ? WHERE location_id = ? AND lab_id = ?')
                     ->execute([$newActive, $locationId, $labId]);
-                redirect('/customer/lab_delivery_locations.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/customer/lab_delivery_locations.php' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -257,7 +257,9 @@ $pageTitle = 'Delivery Locations';
                                   // page_size field of its own, so without
                                   // this hidden input a search would
                                   // silently reset it to the default. ?>
-                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                            <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                            <?php endif; ?>
                             <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search by name&hellip;">
                             <button type="submit" class="btn btn--secondary btn--sm">Search</button>
                         </form>

@@ -182,7 +182,7 @@ $pageTitle = 'Order Queue';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($queueTabs as $tab): ?>
-                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $queueStatus === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $queueStatus === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>
@@ -198,7 +198,9 @@ $pageTitle = 'Order Queue';
                           // right behavior for a changed filter. ?>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($queueStatus) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $queuePageSize) ?>">
+                        <?php if ($queuePageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $queuePageSize) ?>">
+                        <?php endif; ?>
 
                         <input type="text" name="q" value="<?= e($queueSearch) ?>" placeholder="Search # / product / nuclide / product user / lab / PI / institute&hellip;">
 
@@ -260,11 +262,11 @@ $pageTitle = 'Order Queue';
                                 <?php // Preserves the active status tab -- only the
                                       // search/fulfillment/date filters clear, same
                                       // convention as customer/orders.php. ?>
-                                <a href="?<?= e(build_query(['q' => null, 'fulfillment' => null, 'requested_from' => null, 'requested_to' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">Clear filters</a>
+                                <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['q' => null, 'fulfillment' => null, 'requested_from' => null, 'requested_to' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">Clear filters</a>
                             </div>
                         <?php elseif ($queueStatus !== ''): ?>
                             <div class="empty-state__action">
-                                <a href="?<?= e(build_query(['status' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">View all orders</a>
+                                <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => null, 'page' => 1])) ?>" class="btn btn--secondary btn--sm">View all orders</a>
                             </div>
                         <?php endif; ?>
                     </div>
