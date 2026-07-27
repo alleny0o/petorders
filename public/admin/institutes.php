@@ -330,7 +330,7 @@ $pageTitle = 'Institutes';
                                             <?php if ($labCount === 0): ?>
                                                 &mdash;
                                             <?php else: ?>
-                                                <?= $labCount ?> (<?= $activeLabCount ?> active)
+                                                <?= $activeLabCount ?>
                                             <?php endif; ?>
                                         </td>
                                         <td><span class="badge badge--<?= $i['active'] ? 'active' : 'inactive' ?>"><?= $i['active'] ? 'Active' : 'Inactive' ?></span></td>
