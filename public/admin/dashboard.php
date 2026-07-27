@@ -93,10 +93,7 @@ $recentRejections = $pdo->query(
 
             <div class="stat-grid">
                 <a class="stat-tile" href="/admin/registrations.php">
-                    <span class="stat-tile__label">
-                        <?php if ($pendingCount > 0): ?><span class="dot dot--warning"></span><?php endif; ?>
-                        Pending Registrations
-                    </span>
+                    <span class="stat-tile__label">Pending Registrations</span>
                     <span class="stat-tile__value tabular"><?= $pendingCount ?></span>
                     <span class="stat-tile__meta"><?= $pendingCount > 0 ? 'Awaiting review' : 'Queue is clear' ?></span>
                 </a>
@@ -185,7 +182,7 @@ $recentRejections = $pdo->query(
                                     }
                                 ?>
                                     <li>
-                                        <span class="mini-list__main"><?= e($r['first_name'] . ' ' . $r['last_name']) ?><?= $reason !== '' ? ' &mdash; ' . e($reason) : '' ?></span>
+                                        <span class="mini-list__main"><?= e($r['first_name'] . ' ' . $r['last_name']) ?><?= $reason !== '' ? ': ' . e($reason) : '' ?></span>
                                         <span class="mini-list__meta"><?= e(date('M j, Y', strtotime($r['reviewed_at']))) ?></span>
                                     </li>
                                 <?php endforeach; ?>
@@ -196,9 +193,12 @@ $recentRejections = $pdo->query(
 
                 <div class="dash-stack">
                     <div class="card">
-                        <span class="card__title">Recently Added Customers</span>
+                        <div class="card__header">
+                            <span class="card__title">Recently Added Customers</span>
+                            <a href="/admin/customers.php" class="table-action">View all</a>
+                        </div>
                         <?php if (!$recentCustomers): ?>
-                            <p class="muted text-sm mb-0">No customers yet &mdash; approve a registration to create one.</p>
+                            <p class="muted text-sm mb-0">No customers yet. Approve a registration to create one.</p>
                         <?php else: ?>
                             <ul class="mini-list">
                                 <?php foreach ($recentCustomers as $c): ?>
@@ -212,7 +212,7 @@ $recentRejections = $pdo->query(
                     </div>
 
                     <div class="card">
-                        <span class="card__title">Lockouts &mdash; Past 7 Days</span>
+                        <span class="card__title">Lockouts: Past 7 Days</span>
                         <?php if (!$recentLockouts): ?>
                             <p class="muted text-sm mb-0">No accounts have been locked out recently.</p>
                         <?php else: ?>
