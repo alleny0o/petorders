@@ -864,14 +864,35 @@ function initCopyButtons() {
 // build_query() never sees.
 // Disabling a field excludes it from the browser's own serialization --
 // no value is lost since the page is navigating away regardless.
+//
+// Also strips a couple of fields that are never empty but are still
+// no-op defaults -- the pagination footer's hardcoded page=1 reset and
+// a page_size selection that happens to equal the default. Mirrors
+// BUILD_QUERY_DEFAULTS in helpers.php -- keep in sync.
+const FORM_FIELD_DEFAULTS = { page: '1', page_size: '10' };
+
 function initFilterFormCleanup() {
   document.querySelectorAll('form.table-card-controls').forEach((form) => {
     if (form.method.toLowerCase() !== 'get') return;
-    form.addEventListener('submit', () => {
+    form.addEventListener('submit', (e) => {
+      let anyEnabled = false;
       Array.from(form.elements).forEach((el) => {
         if (!el.name || el.type === 'submit' || el.type === 'button') return;
-        if (el.value === '') el.disabled = true;
+        if (el.value === '' || FORM_FIELD_DEFAULTS[el.name] === el.value) {
+          el.disabled = true;
+        } else {
+          anyEnabled = true;
+        }
       });
+      // Every field ended up disabled -- a native submit would still land
+      // on a trailing bare "?", the form-submission counterpart to the
+      // bare-"?" bug build_query() already guards against for links.
+      // Skip the browser's own serialization and go straight to the
+      // form's path with no query string.
+      if (!anyEnabled) {
+        e.preventDefault();
+        window.location.href = form.action.split('?')[0];
+      }
     });
   });
 }

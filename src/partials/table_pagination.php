@@ -39,7 +39,7 @@
             <?php endforeach; ?>
             <input type="hidden" name="page" value="1">
             <label for="<?= e($tablePagination['idPrefix']) ?>page-size" class="sr-only"><?= e($tablePagination['itemLabel']) ?> per page</label>
-            <select name="page_size" id="<?= e($tablePagination['idPrefix']) ?>page-size" onchange="this.form.submit()">
+            <select name="page_size" id="<?= e($tablePagination['idPrefix']) ?>page-size" onchange="if (this.form.requestSubmit) { this.form.requestSubmit(); } else { this.form.submit(); }">
                 <?php foreach (PAGE_SIZE_OPTIONS as $option): ?>
                     <option value="<?= $option ?>" <?= $tablePagination['pageSize'] === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
                 <?php endforeach; ?>
