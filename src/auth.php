@@ -11,6 +11,13 @@ const SESSION_IDLE_LIMIT_SECONDS = 15 * 60;
 const FAILED_LOGIN_LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_SECONDS = 15 * 60;
 
+function lockout_message(string $lockedUntil): string
+{
+    $minutesLeft = (int) ceil((strtotime($lockedUntil) - time()) / 60);
+    $unit = $minutesLeft === 1 ? 'minute' : 'minutes';
+    return "Account temporarily locked. Try again in {$minutesLeft} {$unit}.";
+}
+
 function attempt_login(string $username, string $password): array
 {
     $pdo = get_db();
@@ -25,7 +32,7 @@ function attempt_login(string $username, string $password): array
 
     if ($user['locked_until'] !== null && strtotime($user['locked_until']) > time()) {
         error_log('Login attempt on locked account: username=' . $username);
-        return ['success' => false, 'reason' => 'Invalid username or password.'];
+        return ['success' => false, 'reason' => lockout_message($user['locked_until'])];
     }
 
     if (!password_verify($password, $user['password_hash'])) {
@@ -41,6 +48,7 @@ function attempt_login(string $username, string $password): array
         if ($lockedUntil !== null) {
             $pdo->prepare('INSERT INTO lockout_events (user_id, failed_attempts) VALUES (?, ?)')
                 ->execute([$user['user_id'], $failedCount]);
+            return ['success' => false, 'reason' => lockout_message($lockedUntil)];
         }
 
         return ['success' => false, 'reason' => 'Invalid username or password.'];

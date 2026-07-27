@@ -54,16 +54,15 @@ $recentLockouts = $pdo->query(
      FROM lockout_events le
      JOIN users u ON u.user_id = le.user_id
      WHERE le.locked_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-     ORDER BY le.locked_at DESC
-     LIMIT 5'
+     ORDER BY le.locked_at DESC'
 )->fetchAll();
 
 $recentRejections = $pdo->query(
     "SELECT first_name, last_name, rejection_reason, reviewed_at
      FROM customer_registration_requests
      WHERE status = 'rejected'
-     ORDER BY reviewed_at DESC
-     LIMIT 5"
+       AND reviewed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+     ORDER BY reviewed_at DESC, request_id DESC"
 )->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -170,9 +169,9 @@ $recentRejections = $pdo->query(
                     </div>
 
                     <div class="card">
-                        <span class="card__title">Recently Rejected Registrations</span>
+                        <span class="card__title">Rejected Registrations: Past 7 Days</span>
                         <?php if (!$recentRejections): ?>
-                            <p class="muted text-sm mb-0">No recent rejections.</p>
+                            <p class="muted text-sm mb-0">No registrations were rejected in the past 7 days.</p>
                         <?php else: ?>
                             <ul class="mini-list">
                                 <?php foreach ($recentRejections as $r):

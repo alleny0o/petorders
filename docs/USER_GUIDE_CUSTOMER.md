@@ -87,11 +87,11 @@ be one you've used recently.
 Two things to know about logging in:
 
 - If you see "Invalid username or password," check both carefully and
-  try again.
-- After several wrong attempts in a row, logins for your account stop
-  working for about 15 minutes, even with the right password. If you're
-  sure your password is correct but it isn't working, wait 15 minutes
-  and try again.
+  try again. The fields clear after each failed attempt, so retype both.
+- After several wrong attempts in a row, your account locks for about
+  15 minutes and the login page says "Account temporarily locked" with
+  the minutes remaining. Wait it out and try again — even the right
+  password won't work until the lock expires.
 
 ## 4. Your dashboard
 

@@ -37,7 +37,7 @@ _The admin dashboard: pending registrations front and center, plus account count
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stat tiles                      | Pending Registrations, Active Customers, Active Staff, Admins (each also shows its inactive count). Click a tile to jump to the matching list                                                                                                                                       |
 | Pending Registrations           | The review queue's newest entries, with a **Review** link into the full page                                                                                                                                                                                                        |
-| Recently Rejected Registrations | Recent rejections with the reason, for quick reference when someone follows up                                                                                                                                                                                                      |
+| Rejected Registrations: Past 7 Days | All rejections from the past 7 days with the reason, for quick reference when someone follows up                                                                                                                                                                                |
 | Recently Added Customers        | The newest customer accounts                                                                                                                                                                                                                                                        |
 | Lockouts — Past 7 Days          | Accounts that recently hit the failed-login lockout (5 wrong passwords locks an account for 15 minutes). Useful when someone reports they "can't log in": if they're on this list, they can wait out the 15 minutes, or you can reset their password, which also clears the lockout |
 
@@ -73,8 +73,9 @@ one. The customer must change this password the first time they log in.
 ![Reject registration dialog with the required reason field](images/admin/registration-reject-modal.png)
 _Rejecting requires a reason._
 
-The reason is kept on record for admins (the dashboard's Recently
-Rejected panel, and the "Previously rejected" badge on any resubmission).
+The reason is kept on record for admins (the dashboard's Rejected
+Registrations panel for the first 7 days, and the "Previously rejected"
+badge on any resubmission).
 The applicant's status page tells them only that their request was not
 approved and to contact an administrator, so be prepared to explain the
 reason if they get in touch. Rejected applicants can submit a new

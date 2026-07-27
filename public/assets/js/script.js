@@ -1067,7 +1067,12 @@ function initFieldErrorClearing() {
 // contract is json_response()'s: {ok:true, redirect} → navigate (the
 // page's usual PRG destination, arrival-flag toast included);
 // {ok:false, errors} (422) → per-field red text + summary banner via
-// renderFieldErrors above; {ok:false, message} → error toast.
+// renderFieldErrors above; {ok:false, message} → error toast, unless
+// the form opts into data-ajax-inline-error, which routes the message
+// into its persistent [data-ajax-error] alert instead (login.php —
+// same element its no-JS fallback renders into). A form with
+// data-reset-on-error additionally clears its username/password
+// inputs after a failed attempt so stale credentials never linger.
 // Listeners attach per form (target phase), so they run before the
 // document-level loading guard — which skips preventDefault-ed
 // submits — and loading state is owned here, as in New Order.
@@ -1136,7 +1141,24 @@ function initAjaxForms() {
             return;
           }
           if (data.errors) renderFieldErrors(form, data.errors);
-          if (data.message) window.showToast('error', data.message);
+          if (data.message) {
+            const inlineAlert = form.hasAttribute('data-ajax-inline-error')
+              ? form.parentElement.querySelector('[data-ajax-error]')
+              : null;
+            if (inlineAlert) {
+              inlineAlert.textContent = data.message;
+              inlineAlert.hidden = false;
+            } else {
+              window.showToast('error', data.message);
+            }
+          }
+          if (form.hasAttribute('data-reset-on-error')) {
+            const usernameInput = form.elements.username;
+            const passwordInput = form.elements.password;
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+            if (usernameInput) usernameInput.focus();
+          }
           finishSubmitAttempt();
         })
         .catch(() => {
