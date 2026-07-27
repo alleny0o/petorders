@@ -42,7 +42,7 @@ function fetch_order_for_staff(PDO $pdo, int $orderId): ?array
                 pu.email AS product_user_email,
                 u.first_name AS placer_first_name, u.last_name AS placer_last_name,
                 u.username AS placer_username,
-                l.lab_name, i.name AS institute_name, pi.pi_name
+                l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, pi.pi_name
          FROM orders o
          JOIN customers c ON c.user_id = o.customer_id
          JOIN products p  ON p.product_id = o.product_id
@@ -422,7 +422,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Institute</span>
-                            <span class="detail-list__value"><?= e($order['institute_name'] ?? '—') ?></span>
+                            <span class="detail-list__value"><?= $order['institute_name'] !== null ? e($order['institute_name']) . ' (' . e($order['institute_shorthand']) . ')' : '—' ?></span>
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Supervising PI</span>
@@ -592,7 +592,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="order-print__field"><dt>Product user email</dt><dd><?= $recipientEmail !== null ? e($recipientEmail) : '&mdash;' ?></dd></div>
                 <div class="order-print__field"><dt>Placed by</dt><dd><?= e(customer_display_name($order['placer_first_name'], $order['placer_last_name'], $order['placer_username'])) ?></dd></div>
                 <div class="order-print__field"><dt>Lab</dt><dd><?= e($order['lab_name'] ?? '—') ?></dd></div>
-                <div class="order-print__field"><dt>Institute</dt><dd><?= e($order['institute_name'] ?? '—') ?></dd></div>
+                <div class="order-print__field"><dt>Institute</dt><dd><?= $order['institute_name'] !== null ? e($order['institute_name']) . ' (' . e($order['institute_shorthand']) . ')' : '—' ?></dd></div>
                 <div class="order-print__field"><dt>Supervising PI</dt><dd><?= e($order['pi_name'] ?? '—') ?></dd></div>
             </dl>
 

@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pdo = get_db();
-$institutes = $pdo->query('SELECT institute_id, name FROM institutes WHERE active = 1 ORDER BY name')->fetchAll();
+$institutes = $pdo->query('SELECT institute_id, name, shorthand_name FROM institutes WHERE active = 1 ORDER BY shorthand_name')->fetchAll();
 // Effective availability, computed at read time like the catalog's
 // nuclide/product gate: a lab is offered iff its own flag AND its
 // institute's flag are on. The cascading UI and the validation above
@@ -225,7 +225,7 @@ $pageTitle = 'Register';
                   <select id="institute_id" name="institute_id" required>
                     <option value="">Select institute…</option>
                     <?php foreach ($institutes as $institute): ?>
-                      <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?></option>
+                      <option value="<?= (int) $institute['institute_id'] ?>" title="<?= e($institute['name']) ?>" <?= (string) $institute['institute_id'] === $old['institute_id'] ? 'selected' : '' ?>><?= e($institute['shorthand_name']) ?></option>
                     <?php endforeach; ?>
                   </select>
                   <?= field_error($fieldErrors, 'institute_id') ?>

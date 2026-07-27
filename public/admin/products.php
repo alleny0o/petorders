@@ -346,7 +346,6 @@ $pageTitle = 'Products';
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">Catalog Products</span>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
                         <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">

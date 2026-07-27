@@ -35,12 +35,16 @@ DROP TABLE IF EXISTS institutes;
 -- as a result, as long as the FK contract (lab_id -> labs.lab_id,
 -- pi_id -> pis.pi_id, etc.) stays intact.
 
+-- shorthand_name is the display text for every institute dropdown
+-- (full name shown via title tooltip), so it is required and plainly
+-- unique -- not active-scoped, same choice as name and pis.email.
 CREATE TABLE institutes (
   institute_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name           VARCHAR(255) NOT NULL,
-  shorthand_name VARCHAR(10),
+  shorthand_name VARCHAR(10) NOT NULL,
   active         TINYINT(1) NOT NULL DEFAULT 1,
-  UNIQUE KEY uq_institutes_name (name)
+  UNIQUE KEY uq_institutes_name (name),
+  UNIQUE KEY uq_institutes_shorthand (shorthand_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE labs (

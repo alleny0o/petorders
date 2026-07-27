@@ -348,7 +348,7 @@ canonicalize_get(['page' => $page]);
 // server-computed-ints convention as the other admin lists.
 $listStmt = $pdo->prepare(
     "SELECT l.lab_id, l.lab_name, l.building, l.room, l.active,
-            l.institute_id, i.name AS institute_name, i.active AS institute_active,
+            l.institute_id, i.name AS institute_name, i.shorthand_name AS institute_shorthand, i.active AS institute_active,
             (SELECT COUNT(*) FROM lab_pis lp WHERE lp.lab_id = l.lab_id) AS pi_count,
             (SELECT COUNT(*) FROM lab_pis lp JOIN pis p ON p.pi_id = lp.pi_id WHERE lp.lab_id = l.lab_id AND p.active = 1) AS active_pi_count,
             (SELECT COUNT(*) FROM customers c WHERE c.lab_id = l.lab_id) AS customer_count,
@@ -396,7 +396,7 @@ if ($labsList) {
 // inactive institute, and a CHANGED institute is re-checked server-side
 // against the active-only rule. The PI roster deliberately lists ALL PIs
 // (inactive suffixed): pairing is membership, not availability.
-$allInstitutes = $pdo->query('SELECT institute_id, name, active FROM institutes ORDER BY name')->fetchAll();
+$allInstitutes = $pdo->query('SELECT institute_id, name, shorthand_name, active FROM institutes ORDER BY shorthand_name')->fetchAll();
 $activeInstitutes = array_values(array_filter($allInstitutes, fn($i) => $i['active']));
 $allPis = $pdo->query('SELECT pi_id, pi_name, email, active FROM pis ORDER BY pi_name')->fetchAll();
 
@@ -444,7 +444,6 @@ $pageTitle = 'Labs';
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">Labs</span>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
                         <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
@@ -454,7 +453,7 @@ $pageTitle = 'Labs';
                         <select name="institute">
                             <option value="">All institutes</option>
                             <?php foreach ($allInstitutes as $i): ?>
-                                <option value="<?= (int) $i['institute_id'] ?>" <?= $instituteFilter === (int) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['name']) ?><?= $i['active'] ? '' : ' (inactive)' ?></option>
+                                <option value="<?= (int) $i['institute_id'] ?>" title="<?= e($i['name']) ?>" <?= $instituteFilter === (int) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['shorthand_name']) ?><?= $i['active'] ? '' : ' (inactive)' ?></option>
                             <?php endforeach; ?>
                         </select>
 
@@ -512,7 +511,7 @@ $pageTitle = 'Labs';
                                     ?>
                                     <tr>
                                         <td><?= e($l['lab_name']) ?></td>
-                                        <td class="muted"><?= e($l['institute_name']) ?><?= $l['institute_active'] ? '' : ' <span class="text-sm">(inactive)</span>' ?></td>
+                                        <td class="muted"><?= e($l['institute_shorthand']) ?><?= $l['institute_active'] ? '' : ' <span class="text-sm">(inactive)</span>' ?><div class="text-sm"><?= e($l['institute_name']) ?></div></td>
                                         <td class="muted"><?= $buildingRoom !== '' ? e($buildingRoom) : '&mdash;' ?></td>
                                         <td class="muted">
                                             <?php if ((int) $l['pi_count'] === 0): ?>
@@ -626,7 +625,7 @@ $pageTitle = 'Labs';
                                 <select id="add-lab-institute" name="institute_id" required data-modal-focus>
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($activeInstitutes as $i): ?>
-                                        <option value="<?= (int) $i['institute_id'] ?>" <?= $addOld['institute_id'] === (string) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['name']) ?></option>
+                                        <option value="<?= (int) $i['institute_id'] ?>" title="<?= e($i['name']) ?>" <?= $addOld['institute_id'] === (string) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['shorthand_name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <?= field_error($addErrors, 'institute_id') ?>
@@ -744,7 +743,7 @@ $pageTitle = 'Labs';
                                 <select id="edit-lab-institute" name="institute_id" required>
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($allInstitutes as $i): ?>
-                                        <option value="<?= (int) $i['institute_id'] ?>" <?= $editOld['institute_id'] === (string) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['name']) ?><?= $i['active'] ? '' : ' (inactive)' ?></option>
+                                        <option value="<?= (int) $i['institute_id'] ?>" title="<?= e($i['name']) ?>" <?= $editOld['institute_id'] === (string) $i['institute_id'] ? 'selected' : '' ?>><?= e($i['shorthand_name']) ?><?= $i['active'] ? '' : ' (inactive)' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <span class="field-hint">Changing the institute updates how this lab displays everywhere, including past orders.</span>

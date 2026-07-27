@@ -771,7 +771,7 @@ function layout_account_data(int $userId, string $role): array
     if ($role === 'customer') {
         $stmt = $pdo->prepare(
             'SELECT u.first_name, u.last_name, u.phone, u.username,
-                    l.lab_name, i.name AS institute_name, p.pi_name
+                    l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name
              FROM customers c
              JOIN users u ON u.user_id = c.user_id
              LEFT JOIN labs l ON l.lab_id = c.lab_id

@@ -94,7 +94,7 @@ canonicalize_get(['page' => $page]);
 $listStmt = $pdo->prepare(
     "SELECT u.user_id, u.username, u.active,
             u.first_name, u.last_name,
-            l.lab_name, i.name AS institute_name, p.pi_name
+            l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name
      FROM customers c
      JOIN users u ON u.user_id = c.user_id
      LEFT JOIN labs l ON l.lab_id = c.lab_id
@@ -110,7 +110,7 @@ $customers = $listStmt->fetchAll();
 // Filter dropdowns intentionally include inactive institutes/labs too --
 // this is a search context, not data entry, and a customer can belong to
 // a lab that's since gone inactive; hiding it would make them unfindable.
-$institutes = $pdo->query('SELECT institute_id, name FROM institutes ORDER BY name')->fetchAll();
+$institutes = $pdo->query('SELECT institute_id, name, shorthand_name FROM institutes ORDER BY shorthand_name')->fetchAll();
 $labs = $pdo->query('SELECT lab_id, institute_id, lab_name FROM labs ORDER BY lab_name')->fetchAll();
 
 $rangeStart = $pagination['rangeStart'];
@@ -142,7 +142,6 @@ $pageTitle = 'Customers';
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">All Customers</span>
                     <?php // Status is no longer a field here -- the tabs above
                           // are the status filter now, same as staff/orders.php. ?>
                     <form method="get" class="table-card-controls">
@@ -154,7 +153,7 @@ $pageTitle = 'Customers';
                         <select name="institute_id" id="filter_institute_id">
                             <option value="">All institutes</option>
                             <?php foreach ($institutes as $institute): ?>
-                                <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === (string) $instituteId ? 'selected' : '' ?>><?= e($institute['name']) ?></option>
+                                <option value="<?= (int) $institute['institute_id'] ?>" title="<?= e($institute['name']) ?>" <?= (string) $institute['institute_id'] === (string) $instituteId ? 'selected' : '' ?>><?= e($institute['shorthand_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
 
@@ -206,7 +205,7 @@ $pageTitle = 'Customers';
                                     <tr>
                                         <td><?= e($c['first_name'] . ' ' . $c['last_name']) ?></td>
                                         <td><?= e($c['username']) ?></td>
-                                        <td><?= e($c['institute_name'] ?? '—') ?></td>
+                                        <td><?= e($c['institute_shorthand'] ?? '—') ?><?= $c['institute_shorthand'] !== null ? '<div class="text-sm muted">' . e($c['institute_name']) . '</div>' : '' ?></td>
                                         <td><?= e($c['lab_name'] ?? '—') ?></td>
                                         <td><?= e($c['pi_name'] ?? '—') ?></td>
                                         <td><span class="badge badge--<?= $c['active'] ? 'active' : 'inactive' ?>"><?= $c['active'] ? 'Active' : 'Inactive' ?></span></td>
