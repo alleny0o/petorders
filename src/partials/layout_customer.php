@@ -183,7 +183,7 @@ if (!isset($petordersLayout['nuclides'])) {
           </div>
           <div class="detail-list__row">
             <span class="detail-list__label">Institute</span>
-            <span class="detail-list__value"><?= e($petordersLayout['account']['institute_name'] ?? '—') ?></span>
+            <span class="detail-list__value"><?= $petordersLayout['account']['institute_name'] !== null ? e($petordersLayout['account']['institute_name']) . ' (' . e($petordersLayout['account']['institute_shorthand']) . ')' : '—' ?></span>
           </div>
           <div class="detail-list__row">
             <span class="detail-list__label">Supervising PI</span>

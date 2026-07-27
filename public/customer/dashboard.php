@@ -206,7 +206,7 @@ $pageTitle = 'Dashboard';
                             </div>
                             <div>
                                 <div class="my-info-identity__name"><?= e($petordersLayout['account']['lab_name'] ?? '—') ?></div>
-                                <div class="my-info-identity__username"><?= e($petordersLayout['account']['institute_name'] ?? '—') ?></div>
+                                <div class="my-info-identity__username"<?= $petordersLayout['account']['institute_name'] !== null ? ' title="' . e($petordersLayout['account']['institute_name']) . '"' : '' ?>><?= e($petordersLayout['account']['institute_shorthand'] ?? '—') ?></div>
                             </div>
                         </div>
                         <button type="button" class="btn btn--secondary btn--sm" data-my-info-trigger>View full info</button>

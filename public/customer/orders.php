@@ -208,7 +208,6 @@ $pageTitle = 'Orders';
 
                 <div class="table-card">
                     <div class="table-card-header">
-                        <span class="table-card-title">Lab Orders</span>
                         <?php // Explicit Filter-button submit, never
                               // live-as-you-type -- filtering is a deliberate
                               // confirm action (spec), same idiom as

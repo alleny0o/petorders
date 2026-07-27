@@ -24,7 +24,7 @@ function fetch_customer(PDO $pdo, int $userId): ?array
         'SELECT u.user_id, u.username, u.active, u.created_at,
                 u.first_name, u.last_name, u.phone, c.lab_id, c.supervising_pi_id,
                 c.registration_status,
-                l.institute_id, l.lab_name, i.name AS institute_name, p.pi_name
+                l.institute_id, l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name
          FROM customers c
          JOIN users u ON u.user_id = c.user_id
          LEFT JOIN labs l ON l.lab_id = c.lab_id
@@ -309,7 +309,7 @@ $pis = [];
 $piLabIds = [];
 
 if ($customer !== null) {
-    $stmt = $pdo->prepare('SELECT institute_id, name, active FROM institutes WHERE active = 1 OR institute_id = ? ORDER BY name');
+    $stmt = $pdo->prepare('SELECT institute_id, name, shorthand_name, active FROM institutes WHERE active = 1 OR institute_id = ? ORDER BY shorthand_name');
     $stmt->execute([$currentInstituteId]);
     $institutes = $stmt->fetchAll();
 
@@ -426,7 +426,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Institute</span>
-                            <span class="detail-list__value"><?= e($customer['institute_name'] ?? '—') ?></span>
+                            <span class="detail-list__value"><?= $customer['institute_name'] !== null ? e($customer['institute_name']) . ' (' . e($customer['institute_shorthand']) . ')' : '—' ?></span>
                         </div>
                         <div class="detail-list__row">
                             <span class="detail-list__label">Lab</span>
@@ -480,7 +480,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 <select id="institute_id" name="institute_id">
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($institutes as $institute): ?>
-                                        <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $editOld['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?><?= (int) $institute['active'] === 0 ? ' (inactive)' : '' ?></option>
+                                        <option value="<?= (int) $institute['institute_id'] ?>" title="<?= e($institute['name']) ?>" <?= (string) $institute['institute_id'] === $editOld['institute_id'] ? 'selected' : '' ?>><?= e($institute['shorthand_name']) ?><?= (int) $institute['active'] === 0 ? ' (inactive)' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

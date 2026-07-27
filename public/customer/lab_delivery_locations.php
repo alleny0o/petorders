@@ -248,7 +248,6 @@ $pageTitle = 'Delivery Locations';
             <?php else: ?>
                 <div class="table-card">
                     <div class="table-card-header">
-                        <span class="table-card-title">Delivery Locations</span>
                         <?php // Explicit Search-button submit, never
                               // live-as-you-type -- same idiom as
                               // orders.php's filter form. ?>

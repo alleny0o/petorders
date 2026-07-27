@@ -27,10 +27,11 @@ canonicalize_get([
 ]);
 
 /**
- * Shared by create and edit. The name check is the app-level pre-check
- * for the DB's own uq_institutes_name unique key ($excludeId is 0 on
- * create); shorthand has no DB constraint beyond length, so only length
- * is checked -- no invented uniqueness.
+ * Shared by create and edit. The name and shorthand checks are the
+ * app-level pre-checks for the DB's own uq_institutes_name /
+ * uq_institutes_shorthand unique keys ($excludeId is 0 on create), with
+ * the caller's try/catch as the race-condition backstop. Shorthand is
+ * required -- it is the display text for every institute dropdown.
  */
 function validate_institute_fields(PDO $pdo, string $name, string $shorthand, int $excludeId): array
 {
@@ -48,11 +49,32 @@ function validate_institute_fields(PDO $pdo, string $name, string $shorthand, in
         }
     }
 
-    if (mb_strlen($shorthand) > 10) {
+    if ($shorthand === '') {
+        $errors['shorthand_name'] = 'Shorthand is required.';
+    } elseif (mb_strlen($shorthand) > 10) {
         $errors['shorthand_name'] = 'Shorthand must be 10 characters or fewer.';
+    } else {
+        $stmt = $pdo->prepare('SELECT 1 FROM institutes WHERE shorthand_name = ? AND institute_id != ?');
+        $stmt->execute([$shorthand, $excludeId]);
+        if ($stmt->fetchColumn()) {
+            $errors['shorthand_name'] = 'An institute with this shorthand already exists.';
+        }
     }
 
     return $errors;
+}
+
+/**
+ * Maps a duplicate-key PDOException from an institute write to the
+ * offending field -- two unique keys exist, so the constraint name in
+ * the driver message decides which field gets the error.
+ */
+function institute_duplicate_error(PDOException $e): array
+{
+    if (strpos($e->getMessage(), 'uq_institutes_shorthand') !== false) {
+        return ['shorthand_name' => 'An institute with this shorthand already exists.'];
+    }
+    return ['name' => 'An institute with this name already exists.'];
 }
 
 $addErrors = [];
@@ -81,13 +103,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$addErrors) {
-            $pdo->prepare('INSERT INTO institutes (name, shorthand_name, active) VALUES (?, ?, ?)')
-                ->execute([$addOld['name'], $addOld['shorthand_name'] !== '' ? $addOld['shorthand_name'] : null, (int) $addOld['active']]);
-            $dest = '/admin/institutes.php?' . build_query(['created' => '1']);
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'redirect' => $dest]);
+            try {
+                $pdo->prepare('INSERT INTO institutes (name, shorthand_name, active) VALUES (?, ?, ?)')
+                    ->execute([$addOld['name'], $addOld['shorthand_name'], (int) $addOld['active']]);
+                $dest = '/admin/institutes.php?' . build_query(['created' => '1']);
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $addErrors = institute_duplicate_error($e);
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'errors' => $addErrors], 422);
+                }
             }
-            redirect($dest);
         }
     } elseif ($action === 'update') {
         // Free rename, same reasoning as nuclides.php: a rename is a
@@ -117,13 +146,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$editErrors) {
-            $pdo->prepare('UPDATE institutes SET name = ?, shorthand_name = ? WHERE institute_id = ?')
-                ->execute([$editOld['name'], $editOld['shorthand_name'] !== '' ? $editOld['shorthand_name'] : null, $instituteId]);
-            $dest = '/admin/institutes.php?' . build_query(['updated' => '1']);
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'redirect' => $dest]);
+            try {
+                $pdo->prepare('UPDATE institutes SET name = ?, shorthand_name = ? WHERE institute_id = ?')
+                    ->execute([$editOld['name'], $editOld['shorthand_name'], $instituteId]);
+                $dest = '/admin/institutes.php?' . build_query(['updated' => '1']);
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $editErrors = institute_duplicate_error($e);
+                if (request_wants_json()) {
+                    json_response(['ok' => false, 'errors' => $editErrors], 422);
+                }
             }
-            redirect($dest);
         }
     } elseif ($action === 'toggle_active') {
         $instituteId = ctype_digit((string) ($_POST['institute_id'] ?? '')) ? (int) $_POST['institute_id'] : 0;
@@ -257,7 +293,6 @@ $pageTitle = 'Institutes';
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">Institutes</span>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
                         <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
@@ -325,7 +360,7 @@ $pageTitle = 'Institutes';
                                     ?>
                                     <tr>
                                         <td><?= e($i['name']) ?></td>
-                                        <td class="muted"><?= $i['shorthand_name'] !== null && $i['shorthand_name'] !== '' ? e($i['shorthand_name']) : '&mdash;' ?></td>
+                                        <td class="muted"><?= e($i['shorthand_name']) ?></td>
                                         <td class="muted">
                                             <?php if ($labCount === 0): ?>
                                                 &mdash;
@@ -340,7 +375,7 @@ $pageTitle = 'Institutes';
                                                         data-edit-institute
                                                         data-institute-id="<?= (int) $i['institute_id'] ?>"
                                                         data-institute-name="<?= e($i['name']) ?>"
-                                                        data-institute-shorthand="<?= e($i['shorthand_name'] ?? '') ?>">Edit</button>
+                                                        data-institute-shorthand="<?= e($i['shorthand_name']) ?>">Edit</button>
 
                                                 <?php if ($i['active']): ?>
                                                     <form method="post" action="<?= e($formAction) ?>"
@@ -414,8 +449,8 @@ $pageTitle = 'Institutes';
                             </div>
                             <div class="<?= field_class($addErrors, 'shorthand_name') ?>">
                                 <label for="add-institute-shorthand">Shorthand</label>
-                                <input type="text" id="add-institute-shorthand" name="shorthand_name" maxlength="10" value="<?= e($addOld['shorthand_name']) ?>">
-                                <span class="field-hint">Optional abbreviation, e.g. &ldquo;NCI&rdquo;.</span>
+                                <input type="text" id="add-institute-shorthand" name="shorthand_name" maxlength="10" required value="<?= e($addOld['shorthand_name']) ?>">
+                                <span class="field-hint">Abbreviation, e.g. &ldquo;NCI&rdquo;.</span>
                                 <?= field_error($addErrors, 'shorthand_name') ?>
                             </div>
                             <?php // No required-mark or required attr on Status: the
@@ -468,7 +503,7 @@ $pageTitle = 'Institutes';
                             </div>
                             <div class="<?= field_class($editErrors, 'shorthand_name') ?>">
                                 <label for="edit-institute-shorthand">Shorthand</label>
-                                <input type="text" id="edit-institute-shorthand" name="shorthand_name" maxlength="10" value="<?= e($editOld['shorthand_name']) ?>">
+                                <input type="text" id="edit-institute-shorthand" name="shorthand_name" maxlength="10" required value="<?= e($editOld['shorthand_name']) ?>">
                                 <?= field_error($editErrors, 'shorthand_name') ?>
                             </div>
                         </div>

@@ -281,7 +281,6 @@ $pageTitle = 'Product Users';
             <?php else: ?>
                 <div class="table-card">
                     <div class="table-card-header">
-                        <span class="table-card-title">Product Users</span>
                         <?php // Explicit Search-button submit, never
                               // live-as-you-type -- same idiom as
                               // orders.php's filter form /

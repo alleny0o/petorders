@@ -10,7 +10,7 @@ $pdo = get_db();
 // (inactive suffixed below), matching Product's existing unfiltered
 // behavior -- this report covers historical orders, which can reference
 // an institute/nuclide that's since been deactivated.
-$institutes = $pdo->query('SELECT institute_id, name, active FROM institutes ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
+$institutes = $pdo->query('SELECT institute_id, name, shorthand_name, active FROM institutes ORDER BY shorthand_name')->fetchAll(PDO::FETCH_ASSOC);
 $nuclides = $pdo->query('SELECT nuclide_id, name, active FROM nuclides ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 $products = $pdo->query('SELECT product_id, name FROM products ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 
@@ -59,8 +59,8 @@ $pageTitle = 'Reports';
                             <select name="institute" id="filter-institute">
                                 <option value="">All Institutes</option>
                                 <?php foreach ($institutes as $inst): ?>
-                                    <option value="<?= (int) $inst['institute_id'] ?>">
-                                        <?= e($inst['name']) ?><?= $inst['active'] ? '' : ' (inactive)' ?>
+                                    <option value="<?= (int) $inst['institute_id'] ?>" title="<?= e($inst['name']) ?>">
+                                        <?= e($inst['shorthand_name']) ?><?= $inst['active'] ? '' : ' (inactive)' ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

@@ -137,7 +137,7 @@ $arrival = consume_arrival_flags(['rejected']);
 // identical to a first-time applicant.
 $requests = $pdo->query(
     "SELECT r.request_id, r.first_name, r.last_name, r.email, r.phone, r.submitted_at,
-            l.lab_name, i.name AS institute_name, p.pi_name,
+            l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name,
             (SELECT COUNT(*)
              FROM customer_registration_requests pr
              WHERE pr.email = r.email AND pr.status = 'rejected') AS prior_rejections,
@@ -235,7 +235,7 @@ $pageTitle = 'Registrations';
                                             <?php endif; ?>
                                         </td>
                                         <td><?= e($r['email']) ?></td>
-                                        <td><?= e($r['institute_name']) ?></td>
+                                        <td><?= e($r['institute_shorthand']) ?><div class="text-sm muted"><?= e($r['institute_name']) ?></div></td>
                                         <td><?= e($r['lab_name']) ?></td>
                                         <td><?= e($r['pi_name']) ?></td>
                                         <td class="tabular"><?= e($r['phone']) ?></td>

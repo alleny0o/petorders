@@ -190,7 +190,6 @@ $pageTitle = 'Order Queue';
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <span class="table-card-title">Orders</span>
                     <?php // Explicit Filter-button submit, never live-as-you-type
                           // -- same idiom as customer/orders.php. Status itself
                           // is no longer a field here -- the tabs above are the
