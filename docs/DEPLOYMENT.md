@@ -102,7 +102,7 @@ Layout:
   src/       # app code + config.php (DB credentials)
   config/    # static app settings (display name)
   sql/       # schema.sql (required), seed.sql (dev only, NOT for production)
-  tools/     # command-line setup scripts
+  tools/     # command-line setup scripts (one is dev-only -- step 7)
 ```
 
 ---
@@ -203,7 +203,10 @@ sudo vi /etc/httpd/conf.d/petorders.conf
     # SSLCertificateChainFile /etc/pki/tls/certs/petorders-chain.crt
 
     <Directory /var/www/petorders/public>
-        AllowOverride FileInfo Options
+        # AuthConfig is required: public/.htaccess uses "Require all
+        # denied" to block dotfiles, and without AuthConfig Apache
+        # fails those requests with "Require not allowed here".
+        AllowOverride FileInfo Options AuthConfig
         Require all granted
     </Directory>
 </VirtualHost>
@@ -306,7 +309,10 @@ Account).
 
 Not the same as `tools/set_temp_passwords.php`, that's a dev-only
 helper that resets every account for the seeded dev database. Never run
-it in production.
+it in production. The same goes for `tools/generate_stress_test.php`, a
+dev-only script that bulk-inserts thousands of synthetic orders
+(configurable count) into whatever database `src/config.php` points
+at — never run it against a production database.
 
 Once the admin's in, everything else happens through the UI: approve
 registrations, create staff accounts, build the catalog and directory.
@@ -350,8 +356,11 @@ All boxes checked = done.
   click. By design.
 - **Lockout:** 5 failed attempts locks the account for 15 min. The
   login page tells the user the account is temporarily locked and how
-  many minutes remain. Admins see recent lockouts on the Admin
-  Dashboard.
+  many minutes remain (a deliberate disclosure choice for this
+  intranet-only app — see the security posture section of
+  ARCHITECTURE.md). Admins see every lockout from the past 7 days on
+  the Admin Dashboard (the list has no row cap — within that window
+  it's a complete record).
 - **No email, ever.** Temp passwords and reset passwords are shown once
   to the admin, who relays them via NIH email manually.
 - Admins can trigger a password reset but never see or set the actual

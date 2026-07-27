@@ -3,7 +3,8 @@
 PETOrders is the NIH PET Department's internal web application for
 ordering radiopharmaceutical products. Lab members (customers) place
 orders for products by nuclide. PET Department staff process those
-orders through a simple lifecycle (pending, accepted, completed).
+orders through a simple lifecycle (pending, accepted, completed,
+cancelled).
 Administrators manage accounts, the product catalog, the
 institute/lab/PI directory, and reporting.
 
@@ -12,10 +13,15 @@ institute/lab/PI directory, and reporting.
 |                 |                                                                                                                            |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Language        | PHP 7.4, no framework, no ORM (PDO with prepared statements)                                                               |
-| Database        | MariaDB 10.11                                                                                                              |
+| Database        | MySQL 8.0 / MariaDB 10.11 (wire-compatible via PDO)                                                                        |
 | Frontend        | Vanilla CSS and JavaScript, no build step, no bundler                                                                      |
 | Dependencies    | **None.** No Composer, no npm, no CDN. Every asset is local, and the app makes no outbound requests (it never sends email) |
 | Target platform | RHEL 8 + Apache + HTTPS (local dev on MAMP)                                                                                |
+
+Only `public/` is served by Apache — `src/` (application code and DB
+credentials), `sql/`, `tools/`, and `config/` sit above the web root and
+are unreachable by URL. The data model is diagrammed in
+[`sql/EER Diagram.webp`](<sql/EER Diagram.webp>).
 
 ## The three roles
 

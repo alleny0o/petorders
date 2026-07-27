@@ -38,8 +38,8 @@ _The staff dashboard: counts across all labs, and the orders that need attention
 
 | Section             | What it shows                                                                                                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stat tiles          | Pending Orders (needs action), Accepted Orders (in progress), Total Orders, and Due Today (pending or accepted orders requested for today, or already overdue). Click a tile to jump to that slice of the queue |
-| Due Today & Overdue | The same urgent orders as a list. A red dot on the requested time means the order is overdue, an amber dot means it's due later today. Click **View** to open one                                               |
+| Stat tiles          | Pending Orders (needs action), Accepted Orders (in progress), New Today (orders placed today), and Total Orders. The Pending and Accepted tiles jump to that slice of the queue; New Today and Total Orders open the full queue |
+| Due Today & Overdue | Up to five pending or accepted orders requested by the end of today, soonest first — overdue orders included. The Timing column says **Overdue** or **Due today**. Click **View** to open one                   |
 
 ## 2. The Order Queue
 
@@ -146,7 +146,7 @@ Every order is Chargeable by default. The flag marks orders for billing
 follow-up and is completely separate from the order's status, you can
 toggle it on any order, in any status, at any time.
 
-![Billing card with the chargeable toggle button](images/staff/billing-chargeable-toggle.png)
+![Billing card with the chargeable toggle button](images/staff/billing-chargable-toggle.png)
 _The Billing card. The button reads "Remove Chargeable Flag" or "Mark as Chargeable" depending on the current state._
 
 Click **Remove Chargeable Flag** to mark an order not chargeable (it
