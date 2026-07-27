@@ -50,7 +50,7 @@
         <?php if ($tablePagination['page'] <= 1): ?>
             <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&lsaquo;</span>
         <?php else: ?>
-            <a href="?<?= e(build_query(['page' => $tablePagination['page'] - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
+            <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['page' => $tablePagination['page'] - 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Previous page">&lsaquo;</a>
         <?php endif; ?>
         <form method="get" class="table-card-controls table-pagination__jump">
             <?php foreach ($tablePagination['hiddenFields'] as $name => $value): ?>
@@ -67,7 +67,7 @@
         <?php if ($tablePagination['page'] >= $tablePagination['totalPages']): ?>
             <span class="btn btn--secondary btn--sm" aria-disabled="true" aria-hidden="true">&rsaquo;</span>
         <?php else: ?>
-            <a href="?<?= e(build_query(['page' => $tablePagination['page'] + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
+            <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['page' => $tablePagination['page'] + 1])) ?>" class="btn btn--secondary btn--sm" aria-label="Next page">&rsaquo;</a>
         <?php endif; ?>
     </div>
 </div>

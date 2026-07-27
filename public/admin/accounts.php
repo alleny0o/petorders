@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // build_query() carries the current search/role/status/page
             // view state forward, same as the other converted pages.
-            $dest = '/admin/accounts.php?' . build_query(['created' => '1']);
+            $dest = '/admin/accounts.php' . build_query(['created' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -302,7 +302,7 @@ $pageTitle = 'Accounts';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>

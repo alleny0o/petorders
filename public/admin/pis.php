@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $addOld['phone'] !== '' ? $addOld['phone'] : null,
                         (int) $addOld['active'],
                     ]);
-                $dest = '/admin/pis.php?' . build_query(['created' => '1']);
+                $dest = '/admin/pis.php' . build_query(['created' => '1']);
                 if (request_wants_json()) {
                     json_response(['ok' => true, 'redirect' => $dest]);
                 }
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $editOld['phone'] !== '' ? $editOld['phone'] : null,
                         $piId,
                     ]);
-                $dest = '/admin/pis.php?' . build_query(['updated' => '1']);
+                $dest = '/admin/pis.php' . build_query(['updated' => '1']);
                 if (request_wants_json()) {
                     json_response(['ok' => true, 'redirect' => $dest]);
                 }
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE pis SET active = ? WHERE pi_id = ?')
                     ->execute([$newActive, $piId]);
-                redirect('/admin/pis.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/admin/pis.php' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
@@ -290,7 +290,7 @@ $pageTitle = 'PIs';
 
             <nav class="status-tabs" aria-label="Filter by status">
                 <?php foreach ($statusTabs as $tab): ?>
-                    <a href="?<?= e(build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
+                    <a href="<?= e($_SERVER['PHP_SELF'] . build_query(['status' => $tab['value'], 'page' => 1])) ?>" class="status-tabs__link <?= $status === $tab['value'] ? 'is-active' : '' ?>">
                         <?= e($tab['label']) ?> <span class="status-tabs__count"><?= $tab['count'] ?></span>
                     </a>
                 <?php endforeach; ?>

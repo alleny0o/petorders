@@ -683,11 +683,32 @@ const BUILD_QUERY_DEFAULTS = [
 ];
 
 /**
- * Builds a query string from the current $_GET with the given overrides
+ * Builds a query string -- INCLUDING its leading "?", or '' when there's
+ * nothing left to show -- from the current $_GET with the given overrides
  * applied, dropping empty/null values and any param equal to its
  * BUILD_QUERY_DEFAULTS no-op default. Shared by every list page's status
  * tabs, pagination links, and POST-form actions, so paging/filtering never
  * drops the rest of the active view.
+ *
+ * Callers must NOT prepend their own "?" -- e.g. `href="<?= e(build_query(...))
+ * ?>"` and `'/admin/labs.php' . build_query([...])`, never `href="?<?=
+ * ...`/`'path?' . ...`. Baking the "?" in here (instead of leaving each call
+ * site to add its own) is what lets an all-defaults/all-empty result collapse
+ * to a bare path/bare '?'-less href rather than a dangling trailing "?".
+ *
+ * This returns ONLY the query portion, never a path -- a real past bug:
+ * a same-page link built as `href="<?= e(build_query(...)) ?>"` with no
+ * path in front (status tabs, pagination prev/next, clear-filters) is
+ * BROKEN once the result collapses to '' -- `href=""` is not "this path,
+ * no query", it's an empty relative reference, which resolves to the
+ * exact current document (RFC 3986 empty-reference resolution), query
+ * string and all, so the link silently does nothing. Every same-page
+ * anchor built from build_query() must prepend $_SERVER['PHP_SELF']
+ * itself (`e($_SERVER['PHP_SELF'] . build_query(...))`), same convention
+ * as helpers.php's own current_page detection below. form_action() and
+ * the POST-handler redirect destinations (`'/admin/labs.php' .
+ * build_query([...])`) are unaffected -- they already carry an explicit
+ * path in front of build_query()'s output.
  */
 function build_query(array $overrides = []): string
 {
@@ -701,21 +722,22 @@ function build_query(array $overrides = []): string
             unset($params[$key]);
         }
     }
-    return http_build_query($params);
+    $queryString = http_build_query($params);
+
+    return $queryString !== '' ? '?' . $queryString : '';
 }
 
 /**
  * Builds a list page's POST-form action: the given path with the current
- * search/filter/page state (via build_query()) appended, so create/edit/
- * toggle handlers redirect back to the exact view the person was on, not
- * page 1. Call after paginate() + canonicalize_get(['page' => $page]) so
- * the clamped page number is what gets embedded.
+ * search/filter/page state (via build_query(), which already supplies its
+ * own leading "?") appended, so create/edit/toggle handlers redirect back
+ * to the exact view the person was on, not page 1. Call after paginate() +
+ * canonicalize_get(['page' => $page]) so the clamped page number is what
+ * gets embedded.
  */
 function form_action(string $path): string
 {
-    $queryString = build_query();
-
-    return $queryString !== '' ? $path . '?' . $queryString : $path;
+    return $path . build_query();
 }
 
 /**

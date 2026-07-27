@@ -117,7 +117,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // lands back where they were. The AJAX path navigates to the
             // same destination itself, so the arrival-flag toast works
             // identically either way.
-            $dest = '/customer/lab_product_users.php?' . build_query(['created' => '1']);
+            $dest = '/customer/lab_product_users.php' . build_query(['created' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -153,7 +153,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$editErrors) {
             $pdo->prepare('UPDATE lab_product_users SET first_name = ?, last_name = ?, email = ? WHERE product_user_id = ? AND lab_id = ?')
                 ->execute([$editOld['first_name'], $editOld['last_name'], $editOld['email'], $productUserId, $labId]);
-            $dest = '/customer/lab_product_users.php?' . build_query(['updated' => '1']);
+            $dest = '/customer/lab_product_users.php' . build_query(['updated' => '1']);
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -170,7 +170,7 @@ if ($labId > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newActive = $currentActive ? 0 : 1;
                 $pdo->prepare('UPDATE lab_product_users SET active = ? WHERE product_user_id = ? AND lab_id = ?')
                     ->execute([$newActive, $productUserId, $labId]);
-                redirect('/customer/lab_product_users.php?' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
+                redirect('/customer/lab_product_users.php' . build_query([$newActive ? 'activated' : 'deactivated' => '1']));
             }
         }
     }
