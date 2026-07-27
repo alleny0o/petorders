@@ -1,5 +1,5 @@
 /* ============================================================
-   PETCOM — layout/sidebar.css
+   PETORDERS — layout/sidebar.css
    Desktop/tablet (>768px): toggle icon-rail collapse by setting
    data-sidebar="collapsed" on <html> via JS (see script.js) —
    applied before paint by the inline snippet in head.php.

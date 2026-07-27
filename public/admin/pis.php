@@ -26,10 +26,11 @@ canonicalize_get([
 ]);
 
 /**
- * Shared by create and edit. Name is the only required field; email and
- * phone are format-checked only when non-empty (the columns are nullable
- * and pis has no unique keys -- no invented uniqueness). The phone rule
- * matches customer_detail.php's.
+ * Shared by create and edit. Name and email are required; email must
+ * also be globally unique (pis.email carries a UNIQUE key -- see the
+ * caller for the pre-check + try/catch backstop). Phone stays
+ * format-checked only when non-empty (nullable column, no uniqueness).
+ * The phone rule matches customer_detail.php's.
  */
 function validate_pi_fields(string $piName, string $email, string $phone): array
 {
@@ -41,12 +42,10 @@ function validate_pi_fields(string $piName, string $email, string $phone): array
         $errors['pi_name'] = 'Name must be 100 characters or fewer.';
     }
 
-    if ($email !== '') {
-        if (mb_strlen($email) > 254) {
-            $errors['email'] = 'Email must be 254 characters or fewer.';
-        } elseif (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            $errors['email'] = 'Enter a valid email address.';
-        }
+    if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        $errors['email'] = 'A valid email is required.';
+    } elseif (mb_strlen($email) > 254) {
+        $errors['email'] = 'Email must be 254 characters or fewer.';
     }
 
     if ($phone !== '') {
@@ -82,23 +81,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addErrors['active'] = 'Select a status.';
         }
 
-        if ($addErrors && request_wants_json()) {
-            json_response(['ok' => false, 'errors' => $addErrors], 422);
+        if (!$addErrors) {
+            // Pre-check, same convention as accounts.php -- the catch
+            // block below is the race-condition backstop.
+            $stmt = $pdo->prepare('SELECT 1 FROM pis WHERE email = ?');
+            $stmt->execute([$addOld['email']]);
+            if ($stmt->fetchColumn()) {
+                $addErrors['email'] = 'A PI with this email already exists.';
+            }
         }
 
         if (!$addErrors) {
-            $pdo->prepare('INSERT INTO pis (pi_name, email, phone, active) VALUES (?, ?, ?, ?)')
-                ->execute([
-                    $addOld['pi_name'],
-                    $addOld['email'] !== '' ? $addOld['email'] : null,
-                    $addOld['phone'] !== '' ? $addOld['phone'] : null,
-                    (int) $addOld['active'],
-                ]);
-            $dest = '/admin/pis.php?' . build_query(['created' => '1']);
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'redirect' => $dest]);
+            try {
+                $pdo->prepare('INSERT INTO pis (pi_name, email, phone, active) VALUES (?, ?, ?, ?)')
+                    ->execute([
+                        $addOld['pi_name'],
+                        $addOld['email'],
+                        $addOld['phone'] !== '' ? $addOld['phone'] : null,
+                        (int) $addOld['active'],
+                    ]);
+                $dest = '/admin/pis.php?' . build_query(['created' => '1']);
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $addErrors['email'] = 'A PI with this email already exists.';
             }
-            redirect($dest);
+        }
+
+        if ($addErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $addErrors], 422);
         }
     } elseif ($action === 'update') {
         // Free edit, same reasoning as nuclides.php's rename: these are
@@ -122,23 +135,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $editErrors += validate_pi_fields($editOld['pi_name'], $editOld['email'], $editOld['phone']);
 
-        if ($editErrors && request_wants_json()) {
-            json_response(['ok' => false, 'errors' => $editErrors], 422);
+        if (!$editErrors) {
+            $stmt = $pdo->prepare('SELECT 1 FROM pis WHERE email = ? AND pi_id <> ?');
+            $stmt->execute([$editOld['email'], $piId]);
+            if ($stmt->fetchColumn()) {
+                $editErrors['email'] = 'A PI with this email already exists.';
+            }
         }
 
         if (!$editErrors) {
-            $pdo->prepare('UPDATE pis SET pi_name = ?, email = ?, phone = ? WHERE pi_id = ?')
-                ->execute([
-                    $editOld['pi_name'],
-                    $editOld['email'] !== '' ? $editOld['email'] : null,
-                    $editOld['phone'] !== '' ? $editOld['phone'] : null,
-                    $piId,
-                ]);
-            $dest = '/admin/pis.php?' . build_query(['updated' => '1']);
-            if (request_wants_json()) {
-                json_response(['ok' => true, 'redirect' => $dest]);
+            try {
+                $pdo->prepare('UPDATE pis SET pi_name = ?, email = ?, phone = ? WHERE pi_id = ?')
+                    ->execute([
+                        $editOld['pi_name'],
+                        $editOld['email'],
+                        $editOld['phone'] !== '' ? $editOld['phone'] : null,
+                        $piId,
+                    ]);
+                $dest = '/admin/pis.php?' . build_query(['updated' => '1']);
+                if (request_wants_json()) {
+                    json_response(['ok' => true, 'redirect' => $dest]);
+                }
+                redirect($dest);
+            } catch (PDOException $e) {
+                $editErrors['email'] = 'A PI with this email already exists.';
             }
-            redirect($dest);
+        }
+
+        if ($editErrors && request_wants_json()) {
+            json_response(['ok' => false, 'errors' => $editErrors], 422);
         }
     } elseif ($action === 'toggle_active') {
         $piId = ctype_digit((string) ($_POST['pi_id'] ?? '')) ? (int) $_POST['pi_id'] : 0;
@@ -408,7 +433,7 @@ $pageTitle = 'PIs';
                                 <?= field_error($addErrors, 'pi_name') ?>
                             </div>
                             <div class="<?= field_class($addErrors, 'email') ?>">
-                                <label for="add-pi-email">Email</label>
+                                <label for="add-pi-email">Email <span class="required-mark">*</span></label>
                                 <input type="email" id="add-pi-email" name="email" maxlength="254" value="<?= e($addOld['email']) ?>">
                                 <?= field_error($addErrors, 'email') ?>
                             </div>
@@ -466,7 +491,7 @@ $pageTitle = 'PIs';
                                 <?= field_error($editErrors, 'pi_name') ?>
                             </div>
                             <div class="<?= field_class($editErrors, 'email') ?>">
-                                <label for="edit-pi-email">Email</label>
+                                <label for="edit-pi-email">Email <span class="required-mark">*</span></label>
                                 <input type="email" id="edit-pi-email" name="email" maxlength="254" value="<?= e($editOld['email']) ?>">
                                 <?= field_error($editErrors, 'email') ?>
                             </div>

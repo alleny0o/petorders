@@ -281,7 +281,7 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
-// client half is petcomCleanArrivalFlags() near the bottom.
+// client half is petordersCleanArrivalFlags() near the bottom.
 $arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
@@ -317,7 +317,7 @@ if ($customer !== null) {
     $stmt->execute([$currentLabId]);
     $labs = $stmt->fetchAll();
 
-    $stmt = $pdo->prepare('SELECT pi_id, pi_name, active FROM pis WHERE active = 1 OR pi_id = ? ORDER BY pi_name');
+    $stmt = $pdo->prepare('SELECT pi_id, pi_name, email, active FROM pis WHERE active = 1 OR pi_id = ? ORDER BY pi_name');
     $stmt->execute([$currentPiId]);
     $pis = $stmt->fetchAll();
 
@@ -501,7 +501,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 <select id="supervising_pi_id" name="supervising_pi_id" required>
                                     <option value="">Select lab first&hellip;</option>
                                     <?php foreach ($pis as $pi): ?>
-                                        <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $editOld['supervising_pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?><?= (int) $pi['active'] === 0 ? ' (inactive)' : '' ?></option>
+                                        <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $editOld['supervising_pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?> (<?= e($pi['email']) ?>)<?= (int) $pi['active'] === 0 ? ' (inactive)' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <?= field_error($fieldErrors, 'supervising_pi_id') ?>
@@ -601,7 +601,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  window.petcomCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated']);
 });
 </script>
 <?php endif; ?>

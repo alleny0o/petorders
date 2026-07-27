@@ -1,5 +1,5 @@
 /* ============================================================
-   PETCOM — components/radio-cards.css
+   PETORDERS — components/radio-cards.css
    Selectable bordered options. Checked styling uses :has() where
    supported; the native radio stays visible as the baseline
    signal everywhere else.

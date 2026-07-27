@@ -178,7 +178,7 @@
                     <select id="product_user_id" name="product_user_id">
                         <option value="">I'm the recipient&hellip;</option>
                         <?php foreach ($productUsers as $pu): ?>
-                            <option value="<?= (int) $pu['product_user_id'] ?>" <?= $old['product_user_id'] === (string) $pu['product_user_id'] ? 'selected' : '' ?>><?= e($pu['first_name'] . ' ' . $pu['last_name']) ?></option>
+                            <option value="<?= (int) $pu['product_user_id'] ?>" <?= $old['product_user_id'] === (string) $pu['product_user_id'] ? 'selected' : '' ?>><?= e($pu['first_name'] . ' ' . $pu['last_name']) ?><?= $pu['email'] ? ' (' . e($pu['email']) . ')' : '' ?></option>
                         <?php endforeach; ?>
                     </select>
                     <?= field_error($fieldErrors, 'product_user_id') ?>
@@ -206,11 +206,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!nuclideSelect || !productSelect) return;
 
     // Cascade (nuclide -> product filter, conditional location,
-    // fulfillment hint) lives in script.js (petcomInitOrderCascade),
+    // fulfillment hint) lives in script.js (petordersInitOrderCascade),
     // shared with the pending-order edit form on order_detail.php. It
     // attaches the selects' direct change listeners and runs the
     // initial filter immediately.
-    var cascade = window.petcomInitOrderCascade({
+    var cascade = window.petordersInitOrderCascade({
         nuclideSelect: nuclideSelect,
         productSelect: productSelect,
         locationField: locationField,
@@ -316,15 +316,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---- Discard confirm on close. All four close paths (Esc,
-    // backdrop, X, footer Cancel) funnel through petcomCloseModal(),
+    // backdrop, X, footer Cancel) funnel through petordersCloseModal(),
     // which consults this hook: clean form -> close proceeds untouched;
     // dirty form -> veto the close, stack the confirm, and only a
-    // confirmed discard force-closes (petcomCloseModal(true) skips the
+    // confirmed discard force-closes (petordersCloseModal(true) skips the
     // hook). Cancelling the confirm leaves the modal open with every
     // value intact. ----
-    overlay.petcomBeforeClose = function () {
+    overlay.petordersBeforeClose = function () {
         if (!isDirty()) return true;
-        window.petcomConfirm({
+        window.petordersConfirm({
             title: 'Discard this order?',
             message: 'Your entries will be discarded and the order will not be placed.',
             verb: 'Discard',
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }).then(function (discard) {
             if (!discard) return;
             resetFormToPristine();
-            window.petcomCloseModal(true);
+            window.petordersCloseModal(true);
         });
         return false;
     };
@@ -354,12 +354,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function finishSubmitAttempt() {
         submitting = false;
-        window.petcomClearButtonLoading(submitBtn);
+        window.petordersClearButtonLoading(submitBtn);
     }
 
     function sendOrder() {
         submitting = true;
-        window.petcomSetButtonLoading(submitBtn);
+        window.petordersSetButtonLoading(submitBtn);
         // FormData matches native submit semantics: carries csrf_token,
         // excludes the disabled location select.
         fetch(form.action, { method: 'POST', body: new FormData(form) })
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         if (submitting) return;
         // Unconditional confirm on every submit, dirty or not.
-        window.petcomConfirm({
+        window.petordersConfirm({
             title: 'Place this order?',
             message: 'Your order will be submitted for processing.',
             verb: 'Place order'

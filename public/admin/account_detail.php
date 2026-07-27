@@ -321,7 +321,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
-// client half is petcomCleanArrivalFlags() near the bottom.
+// client half is petordersCleanArrivalFlags() near the bottom.
 $arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
@@ -553,7 +553,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
 <?php if ($account !== null): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  window.petcomCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
+  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
 });
 </script>
 <?php endif; ?>

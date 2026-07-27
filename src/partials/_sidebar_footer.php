@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   trigger.addEventListener('click', function (e) {
     redirectInput.value = window.location.pathname + window.location.search;
-    window.petcomOpenModal(modal, { opener: e.currentTarget });
+    window.petordersOpenModal(modal, { opener: e.currentTarget });
   });
 });
 </script>

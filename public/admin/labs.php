@@ -396,7 +396,7 @@ if ($labsList) {
 // (inactive suffixed): pairing is membership, not availability.
 $allInstitutes = $pdo->query('SELECT institute_id, name, active FROM institutes ORDER BY name')->fetchAll();
 $activeInstitutes = array_values(array_filter($allInstitutes, fn($i) => $i['active']));
-$allPis = $pdo->query('SELECT pi_id, pi_name, active FROM pis ORDER BY pi_name')->fetchAll();
+$allPis = $pdo->query('SELECT pi_id, pi_name, email, active FROM pis ORDER BY pi_name')->fetchAll();
 
 $formAction = form_action('/admin/labs.php');
 
@@ -650,10 +650,10 @@ $pageTitle = 'Labs';
                                             <?php foreach ($allPis as $pi): ?>
                                                 <label class="text-sm">
                                                     <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>"
-                                                           data-pi-name="<?= e($pi['pi_name']) ?>"
+                                                           data-pi-name="<?= e($pi['pi_name'] . ' (' . $pi['email'] . ')') ?>"
                                                            data-pi-active="<?= $pi['active'] ? '1' : '0' ?>"
                                                            <?= in_array((int) $pi['pi_id'], $addOld['pi_ids'], true) ? 'checked' : '' ?>>
-                                                    <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
+                                                    <?= e($pi['pi_name']) ?> (<?= e($pi['email']) ?>)<?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
                                                 </label>
                                             <?php endforeach; ?>
                                         </div>
@@ -763,10 +763,10 @@ $pageTitle = 'Labs';
                                             <?php foreach ($allPis as $pi): ?>
                                                 <label class="text-sm">
                                                     <input type="checkbox" name="pi_ids[]" value="<?= (int) $pi['pi_id'] ?>" data-edit-lab-pi
-                                                           data-pi-name="<?= e($pi['pi_name']) ?>"
+                                                           data-pi-name="<?= e($pi['pi_name'] . ' (' . $pi['email'] . ')') ?>"
                                                            data-pi-active="<?= $pi['active'] ? '1' : '0' ?>"
                                                            <?= in_array((int) $pi['pi_id'], $editOld['pi_ids'], true) ? 'checked' : '' ?>>
-                                                    <?= e($pi['pi_name']) ?><?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
+                                                    <?= e($pi['pi_name']) ?> (<?= e($pi['email']) ?>)<?= $pi['active'] ? '' : ' <span class="muted">(inactive)</span>' ?>
                                                     <span class="muted" data-pi-count-label></span>
                                                 </label>
                                             <?php endforeach; ?>

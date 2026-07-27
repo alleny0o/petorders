@@ -54,12 +54,16 @@ CREATE TABLE labs (
   KEY idx_labs_institute_id (institute_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- email is required (unlike phone) and globally unique -- matches
+-- institutes.name's plain unique key; not active-scoped (this is a
+-- contact field, not a login credential like users.username).
 CREATE TABLE pis (
   pi_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   pi_name  VARCHAR(100) NOT NULL,
-  email    VARCHAR(254),
+  email    VARCHAR(254) NOT NULL,
   phone    VARCHAR(20),
-  active   TINYINT(1) NOT NULL DEFAULT 1
+  active   TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_pis_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Join table: a lab can have multiple PIs, a PI can oversee multiple labs.

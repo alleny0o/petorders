@@ -12,7 +12,7 @@
 <link rel="manifest" href="/favicons/site.webmanifest">
 
 <script>
-    if (localStorage.getItem('petcom:sidebar') === 'collapsed') {
+    if (localStorage.getItem('petorders:sidebar') === 'collapsed') {
         document.documentElement.dataset.sidebar = 'collapsed';
     }
 </script>

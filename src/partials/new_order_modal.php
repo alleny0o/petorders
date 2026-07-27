@@ -23,8 +23,8 @@
       // submission is AJAX and validation errors are injected client-side,
       // so no server re-render ever repopulates these. $nuclides/$products/
       // $locations/$productUsers/$labId are read-only here so they're
-      // passed in from the real outer scope ($petcomLayout for the first
-      // four, plain $labId per its documented exception).
+      // passed in from the real outer scope ($petordersLayout for the
+      // first four, plain $labId per its documented exception).
       (function (array $nuclides, array $products, array $locations, array $productUsers, int $labId) {
           $old = [
               'nuclide_id'      => '',
@@ -41,7 +41,7 @@
           // instead of inside the form -- see the form="order-form"
           // association on Place order.
           include __DIR__ . '/new_order_form.php';
-      })($petcomLayout['nuclides'], $petcomLayout['products'], $petcomLayout['locations'], $petcomLayout['product_users'], $labId);
+      })($petordersLayout['nuclides'], $petordersLayout['products'], $petordersLayout['locations'], $petordersLayout['product_users'], $labId);
       ?>
     </div>
     <div class="modal__footer modal__footer--split">

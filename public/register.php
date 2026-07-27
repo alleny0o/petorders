@@ -159,7 +159,7 @@ $labs = $pdo->query(
      WHERE l.active = 1
      ORDER BY l.lab_name'
 )->fetchAll();
-$pis = $pdo->query('SELECT pi_id, pi_name FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
+$pis = $pdo->query('SELECT pi_id, pi_name, email FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
 $labPiMap = $pdo->query(
     'SELECT lab_pis.lab_id, lab_pis.pi_id
      FROM lab_pis
@@ -279,7 +279,7 @@ $pageTitle = 'Register';
                   <select id="pi_id" name="pi_id" required>
                     <option value="">Select lab first…</option>
                     <?php foreach ($pis as $pi): ?>
-                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?></option>
+                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?> (<?= e($pi['email']) ?>)</option>
                     <?php endforeach; ?>
                   </select>
                   <span class="field-hint">Don't see your PI? Contact an admin.</span>

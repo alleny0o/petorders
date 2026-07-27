@@ -535,7 +535,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                 <select id="edit_product_user_id" name="product_user_id">
                                     <option value="">I'm the recipient&hellip;</option>
                                     <?php foreach ($petordersLayout['product_users'] as $pu): ?>
-                                        <option value="<?= (int) $pu['product_user_id'] ?>" <?= $editOld['product_user_id'] === (string) $pu['product_user_id'] ? 'selected' : '' ?>><?= e($pu['first_name'] . ' ' . $pu['last_name']) ?></option>
+                                        <option value="<?= (int) $pu['product_user_id'] ?>" <?= $editOld['product_user_id'] === (string) $pu['product_user_id'] ? 'selected' : '' ?>><?= e($pu['first_name'] . ' ' . $pu['last_name']) ?><?= $pu['email'] ? ' (' . e($pu['email']) . ')' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <?= field_error($editErrors, 'product_user_id') ?>

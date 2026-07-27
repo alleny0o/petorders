@@ -1,5 +1,5 @@
 /* ============================================================
-   PETCOM — components/modals.css
+   PETORDERS — components/modals.css
    Confirmations — script.js
    Overlay sits above the sidebar (z 50) and its backdrop (z 40).
    ============================================================ */
@@ -58,7 +58,7 @@
   min-height: 0;
 }
 
-/* Pinned title row. Simple confirm dialogs (petcomConfirm in script.js,
+/* Pinned title row. Simple confirm dialogs (petordersConfirm in script.js,
    registrations.php's reject modal) keep their title inside
    .modal__body instead, since those are always short enough that
    nothing scrolls; any modal with a real form uses this. Never
@@ -187,7 +187,7 @@
   }
 }
 
-/* Stacked confirm dialog (petcomConfirm in script.js): sits ABOVE a
+/* Stacked confirm dialog (petordersConfirm in script.js): sits ABOVE a
    standard open modal (z 60) so "Discard this order?" / "Place this
    order?" can layer on the new-order modal without closing it. */
 .modal-overlay--stacked {

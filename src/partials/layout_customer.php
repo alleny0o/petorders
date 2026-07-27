@@ -136,7 +136,7 @@ if (!isset($petordersLayout['nuclides'])) {
      editing was removed -- profile changes are admin-only now
      (admin/customer_detail.php); this is view-only, no form. Header +
      X button mirror the New Order modal's chrome exactly -- same
-     data-modal-close hookup, which petcomOpenModal (script.js) wires
+     data-modal-close hookup, which petordersOpenModal (script.js) wires
      automatically alongside Esc and backdrop-click, so no separate
      close logic is needed here. -->
 <div class="modal-overlay" id="my-info-modal" hidden>
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var myInfoModal = document.getElementById('my-info-modal');
   document.querySelectorAll('[data-my-info-trigger]').forEach(function (trigger) {
     trigger.addEventListener('click', function (e) {
-      window.petcomOpenModal(myInfoModal, { opener: e.currentTarget });
+      window.petordersOpenModal(myInfoModal, { opener: e.currentTarget });
     });
   });
 
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (newOrderModal) {
     document.querySelectorAll('[data-new-order-trigger]').forEach(function (trigger) {
       trigger.addEventListener('click', function (e) {
-        window.petcomOpenModal(newOrderModal, { opener: e.currentTarget });
+        window.petordersOpenModal(newOrderModal, { opener: e.currentTarget });
       });
     });
   }

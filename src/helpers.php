@@ -254,7 +254,7 @@ function get_new_order_form_data(PDO $pdo, int $labId): array
         $stmt->execute([$labId]);
         $locations = $stmt->fetchAll();
 
-        $stmt = $pdo->prepare('SELECT product_user_id, first_name, last_name FROM lab_product_users WHERE lab_id = ? AND active = 1 ORDER BY last_name, first_name');
+        $stmt = $pdo->prepare('SELECT product_user_id, first_name, last_name, email FROM lab_product_users WHERE lab_id = ? AND active = 1 ORDER BY last_name, first_name');
         $stmt->execute([$labId]);
         $productUsers = $stmt->fetchAll();
     }
@@ -802,7 +802,7 @@ function layout_account_data(int $userId, string $role): array
  * Captures one-shot PRG arrival-toast flags (?created=1 etc.) into a
  * boolean map and strips them from $_GET, so this render's own
  * pagination/tab links (built via build_query()) never carry a stale
- * flag forward. The client-side petcomCleanArrivalFlags() (script.js)
+ * flag forward. The client-side petordersCleanArrivalFlags() (script.js)
  * handles the other half -- a manual reload/back-nav of the arrived-at
  * URL, which this server-side strip alone can't prevent.
  */

@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND active = 1');
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $fieldErrors['email'] = 'An account already exists for this email.';
+            $fieldErrors['email'] = 'An account is already active for this email.';
         }
     }
 
