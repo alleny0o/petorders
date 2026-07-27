@@ -446,7 +446,9 @@ $pageTitle = 'Labs';
                 <div class="table-card-header">
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php endif; ?>
 
                         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search by lab name&hellip;">
 

@@ -295,7 +295,9 @@ $pageTitle = 'Institutes';
                 <div class="table-card-header">
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php endif; ?>
                         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search by name&hellip;">
                         <button type="submit" class="btn btn--secondary btn--sm">Search</button>
                     </form>
@@ -449,7 +451,7 @@ $pageTitle = 'Institutes';
                                 <?= field_error($addErrors, 'name') ?>
                             </div>
                             <div class="<?= field_class($addErrors, 'shorthand_name') ?>">
-                                <label for="add-institute-shorthand">Shorthand</label>
+                                <label for="add-institute-shorthand">Shorthand <span class="required-mark">*</span></label>
                                 <input type="text" id="add-institute-shorthand" name="shorthand_name" maxlength="10" required value="<?= e($addOld['shorthand_name']) ?>">
                                 <span class="field-hint">Abbreviation, e.g. &ldquo;NCI&rdquo;.</span>
                                 <?= field_error($addErrors, 'shorthand_name') ?>

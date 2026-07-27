@@ -301,7 +301,9 @@ $pageTitle = 'PIs';
                     <span class="table-card-title">Principal Investigators</span>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($status) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                        <?php endif; ?>
                         <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search by name&hellip;">
                         <button type="submit" class="btn btn--secondary btn--sm">Search</button>
                     </form>

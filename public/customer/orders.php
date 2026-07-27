@@ -223,7 +223,9 @@ $pageTitle = 'Orders';
                                   // page_size field of its own, so without
                                   // this hidden input a filter change would
                                   // silently reset it to the default. ?>
-                            <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                            <?php if ($pageSize !== DEFAULT_PAGE_SIZE): ?>
+                                <input type="hidden" name="page_size" value="<?= e((string) $pageSize) ?>">
+                            <?php endif; ?>
 
                             <input type="text" name="q" value="<?= e($q) ?>" placeholder="Search # / product / nuclide / product user&hellip;">
 

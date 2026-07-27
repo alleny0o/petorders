@@ -198,7 +198,9 @@ $pageTitle = 'Order Queue';
                           // right behavior for a changed filter. ?>
                     <form method="get" class="table-card-controls">
                         <input type="hidden" name="status" value="<?= e($queueStatus) ?>">
-                        <input type="hidden" name="page_size" value="<?= e((string) $queuePageSize) ?>">
+                        <?php if ($queuePageSize !== DEFAULT_PAGE_SIZE): ?>
+                            <input type="hidden" name="page_size" value="<?= e((string) $queuePageSize) ?>">
+                        <?php endif; ?>
 
                         <input type="text" name="q" value="<?= e($queueSearch) ?>" placeholder="Search # / product / nuclide / product user / lab / PI / institute&hellip;">
 

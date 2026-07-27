@@ -667,8 +667,25 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
 
 /**
+ * Params whose value is a no-op default -- omitted from build_query()'s
+ * output entirely rather than appended, so a fresh list-page visit
+ * doesn't grow a ?page=1&page_size=10 tail the moment any status
+ * tab/pagination link (all built via build_query()) is clicked. Every
+ * list page canonicalizes 'page'/'page_size' into $_GET before building
+ * links (so build_query() reflects the real applied value), which means
+ * these two land in $_GET as non-empty strings even at their defaults --
+ * unlike 'status'/'role'/etc, whose "all" state is already the empty
+ * string and gets dropped by the empty/null check below.
+ */
+const BUILD_QUERY_DEFAULTS = [
+    'page' => '1',
+    'page_size' => DEFAULT_PAGE_SIZE,
+];
+
+/**
  * Builds a query string from the current $_GET with the given overrides
- * applied, dropping empty/null values. Shared by every list page's status
+ * applied, dropping empty/null values and any param equal to its
+ * BUILD_QUERY_DEFAULTS no-op default. Shared by every list page's status
  * tabs, pagination links, and POST-form actions, so paging/filtering never
  * drops the rest of the active view.
  */
@@ -677,6 +694,10 @@ function build_query(array $overrides = []): string
     $params = array_merge($_GET, $overrides);
     foreach ($params as $key => $value) {
         if ($value === '' || $value === null) {
+            unset($params[$key]);
+            continue;
+        }
+        if (array_key_exists($key, BUILD_QUERY_DEFAULTS) && (string) $value === (string) BUILD_QUERY_DEFAULTS[$key]) {
             unset($params[$key]);
         }
     }

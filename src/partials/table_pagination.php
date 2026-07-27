@@ -56,7 +56,9 @@
             <?php foreach ($tablePagination['hiddenFields'] as $name => $value): ?>
                 <input type="hidden" name="<?= e($name) ?>" value="<?= e((string) $value) ?>">
             <?php endforeach; ?>
-            <input type="hidden" name="page_size" value="<?= e((string) $tablePagination['pageSize']) ?>">
+            <?php if ($tablePagination['pageSize'] !== DEFAULT_PAGE_SIZE): ?>
+                <input type="hidden" name="page_size" value="<?= e((string) $tablePagination['pageSize']) ?>">
+            <?php endif; ?>
             <label for="<?= e($tablePagination['idPrefix']) ?>page-jump" class="sr-only">Go to page</label>
             <input type="number" name="page" id="<?= e($tablePagination['idPrefix']) ?>page-jump" min="1" max="<?= $tablePagination['totalPages'] ?>" value="<?= $tablePagination['page'] ?>">
             <span class="table-pagination__status">of <?= $tablePagination['totalPages'] ?></span>

@@ -808,6 +808,35 @@ function initCopyButtons() {
 }
 
 
+// ===== Filter/pagination GET forms: drop empty fields on submit ====
+// Every list page's Filter/Search bar and the shared pagination footer
+// (src/partials/table_pagination.php) are plain <form method="get"> under
+// .table-card-controls. Native GET submission always serializes every
+// named field regardless of value -- an empty search box, an
+// unselected "All ..." <select> (value="" by convention on every one of
+// these forms), or a hidden status/page_size carried forward from a
+// previous view -- so submitting one of these forms produced URLs like
+// ?status=&q=&role=&fulfillment= even when nothing was actually
+// filtering away from the default view. This is the form-submission
+// counterpart to build_query()'s own empty/default-value omission
+// (helpers.php) -- that covers <a href> links built from $_GET, this
+// covers the native browser serialization of these forms, which
+// build_query() never sees.
+// Disabling a field excludes it from the browser's own serialization --
+// no value is lost since the page is navigating away regardless.
+function initFilterFormCleanup() {
+  document.querySelectorAll('form.table-card-controls').forEach((form) => {
+    if (form.method.toLowerCase() !== 'get') return;
+    form.addEventListener('submit', () => {
+      Array.from(form.elements).forEach((el) => {
+        if (!el.name || el.type === 'submit' || el.type === 'button') return;
+        if (el.value === '') el.disabled = true;
+      });
+    });
+  });
+}
+
+
 // ===== Reports form (admin/reports.php) ===========================
 // Report Criteria form: pre-fills a last-30-days date range on load, and
 // Reset Filters restores that same range plus clears every select back to
@@ -1080,6 +1109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initConfirmForms();
   initFormLoadingStates();
+  initFilterFormCleanup();
   initFieldErrorClearing();
   initAjaxForms();
   initCopyButtons();
