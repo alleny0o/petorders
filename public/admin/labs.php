@@ -350,7 +350,9 @@ $listStmt = $pdo->prepare(
     "SELECT l.lab_id, l.lab_name, l.building, l.room, l.active,
             l.institute_id, i.name AS institute_name, i.active AS institute_active,
             (SELECT COUNT(*) FROM lab_pis lp WHERE lp.lab_id = l.lab_id) AS pi_count,
-            (SELECT COUNT(*) FROM customers c WHERE c.lab_id = l.lab_id) AS customer_count
+            (SELECT COUNT(*) FROM lab_pis lp JOIN pis p ON p.pi_id = lp.pi_id WHERE lp.lab_id = l.lab_id AND p.active = 1) AS active_pi_count,
+            (SELECT COUNT(*) FROM customers c WHERE c.lab_id = l.lab_id) AS customer_count,
+            (SELECT COUNT(*) FROM customers c JOIN users u ON u.user_id = c.user_id WHERE c.lab_id = l.lab_id AND u.active = 1) AS active_customer_count
      FROM labs l
      JOIN institutes i ON i.institute_id = l.institute_id
      $listWhereSql
@@ -512,8 +514,20 @@ $pageTitle = 'Labs';
                                         <td><?= e($l['lab_name']) ?></td>
                                         <td class="muted"><?= e($l['institute_name']) ?><?= $l['institute_active'] ? '' : ' <span class="text-sm">(inactive)</span>' ?></td>
                                         <td class="muted"><?= $buildingRoom !== '' ? e($buildingRoom) : '&mdash;' ?></td>
-                                        <td class="muted"><?= (int) $l['pi_count'] ?: '&mdash;' ?></td>
-                                        <td class="muted"><?= (int) $l['customer_count'] ?: '&mdash;' ?></td>
+                                        <td class="muted">
+                                            <?php if ((int) $l['pi_count'] === 0): ?>
+                                                &mdash;
+                                            <?php else: ?>
+                                                <?= (int) $l['active_pi_count'] ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="muted">
+                                            <?php if ((int) $l['customer_count'] === 0): ?>
+                                                &mdash;
+                                            <?php else: ?>
+                                                <?= (int) $l['active_customer_count'] ?>
+                                            <?php endif; ?>
+                                        </td>
                                         <?php // Three-way derived status, same treatment as
                                               // products.php's Unavailable rows. ?>
                                         <td>
