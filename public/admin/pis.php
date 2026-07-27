@@ -243,7 +243,9 @@ canonicalize_get(['page' => $page]);
 $listStmt = $pdo->prepare(
     "SELECT p.pi_id, p.pi_name, p.email, p.phone, p.active,
             (SELECT COUNT(*) FROM lab_pis lp WHERE lp.pi_id = p.pi_id) AS lab_count,
-            (SELECT COUNT(*) FROM customers c WHERE c.supervising_pi_id = p.pi_id) AS customer_count
+            (SELECT COUNT(*) FROM lab_pis lp JOIN labs l ON l.lab_id = lp.lab_id WHERE lp.pi_id = p.pi_id AND l.active = 1) AS active_lab_count,
+            (SELECT COUNT(*) FROM customers c WHERE c.supervising_pi_id = p.pi_id) AS customer_count,
+            (SELECT COUNT(*) FROM customers c JOIN users u ON u.user_id = c.user_id WHERE c.supervising_pi_id = p.pi_id AND u.active = 1) AS active_customer_count
      FROM pis p
      $listWhereSql
      ORDER BY p.pi_name
@@ -350,8 +352,22 @@ $pageTitle = 'PIs';
                                         <td><?= e($p['pi_name']) ?></td>
                                         <td class="muted"><?= $p['email'] !== null && $p['email'] !== '' ? e($p['email']) : '&mdash;' ?></td>
                                         <td class="muted"><?= $p['phone'] !== null && $p['phone'] !== '' ? e($p['phone']) : '&mdash;' ?></td>
-                                        <td class="muted"><?= (int) $p['lab_count'] ?: '&mdash;' ?></td>
-                                        <td class="muted"><?= (int) $p['customer_count'] ?: '&mdash;' ?></td>
+                                        <td class="count-cell">
+                                            <?php if ((int) $p['lab_count'] === 0): ?>
+                                                <span class="muted">&mdash;</span>
+                                            <?php else: ?>
+                                                <?= (int) $p['active_lab_count'] ?>
+                                                <div class="text-sm muted"><?= (int) $p['lab_count'] ?> total</div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="count-cell">
+                                            <?php if ((int) $p['customer_count'] === 0): ?>
+                                                <span class="muted">&mdash;</span>
+                                            <?php else: ?>
+                                                <?= (int) $p['active_customer_count'] ?>
+                                                <div class="text-sm muted"><?= (int) $p['customer_count'] ?> total</div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><span class="badge badge--<?= $p['active'] ? 'active' : 'inactive' ?>"><?= $p['active'] ? 'Active' : 'Inactive' ?></span></td>
                                         <td>
                                             <div class="flex gap-2 justify-end">
