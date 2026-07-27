@@ -46,8 +46,8 @@ if ($labId > 0) {
         "SELECT COUNT(*) AS total_count,
                 COALESCE(SUM(o.status = 'pending'), 0) AS pending_count,
                 COALESCE(SUM(o.status = 'pending' AND o.requested_datetime < ?), 0) AS pending_overdue_count,
-                COALESCE(SUM(o.status = 'accepted' AND o.requested_datetime >= ?), 0) AS upcoming_count,
-                MIN(CASE WHEN o.status = 'accepted' AND o.requested_datetime >= ?
+                COALESCE(SUM(o.requested_datetime >= ?), 0) AS upcoming_count,
+                MIN(CASE WHEN o.requested_datetime >= ?
                          THEN o.requested_datetime END) AS next_upcoming,
                 COALESCE(SUM(o.requested_datetime >= ? AND o.requested_datetime < ?), 0) AS month_count
          FROM orders o
@@ -120,7 +120,7 @@ $pageTitle = 'Dashboard';
                             }
                         ?></span>
                     </a>
-                    <a class="stat-tile" href="/customer/orders.php?status=accepted&amp;requested_from=<?= e(date('Y-m-d')) ?>">
+                    <a class="stat-tile" href="/customer/orders.php?requested_from=<?= e(date('Y-m-d')) ?>">
                         <span class="stat-tile__label">Upcoming Orders</span>
                         <span class="stat-tile__value tabular"><?= $upcomingCount ?></span>
                         <span class="stat-tile__meta"><?= $upcomingCount > 0 ? e('Next: ' . date('M j, H:i', strtotime($stats['next_upcoming']))) : 'None scheduled' ?></span>
