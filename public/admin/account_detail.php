@@ -110,6 +110,10 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 redirect($dest);
             } catch (PDOException $e) {
+                // Single atomic UPDATE with no transaction open -- a
+                // rollBack() here (as in accounts.php/customer_detail.php,
+                // whose catches sit inside multi-statement transactions)
+                // would itself throw.
                 $profileErrors['email'] = 'Could not save changes. An account for this email may already exist.';
             }
         }

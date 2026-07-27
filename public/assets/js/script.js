@@ -8,7 +8,7 @@ function isMobileViewport() {
 // ===== Sidebar collapse toggle (desktop/tablet, >768px) =========
 // Collapses/expands the sidebar to an icon rail by flipping
 // data-sidebar="collapsed" on <html>. CSS reacts to that attribute
-// (see layout.css section 8). State is persisted in localStorage so
+// (see layout/sidebar.css). State is persisted in localStorage so
 // it survives page reloads.
 // Using an <html> attribute (not a class on .sidebar) means the
 // pre-paint snippet in <head> can apply it before .sidebar even
@@ -119,7 +119,7 @@ function initSidebarMobileSafety() {
 //
 // Exception: when the sidebar is icon-rail collapsed (desktop/tablet
 // only — mobile off-canvas always uses the inline behavior above), the
-// inline submenu is display:none (layout.css), so the click opens a
+// inline submenu is display:none (layout/sidebar.css), so the click opens a
 // floating flyout instead. Same toggle button, different target
 // depending on collapsed state.
 
@@ -626,6 +626,51 @@ function initConfirmForms() {
 }
 
 
+// ===== Modal dirty-tracking (shared CRUD Add/Edit wiring) =========
+// One wiring shared by every CRUD page's Add/Edit modals and the New
+// Order modal: a close attempt on a dirty modal is intercepted via the
+// overlay's petordersBeforeClose hook and routed through
+// petordersConfirm() as a discard prompt.
+//
+// `snapshot` stays page-supplied because what counts as a field value
+// varies per page (labs.php keys checkbox rosters by name+value,
+// products.php skips disabled mirror fields; most pages use a plain
+// name -> value map). markPristine() must be called every time the
+// modal's fields are (re)populated -- on open and on a validation-
+// error reopen -- so only edits made AFTER that point count as dirty.
+// Returns { markPristine, isDirty }; isDirty backs the New Order
+// modal's beforeunload guard (new_order_form.php).
+function petordersWireModalDirtyTracking(overlay, form, snapshot, discardCopy, onDiscard) {
+  let pristineValues = {};
+
+  function isDirty() {
+    const now = snapshot(form);
+    return Object.keys(pristineValues).some((name) => now[name] !== pristineValues[name]);
+  }
+
+  overlay.petordersBeforeClose = function () {
+    if (!isDirty()) return true;
+    window.petordersConfirm({
+      title: discardCopy.title,
+      message: discardCopy.message,
+      verb: 'Discard',
+      danger: true,
+    }).then((discard) => {
+      if (!discard) return;
+      if (onDiscard) onDiscard();
+      window.petordersCloseModal(true);
+    });
+    return false;
+  };
+
+  return {
+    markPristine: function () { pristineValues = snapshot(form); },
+    isDirty: isDirty,
+  };
+}
+window.petordersWireModalDirtyTracking = petordersWireModalDirtyTracking;
+
+
 // ===== Form loading / double-submit guard =========================
 // Every submitted form marks its submit button as busy and refuses a
 // second submission. Uses a class + pointer-events, NOT `disabled`,
@@ -643,10 +688,8 @@ function setButtonLoading(btn) {
 
 // Inverse of setButtonLoading, for AJAX submits that stay on the page
 // after a failure (a native full-page POST never needs this — the
-// response replaces the document). Both are exposed on window because
-// the AJAX order form's inline script (new_order_form.php) manages its
-// own loading state: initFormLoadingStates() below skips any submit
-// that was preventDefault-ed.
+// response replaces the document). Used only by initAjaxForms below;
+// the New Order modal rides that same pipeline via data-ajax-submit.
 function clearButtonLoading(btn) {
   if (!btn || !btn.classList.contains('is-loading')) return;
   btn.classList.remove('is-loading');
@@ -654,9 +697,6 @@ function clearButtonLoading(btn) {
   const spinner = btn.querySelector('.spinner');
   if (spinner) spinner.remove();
 }
-
-window.petordersSetButtonLoading = setButtonLoading;
-window.petordersClearButtonLoading = clearButtonLoading;
 
 function initFormLoadingStates() {
   document.addEventListener('submit', (e) => {
@@ -996,9 +1036,11 @@ function initFieldErrorClearing() {
 
 // ===== AJAX form submit ===========================================
 // Any <form data-ajax-submit> posts via fetch instead of a full-page
-// POST — same protocol as the New Order modal's bespoke handler
-// (new_order_form.php): FormData carries the CSRF token and matches
-// native submit semantics; the X-Requested-With header is what the
+// POST — including the New Order modal's form (new_order_form.php,
+// which layers its own pre-submit confirm on top via the same
+// dataset.confirmed contract initConfirmForms uses): FormData carries
+// the CSRF token and matches native submit semantics; the
+// X-Requested-With header is what the
 // server's request_wants_json() (helpers.php) keys on, so the same
 // page keeps working as a normal POST fallback without JS. The JSON
 // contract is json_response()'s: {ok:true, redirect} → navigate (the

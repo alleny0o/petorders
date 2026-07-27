@@ -487,43 +487,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return values;
   }
 
-  // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as the New
-  // Order modal (src/partials/new_order_form.php) and
-  // lab_product_users.php / lab_delivery_locations.php's Add/Edit
-  // modals, scaled down to a plain POST form. markPristine() must be
-  // called every time the modal's fields are (re)populated -- on open
-  // and on a validation-error reopen -- so only edits made AFTER that
-  // point ever count as dirty. ----
-  function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
-    var pristineValues = {};
-
-    function isDirty() {
-      var now = snapshotForm(form);
-      return Object.keys(pristineValues).some(function (name) {
-        return now[name] !== pristineValues[name];
-      });
-    }
-
-    overlay.petordersBeforeClose = function () {
-      if (!isDirty()) return true;
-      window.petordersConfirm({
-        title: discardCopy.title,
-        message: discardCopy.message,
-        verb: 'Discard',
-        danger: true
-      }).then(function (discard) {
-        if (!discard) return;
-        if (onDiscard) onDiscard();
-        window.petordersCloseModal(true);
-      });
-      return false;
-    };
-
-    return {
-      markPristine: function () { pristineValues = snapshotForm(form); }
-    };
-  }
+  // Dirty-tracking + discard-confirm-on-close wiring is shared:
+  // window.petordersWireModalDirtyTracking (script.js). snapshotForm()
+  // above stays page-local -- what counts as a field value varies per
+  // page.
 
   // ---- New Account modal ----
   var newAccountModal = document.getElementById('new-account-modal');
@@ -532,9 +499,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // rendered value="" already IS the correct pristine state (blank on a
   // fresh load, the attempted values on a validation-error reopen), so
   // form.reset() is safe here, same as lab_product_users.php's Add modal.
-  var newAccountTracking = wireModalDirtyTracking(
+  var newAccountTracking = window.petordersWireModalDirtyTracking(
     newAccountModal,
     newAccountForm,
+    snapshotForm,
     { title: 'Discard this account?', message: 'Your entries will be discarded.' },
     function () { newAccountForm.reset(); }
   );

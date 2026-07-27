@@ -40,44 +40,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->rollBack();
                 $flash = ['type' => 'error', 'message' => 'This request has already been reviewed.'];
             } else {
-                $tempPassword = generate_temp_password();
-                $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+                // Pre-check, same convention as every other username
+                // write path (see accounts.php) -- the PDOException
+                // catch below stays as the race-condition backstop. The
+                // email was only vetted when the request was submitted
+                // (register.php), so an active account may have claimed
+                // it in the meantime.
+                $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND active = 1');
+                $stmt->execute([$request['email']]);
+                if ($stmt->fetchColumn()) {
+                    $pdo->rollBack();
+                    $flash = ['type' => 'error', 'message' => 'An active account already exists for this email.'];
+                } else {
+                    $tempPassword = generate_temp_password();
+                    $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
 
-                $pdo->prepare(
-                    'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'
-                )->execute([$request['email'], $tempHash, $request['first_name'], $request['last_name'], $request['phone']]);
-                $newUserId = (int) $pdo->lastInsertId();
+                    $pdo->prepare(
+                        'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'
+                    )->execute([$request['email'], $tempHash, $request['first_name'], $request['last_name'], $request['phone']]);
+                    $newUserId = (int) $pdo->lastInsertId();
 
-                $pdo->prepare(
-                    'INSERT INTO customers
-                        (user_id, lab_id, supervising_pi_id, registration_status)
-                     VALUES (?, ?, ?, ?)'
-                )->execute([
-                    $newUserId,
-                    $request['lab_id'],
-                    $request['pi_id'],
-                    'approved',
-                ]);
+                    $pdo->prepare(
+                        'INSERT INTO customers
+                            (user_id, lab_id, supervising_pi_id, registration_status)
+                         VALUES (?, ?, ?, ?)'
+                    )->execute([
+                        $newUserId,
+                        $request['lab_id'],
+                        $request['pi_id'],
+                        'approved',
+                    ]);
 
-                // No password_history seeding: the temp can't be reused as
-                // the "new" password anyway (is_password_reused() checks
-                // the current users.password_hash), and history holds
-                // outgoing hashes only.
+                    // No password_history seeding: the temp can't be reused as
+                    // the "new" password anyway (is_password_reused() checks
+                    // the current users.password_hash), and history holds
+                    // outgoing hashes only.
 
-                $pdo->prepare(
-                    "UPDATE customer_registration_requests
-                     SET status = 'approved', reviewed_by_admin_id = ?, reviewed_at = NOW()
-                     WHERE request_id = ?"
-                )->execute([$adminId, $requestId]);
+                    $pdo->prepare(
+                        "UPDATE customer_registration_requests
+                         SET status = 'approved', reviewed_by_admin_id = ?, reviewed_at = NOW()
+                         WHERE request_id = ?"
+                    )->execute([$adminId, $requestId]);
 
-                $pdo->commit();
+                    $pdo->commit();
 
-                $flash = [
-                    'type'         => 'success',
-                    'email'        => $request['email'],
-                    'user_id'      => $newUserId,
-                    'tempPassword' => $tempPassword,
-                ];
+                    $flash = [
+                        'type'         => 'success',
+                        'email'        => $request['email'],
+                        'user_id'      => $newUserId,
+                        'tempPassword' => $tempPassword,
+                    ];
+                }
             }
         } catch (PDOException $e) {
             $pdo->rollBack();

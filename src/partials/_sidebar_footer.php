@@ -1,15 +1,22 @@
 <?php
 /**
- * Shared sidebar footer (account button + profile-edit modal + its init
- * script) for the staff and admin layouts -- byte-identical between the
- * two before this extraction. Included (not called), same convention as
- * table_pagination.php: reads $petordersLayout directly from the caller's
- * scope rather than taking parameters.
+ * Shared sidebar footer (account button + logout form + script.js tag,
+ * plus the staff/admin-only profile-edit modal) for all three layouts.
+ * Included (not called), same convention as table_pagination.php: reads
+ * $petordersLayout directly from the caller's scope rather than taking
+ * parameters; assigns nothing into that scope (reserved-variables rule).
+ *
+ * The one per-role difference is the account button's trigger hookup,
+ * branched inline on the session role: customers get
+ * data-my-info-trigger (opens the read-only My Info modal rendered by
+ * layout_customer.php -- customer profile edits are admin-only, via
+ * admin/customer_detail.php); staff/admin get id="profile-edit-trigger",
+ * which opens the self-service profile-edit modal rendered below.
  */
 ?>
 <!-- Sidebar Footer -->
 <div class="sidebar-footer">
-  <button type="button" class="sidebar-account" id="profile-edit-trigger" aria-haspopup="dialog">
+  <button type="button" class="sidebar-account" <?= ($_SESSION['role'] ?? null) === 'customer' ? 'data-my-info-trigger' : 'id="profile-edit-trigger"' ?> aria-haspopup="dialog">
     <div class="account-avatar"><?= e($petordersLayout['initials']) ?></div>
     <span class="account-name"><?= e($petordersLayout['name']) ?></span>
   </button>
@@ -29,9 +36,12 @@
 </div>
 </aside>
 
+<?php if (($_SESSION['role'] ?? null) !== 'customer'): ?>
 <!-- Profile edit modal: self-service first/last name edit, opened from
      the sidebar account block above. Separate from admin/account_detail.php,
-     which edits *other* accounts -- this always targets $_SESSION['user_id']. -->
+     which edits *other* accounts -- this always targets $_SESSION['user_id'].
+     Staff/admin only: account_profile.php rejects customers, who get the
+     read-only My Info modal from layout_customer.php instead. -->
 <div class="modal-overlay" id="profile-edit-modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-modal-title">
     <form method="post" action="/account_profile.php">
@@ -63,7 +73,10 @@
   </div>
 </div>
 
+<?php endif; ?>
+
 <script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
+<?php if (($_SESSION['role'] ?? null) !== 'customer'): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var trigger = document.getElementById('profile-edit-trigger');
@@ -76,3 +89,4 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+<?php endif; ?>

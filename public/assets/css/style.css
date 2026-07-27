@@ -19,7 +19,6 @@
   --slate-grey:     #6c757d;
   --iron-grey:      #495057;
   --gunmetal:       #343a40;
-  --carbon-black:   #212529;
   --white:          #ffffff;
 
   /* Accent (blue) */
@@ -125,7 +124,6 @@
   /* Hover states */
   --color-hover-primary:   var(--platinum);
   --color-hover-secondary: var(--alabaster-grey);
-  --color-hover-mini: var(--carbon-black);
 
   /* Buttons */
   --color-btn-primary-bg:         var(--accent-600);
@@ -133,16 +131,10 @@
   --color-btn-secondary-bg:       var(--color-bg-surface);
   --color-btn-secondary-bg-hover: var(--color-bg-primary);
   --color-btn-secondary-text:     var(--color-text-secondary);
-  --color-btn-tertiary-bg:        var(--platinum);
-  --color-btn-tertiary-bg-hover:  var(--alabaster-grey);
 
   /* Links */
   --color-link:       var(--accent-600);
   --color-link-hover: var(--accent-700);
-
-  /* Logo square */
-  --color-logo-bg:   var(--gunmetal);
-  --color-logo-text: var(--white);
 
   /* Status (success/warning/error) — dot/border tones */
   --color-success: var(--status-success);

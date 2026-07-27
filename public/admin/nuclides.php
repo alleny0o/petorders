@@ -479,49 +479,20 @@ document.addEventListener('DOMContentLoaded', function () {
     return values;
   }
 
-  // ---- Shared dirty-tracking + discard-confirm-on-close wiring, same
-  // isDirty() / petordersBeforeClose / petordersConfirm() pattern as
-  // lab_product_users.php / accounts.php -- copied inline per convention,
-  // not shared into script.js. markPristine() must be called every time
-  // the modal's fields are (re)populated. ----
-  function wireModalDirtyTracking(overlay, form, discardCopy, onDiscard) {
-    var pristineValues = {};
-
-    function isDirty() {
-      var now = snapshotForm(form);
-      return Object.keys(pristineValues).some(function (name) {
-        return now[name] !== pristineValues[name];
-      });
-    }
-
-    overlay.petordersBeforeClose = function () {
-      if (!isDirty()) return true;
-      window.petordersConfirm({
-        title: discardCopy.title,
-        message: discardCopy.message,
-        verb: 'Discard',
-        danger: true
-      }).then(function (discard) {
-        if (!discard) return;
-        if (onDiscard) onDiscard();
-        window.petordersCloseModal(true);
-      });
-      return false;
-    };
-
-    return {
-      markPristine: function () { pristineValues = snapshotForm(form); }
-    };
-  }
+  // Dirty-tracking + discard-confirm-on-close wiring is shared:
+  // window.petordersWireModalDirtyTracking (script.js). snapshotForm()
+  // above stays page-local -- what counts as a field value varies per
+  // page.
 
   // ---- Add modal ----
   var addModal = document.getElementById('add-nuclide-modal');
   var addForm = document.getElementById('add-nuclide-form');
   // Discard resets to blank: Add's fields are never JS-populated, so
   // form.reset() is safe -- same reasoning as lab_product_users.php.
-  var addTracking = wireModalDirtyTracking(
+  var addTracking = window.petordersWireModalDirtyTracking(
     addModal,
     addForm,
+    snapshotForm,
     { title: 'Discard this nuclide?', message: 'Your entries will be discarded.' },
     function () { addForm.reset(); }
   );
@@ -549,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // No onDiscard reset: Edit's fields are JS-populated per row, so the
   // next real open always repopulates from fresh data -- same reasoning
   // as lab_product_users.php.
-  var editTracking = wireModalDirtyTracking(editModal, editForm, {
+  var editTracking = window.petordersWireModalDirtyTracking(editModal, editForm, snapshotForm, {
     title: 'Discard these changes?',
     message: 'Your edits to this nuclide will be discarded.'
   });

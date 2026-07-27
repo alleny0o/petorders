@@ -151,7 +151,6 @@ $pageTitle = 'Dashboard';
                                     // today = "Due today". No neutral/future tier
                                     // -- the query is bounded to end-of-today, so
                                     // every row is one of these two.
-                                    $dashBadgeClass = $o['status'];
                                     $dashDueTs = strtotime($o['requested_datetime']);
                                     $dashIsOverdue = $dashDueTs < $dashNow;
                                     ?>
@@ -161,7 +160,7 @@ $pageTitle = 'Dashboard';
                                         <td class="tabular"><?= (int) $o['order_id'] ?></td>
                                         <td><?= e($o['product_name']) ?></td>
                                         <td><?= e($o['lab_name'] ?? '—') ?></td>
-                                        <td><span class="badge badge--<?= e($dashBadgeClass) ?>"><?= e(ucfirst($o['status'])) ?></span></td>
+                                        <td><span class="badge badge--<?= e($o['status']) ?>"><?= e(ucfirst($o['status'])) ?></span></td>
                                         <td><a href="/staff/order_detail.php?id=<?= (int) $o['order_id'] ?>" class="table-action">View</a></td>
                                     </tr>
                                 <?php endforeach; ?>
