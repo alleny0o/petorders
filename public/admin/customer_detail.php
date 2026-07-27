@@ -480,7 +480,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                                 <select id="institute_id" name="institute_id">
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($institutes as $institute): ?>
-                                        <option value="<?= (int) $institute['institute_id'] ?>" title="<?= e($institute['name']) ?>" <?= (string) $institute['institute_id'] === $editOld['institute_id'] ? 'selected' : '' ?>><?= e($institute['shorthand_name']) ?><?= (int) $institute['active'] === 0 ? ' (inactive)' : '' ?></option>
+                                        <option value="<?= (int) $institute['institute_id'] ?>" <?= (string) $institute['institute_id'] === $editOld['institute_id'] ? 'selected' : '' ?>><?= e($institute['name']) ?> (<?= e($institute['shorthand_name']) ?>)<?= (int) $institute['active'] === 0 ? ' (inactive)' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
