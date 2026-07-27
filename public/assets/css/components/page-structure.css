@@ -158,6 +158,11 @@
   display: flex;
   gap: var(--sp-1);
   overflow-x: auto;
+  /* overflow-y must be explicit: per spec, when only one axis is set to a
+     non-visible value, the other computes to auto instead of visible --
+     without this, any sub-pixel height overshoot (padding/border rounding)
+     silently produces a vertical scrollbar. */
+  overflow-y: hidden;
   border-bottom: 1px solid var(--color-border-hr);
   margin-bottom: var(--sp-4);
 }
