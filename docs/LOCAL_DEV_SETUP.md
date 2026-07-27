@@ -45,7 +45,7 @@ in that order:
 | Products (one seeded under two fulfillment methods, to exercise the dual-row convention) | 10    |
 | Delivery locations                                                                       | 4     |
 | Product users                                                                            | 2     |
-| Orders (spanning every status, dated relative to today so dashboards stay populated)     | 10    |
+| Orders (spanning every status, dated relative to today so dashboards stay populated)     | 15    |
 
 ## 3. Configure the app
 
@@ -118,13 +118,20 @@ Two very different setup paths share the `tools/` folder:
 | ----------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Database contents | `schema.sql` + `seed.sql`                                                  | `schema.sql` only                                                                                               |
 | Accounts          | 7 seeded accounts                                                          | exactly 1 real admin                                                                                            |
-| Tool              | `tools/set_temp_passwords.php`, bulk-resets all accounts to `TempPass123!` | `tools/bootstrap_admin.php <email> <first> <last>`, creates the single admin, prints a random one-time password |
+| Tool              | `tools/set_temp_passwords.php`, bulk-resets all accounts to `TempPass123!` | `tools/bootstrap_admin.php <email> <first> <last> <phone>`, creates the single admin, prints a random one-time password |
 | Guard             | none (re-runnable)                                                         | refuses to run if `users` has any rows                                                                          |
 
 `bootstrap_admin.php` is documented in full in
 [DEPLOYMENT.md](DEPLOYMENT.md#7-create-the-first-admin-account). You'll
 normally never run it locally, and never run `set_temp_passwords.php` in
 production.
+
+A third script, `tools/generate_stress_test.php`, bulk-inserts
+thousands of synthetic orders (the count is a variable at the top of
+the script) for exercising the dashboards and paginated lists against
+real volume. Dev-only, like `set_temp_passwords.php` — it
+writes into whatever database `src/config.php` points at, so never run
+it against anything but your local dev database.
 
 ## 7. Development notes
 

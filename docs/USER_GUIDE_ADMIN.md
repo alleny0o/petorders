@@ -36,10 +36,10 @@ _The admin dashboard: pending registrations front and center, plus account count
 | Panel                           | What it shows                                                                                                                                                                                                                                                                       |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stat tiles                      | Pending Registrations, Active Customers, Active Staff, Admins (each also shows its inactive count). Click a tile to jump to the matching list                                                                                                                                       |
-| Pending Registrations           | The review queue's newest entries, with a **Review** link into the full page                                                                                                                                                                                                        |
-| Rejected Registrations: Past 7 Days | All rejections from the past 7 days with the reason, for quick reference when someone follows up                                                                                                                                                                                |
-| Recently Added Customers        | The newest customer accounts                                                                                                                                                                                                                                                        |
-| Lockouts — Past 7 Days          | Accounts that recently hit the failed-login lockout (5 wrong passwords locks an account for 15 minutes). Useful when someone reports they "can't log in": if they're on this list, they can wait out the 15 minutes, or you can reset their password, which also clears the lockout |
+| Pending Registrations           | The review queue's five newest entries, with a **Review** link into the full page                                                                                                                                                                                                        |
+| Rejected Registrations: Past 7 Days | All rejections from the past 7 days with the reason (the list isn't capped), for quick reference when someone follows up                                                                                                                                                                                |
+| Recently Added Customers        | The five newest customer accounts                                                                                                                                                                                                                                                        |
+| Lockouts: Past 7 Days           | Every account that hit the failed-login lockout in the past 7 days (5 wrong passwords locks an account for 15 minutes; the list isn't capped). Useful when someone reports they "can't log in": if they're on this list, they can wait out the 15 minutes, or you can reset their password, which also clears the lockout |
 
 ## 2. Reviewing registration requests
 
@@ -166,7 +166,7 @@ _Each nuclide shows how many products it has and whether it's active._
 | Action     | Detail                                                                                                                                                                                                                                                               |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add        | Click **+ Nuclide**, enter the name, save                                                                                                                                                                                                                            |
-| Edit       | Allows you to eidit the name of a nuclide. Always allowed, any time. Renaming updates how the nuclide displays everywhere, including on past orders (it's a label correction, not a new nuclide)                                                                                                                |
+| Edit       | Allows you to edit the name of a nuclide. Always allowed, any time. Renaming updates how the nuclide displays everywhere, including on past orders (it's a label correction, not a new nuclide)                                                                                                                |
 | Deactivate | Takes the nuclide, and every one of its products, off the new-order form until you reactivate it. The confirmation spells out how many active products are affected. Past orders are untouched. Reactivating makes its active products orderable again automatically |
 
 ## 6. Catalog: products
@@ -185,7 +185,7 @@ see the two options side by side when ordering.
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add                      | Click **+ Product**, pick the nuclide (active nuclides only), name the product, choose the fulfillment                                                                                                                                                                                                                |
 | Statuses                 | **Active** (orderable), **Inactive** (turned off), **Unavailable** (the product itself is active but its nuclide is deactivated, so customers can't order it until the nuclide comes back. That's your cue to check the nuclide, not the product)                                                                     |
-| Editing                  | Edit a product's name, nuclide, or fullilment. Note that once any order references a product, its nuclide and fulfillment can no longer be changed (the fields lock, and the form tells you why). This protects order history. The correct move: create a new product with the right nuclide/fulfillment, then deactivate the old one. The product's name can always be edited |
+| Editing                  | Edit a product's name, nuclide, or fulfillment. Note that once any order references a product, its nuclide and fulfillment can no longer be changed (the fields lock, and the form tells you why). This protects order history. The correct move: create a new product with the right nuclide/fulfillment, then deactivate the old one. The product's name can always be edited |
 | Deactivate / Activate    | Removes/restores the product on the new-order form. Activating a product whose nuclide is inactive is allowed, but the confirmation warns it stays Unavailable until the nuclide is reactivated                                                                                                                       |
 
 ![Edit product dialog with nuclide and fulfillment locked](images/admin/product-edit-locked.png)
@@ -240,7 +240,8 @@ it's active but its institute isn't.
 ![PIs list with contact info and lab/customer counts](images/admin/pis.png)
 _PIs, with their lab and customer counts. Pairing to labs happens on the Labs page._
 
-Add with **+ PI** (name required, email and phone optional).
+Add with **+ PI** (name and email required — each PI's email must be
+unique; phone optional).
 Deactivating a PI removes them from new-registration choices, the
 customers they already supervise are unaffected.
 

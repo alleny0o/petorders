@@ -102,8 +102,8 @@ _The dashboard: your lab's order counts on top, recent orders below, and your la
 
 | Section       | What it shows                                                                                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stat tiles    | Pending Orders, Requested This Month, and Total Orders for your whole lab (click one to jump to that filtered list), plus a count of products currently available to order |
-| Recent Orders | Your lab's five most recent orders. Click **View** to open one                                                                                                             |
+| Stat tiles    | Pending Orders (with a note when any are past their requested time), Upcoming Orders (orders requested for today or later, with the next requested time), Requested This Month, and Total Orders — all for your whole lab. Click a tile to jump to the matching filtered list |
+| Recent Orders | The five of your lab's orders with the most recent requested times. Click **View** to open one                                                                             |
 | My Lab        | Your lab and institute, with a **View full info** button showing your full account details                                                                                 |
 | Quick Links   | Shortcuts to Delivery Locations and Product Users (sections 10 and 11)                                                                                                     |
 
