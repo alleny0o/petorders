@@ -22,7 +22,21 @@ $lastOrdersSeen = mark_orders_seen();
 $monthStart = date('Y-m-01 00:00:00');
 $nextMonthStart = date('Y-m-01 00:00:00', strtotime('first day of next month'));
 
-$stats = ['total_count' => 0, 'pending_count' => 0, 'month_count' => 0];
+// Overdue lens: a pending order is overdue the moment its requested time
+// passes. Upcoming lens: start-of-today, not now() -- deliberately looser,
+// so the count matches the tile's ?status=accepted&requested_from=today
+// deep link exactly (orders.php applies requested_from as >= 00:00:00).
+$now = date('Y-m-d H:i:s');
+$todayStart = date('Y-m-d 00:00:00');
+
+$stats = [
+    'total_count' => 0,
+    'pending_count' => 0,
+    'pending_overdue_count' => 0,
+    'upcoming_count' => 0,
+    'next_upcoming' => null,
+    'month_count' => 0,
+];
 $recentOrders = [];
 
 if ($labId > 0) {
@@ -31,21 +45,23 @@ if ($labId > 0) {
     $statStmt = $pdo->prepare(
         "SELECT COUNT(*) AS total_count,
                 COALESCE(SUM(o.status = 'pending'), 0) AS pending_count,
+                COALESCE(SUM(o.status = 'pending' AND o.requested_datetime < ?), 0) AS pending_overdue_count,
+                COALESCE(SUM(o.status = 'accepted' AND o.requested_datetime >= ?), 0) AS upcoming_count,
+                MIN(CASE WHEN o.status = 'accepted' AND o.requested_datetime >= ?
+                         THEN o.requested_datetime END) AS next_upcoming,
                 COALESCE(SUM(o.requested_datetime >= ? AND o.requested_datetime < ?), 0) AS month_count
          FROM orders o
          JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?"
     );
-    $statStmt->execute([$monthStart, $nextMonthStart, $labId]);
+    $statStmt->execute([$now, $todayStart, $todayStart, $monthStart, $nextMonthStart, $labId]);
     $stats = $statStmt->fetch();
 
     $recentStmt = $pdo->prepare(
         'SELECT o.order_id, o.status, o.requested_datetime, o.updated_at, o.chargeable,
-                p.name AS product_name,
-                u.first_name, u.last_name, u.username
+                p.name AS product_name
          FROM orders o
          JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
          JOIN products p  ON p.product_id = o.product_id
-         JOIN users u     ON u.user_id = o.customer_id
          ORDER BY o.requested_datetime DESC, o.order_id DESC
          LIMIT 5'
     );
@@ -54,6 +70,8 @@ if ($labId > 0) {
 }
 
 $pendingCount = (int) $stats['pending_count'];
+$pendingOverdueCount = (int) $stats['pending_overdue_count'];
+$upcomingCount = (int) $stats['upcoming_count'];
 $monthCount = (int) $stats['month_count'];
 $totalCount = (int) $stats['total_count'];
 
@@ -67,10 +85,8 @@ $pageTitle = 'Dashboard';
 <body>
     <div class="app-shell">
         <?php // The include also sets $petordersLayout['account'] (name/username/
-              // lab/institute for the page header + My Lab card below) and
-              // $petordersLayout['products'] (active, institute-scoped catalog
-              // rows for the New Order modal, counted by the Available
-              // Products tile) -- neither needs re-querying here. ?>
+              // lab/institute for the page header + My Lab card below) --
+              // no re-querying needed here. ?>
         <?php include __DIR__ . '/../../src/partials/layout_customer.php'; ?>
         <main class="app-main">
             <div class="page-header">
@@ -88,13 +104,26 @@ $pageTitle = 'Dashboard';
 
             <?php if ($labId > 0): ?>
                 <div class="stat-grid">
+                    <?php // No urgency dots on these tiles -- state is conveyed
+                          // by the meta text alone (plain words read reliably
+                          // for this user base; a small colored dot doesn't). ?>
                     <a class="stat-tile" href="/customer/orders.php?status=pending">
-                        <span class="stat-tile__label">
-                            <?php if ($pendingCount > 0): ?><span class="dot dot--warning"></span><?php endif; ?>
-                            Pending Orders
-                        </span>
+                        <span class="stat-tile__label">Pending Orders</span>
                         <span class="stat-tile__value tabular"><?= $pendingCount ?></span>
-                        <span class="stat-tile__meta"><?= $pendingCount > 0 ? 'Awaiting processing' : 'None pending' ?></span>
+                        <span class="stat-tile__meta"><?php
+                            if ($pendingOverdueCount > 0) {
+                                echo $pendingOverdueCount . ' past requested time';
+                            } elseif ($pendingCount > 0) {
+                                echo 'Awaiting processing';
+                            } else {
+                                echo 'None pending';
+                            }
+                        ?></span>
+                    </a>
+                    <a class="stat-tile" href="/customer/orders.php?status=accepted&amp;requested_from=<?= e(date('Y-m-d')) ?>">
+                        <span class="stat-tile__label">Upcoming Orders</span>
+                        <span class="stat-tile__value tabular"><?= $upcomingCount ?></span>
+                        <span class="stat-tile__meta"><?= $upcomingCount > 0 ? e('Next: ' . date('M j, H:i', strtotime($stats['next_upcoming']))) : 'None scheduled' ?></span>
                     </a>
                     <a class="stat-tile" href="/customer/orders.php?requested_from=<?= e(date('Y-m-01')) ?>&amp;requested_to=<?= e(date('Y-m-t')) ?>">
                         <span class="stat-tile__label">Requested This Month</span>
@@ -106,13 +135,6 @@ $pageTitle = 'Dashboard';
                         <span class="stat-tile__value tabular"><?= $totalCount ?></span>
                         <span class="stat-tile__meta">All time</span>
                     </a>
-                    <?php // Not a link -- customers have no product-list page;
-                          // the catalog is browsed inside the New Order form. ?>
-                    <div class="stat-tile">
-                        <span class="stat-tile__label">Available Products</span>
-                        <span class="stat-tile__value tabular"><?= count($petordersLayout['products']) ?></span>
-                        <span class="stat-tile__meta">Active in your catalog</span>
-                    </div>
                 </div>
             <?php endif; ?>
 
