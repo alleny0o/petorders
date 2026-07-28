@@ -1,4 +1,4 @@
-# PETOrders — Architecture & Conventions
+# PETOrders Architecture & Conventions
 
 Audience: the developer inheriting this codebase. This is the "what you
 need to know before you change anything" doc: the shape of the app, the
@@ -142,7 +142,7 @@ Hard rules:
 
 | Rule               | Detail                                                                                                                                                                                                                                                                              |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Single path        | Every transition goes through `transition_order_status()` in `src/helpers.php`. Row-locks the order (`FOR UPDATE`), validates against the actor's role, writes the order update + `order_audit_log` row in one transaction. No call site bypasses it. Never invent a new transition. One deliberate carve-out: order **creation** is not a transition — `customer/new_order.php` inserts the order and its `NULL → 'pending'` audit row directly, in the same transaction |
+| Single path        | Every transition goes through `transition_order_status()` in `src/helpers.php`. Row-locks the order (`FOR UPDATE`), validates against the actor's role, writes the order update + `order_audit_log` row in one transaction. No call site bypasses it. Never invent a new transition. One deliberate carve-out: order **creation** is not a transition; `customer/new_order.php` inserts the order and its `NULL → 'pending'` audit row directly, in the same transaction |
 | Cancel reason      | Required (`cancellation_reason`, 500 chars max), enforced inside `transition_order_status()`. Reopen clears it                                                                                                                                                                      |
 | Audit log          | Status-only: order creation + each transition. No field-level diffing, don't add any                                                                                                                                                                                                |
 | `chargeable`       | Independent of lifecycle. Staff-toggleable in any status, defaults true, deliberately not audit-logged. "Not chargeable" is the flagged exception in the UI, "Chargeable" is the quiet default                                                                                      |
@@ -160,7 +160,7 @@ _Institutes contain labs. Labs and PIs are paired through `lab_pis`, managed onl
 | Pairing UI      | Lab↔PI pairing lives in `lab_pis`, managed from one place only: the Lab modal's PI roster in `admin/labs.php`. `pis.php` has no pairing UI on purpose                              |
 | `active` flags  | Gate only new-registration selection and changed-to assignments. Never affect existing customers or orders. Deactivating anything is always non-destructive                        |
 | Admin edit rule | Keeping a customer's current lab + PI always saves (stale/inactive assignments never block an unrelated edit). Changing either requires the new lab and PI to be active and paired |
-| Uniqueness      | DB unique keys: `institutes.name`, `institutes.shorthand_name`, and `pis.email` (required — PI email is not optional). Lab and PI names are intentionally not unique               |
+| Uniqueness      | DB unique keys: `institutes.name`, `institutes.shorthand_name`, and `pis.email` (required; PI email is not optional). Lab and PI names are intentionally not unique               |
 
 ## Gotcha: layout partials share the page's variable scope
 
@@ -189,11 +189,11 @@ named contracts:
   including page assigns immediately before the include (keys:
   `idPrefix`, `itemLabel`, `hiddenFields`, `page`, `totalPages`,
   `pageSize`, `rangeStart`/`rangeEnd` from `paginate()`, `totalCount`).
-  `canonicalize_get()` must have run first — the partial's links call
+  `canonicalize_get()` must have run first; the partial's links call
   `build_query()`, which reads `$_GET`. All 11 paginated list pages use
   it; treat `$tablePagination` as a reserved name on any of them.
 - `order_notes_card.php` **writes** `$orderNotesValue` into the caller's
-  scope — reserved on both order_detail pages.
+  scope; reserved on both order_detail pages.
 
 The three order-detail partials (`order_cancel_modal.php`,
 `order_cancellation_card.php`, `order_notes_card.php`) are shared by
@@ -202,7 +202,7 @@ parameters: each reads the caller's scope and POSTs to
 `$_SERVER['PHP_SELF']?id=<order_id>`, so the including page's own
 handler receives the submit. `order_cancel_modal.php` branches its
 hidden `action` on session role (`cancel_order` customer vs `cancel`
-staff — a pre-existing naming split kept as-is so neither handler
+staff; a pre-existing naming split kept as-is so neither handler
 changed); `order_cancellation_card.php` renders nothing unless the
 order is cancelled with a stored reason, so it's included
 unconditionally.
@@ -226,8 +226,8 @@ All in `src/helpers.php` unless noted:
 | `toast_flash()`                                                               | success toast after PRG redirect (also the pattern source for the `JSON_HEX_*` inline-script rule below)                   |
 | `field_class()` / `field_error()`                                             | per-field validation display                                                                                               |
 | `paginate()`                                                                  | clamped pagination math, consume its `rangeStart`/`rangeEnd`, don't recompute                                              |
-| `form_action()` / `build_query()`                                             | list-page actions/links that preserve filter and page state. `build_query()` omits empty/default params and returns its own leading `?` (or `''`) — never prepend another `?`, and same-page anchors must prepend `$_SERVER['PHP_SELF']`, because an empty `href=""` resolves to the current URL, not the bare path |
-| `canonicalize_get()`                                                          | writes validated/clamped filter values back into `$_GET` before any link is built — required before `build_query()`/the pagination partial |
+| `form_action()` / `build_query()`                                             | list-page actions/links that preserve filter and page state. `build_query()` omits empty/default params and returns its own leading `?` (or `''`); never prepend another `?`, and same-page anchors must prepend `$_SERVER['PHP_SELF']`, because an empty `href=""` resolves to the current URL, not the bare path |
+| `canonicalize_get()`                                                          | writes validated/clamped filter values back into `$_GET` before any link is built; required before `build_query()`/the pagination partial |
 | `where_clause()` / `like_contains()`                                          | WHERE-fragment joiner; LIKE-wildcard escaping wrapped in `%…%` (pair with `ESCAPE '\\'`)                                   |
 | `bootstrap_session()`                                                         | hardened `session_start()` (httponly, samesite=Lax, secure per config). Every page uses this, never bare `session_start()` |
 | `asset_url()`                                                                 | root-relative asset URL with `?v=<mtime>` cache-busting                                                                    |
@@ -239,16 +239,16 @@ All in `src/helpers.php` unless noted:
 
 Constants: `DEFAULT_PAGE_SIZE` (10), `PAGE_SIZE_OPTIONS`
 ([10, 20, 50, 100]), and `BUILD_QUERY_DEFAULTS` (the no-op default
-values — `page=1`, `page_size=10` — that `build_query()` drops so query
+values, `page=1` and `page_size=10`, that `build_query()` drops so query
 strings stay clean). Reuse, don't redefine. script.js's
 `FORM_FIELD_DEFAULTS` (used by `initFilterFormCleanup()`, the
 form-submission counterpart that disables empty/default GET fields
 before native submits and never lands on a bare `?`) mirrors
-`BUILD_QUERY_DEFAULTS` — keep the two in sync.
+`BUILD_QUERY_DEFAULTS`; keep the two in sync.
 
 One deliberate anti-DRY case: `generate_temp_password()` is duplicated
-per-file (registrations, customer detail, account detail, accounts
-list, bootstrap tool — five copies) on purpose. Copy the shape, don't
+per-file on purpose (five copies: registrations, customer detail,
+account detail, accounts list, bootstrap tool). Copy the shape, don't
 centralize it.
 
 ## Security posture
@@ -258,10 +258,10 @@ centralize it.
 | SQL             | PDO with real prepared statements (`ATTR_EMULATE_PREPARES = false`), exceptions on error, utf8mb4 DSN charset                                                                                                |
 | CSRF            | Token on every POST, rotated at login                                                                                                                                                                        |
 | Sessions        | httponly + SameSite=Lax cookies, `secure` when `REQUIRE_SECURE_COOKIES` is on, 15-minute idle timeout, session ID regenerated at login                                                                       |
-| Login lockout   | 5 failed attempts locks for 15 minutes. The user is told the account is temporarily locked, with minutes remaining (shown on the locking attempt and on every attempt while locked). Recorded in `lockout_events`, logged server-side, surfaced on the admin dashboard. **The countdown message is a deliberate tradeoff:** it was removed in a security review (PR #57) as account-enumeration hardening, then knowingly restored (PR #96) because this app is intranet-only behind badge access — don't revert it to a generic message without revisiting that decision |
+| Login lockout   | 5 failed attempts locks for 15 minutes. The user is told the account is temporarily locked, with minutes remaining (shown on the locking attempt and on every attempt while locked). Recorded in `lockout_events`, logged server-side, surfaced on the admin dashboard. **The countdown message is a deliberate tradeoff:** it was removed in a security review (PR #57) as account-enumeration hardening, then knowingly restored (PR #96) because this app is intranet-only behind badge access; don't revert it to a generic message without revisiting that decision |
 | Password policy | 12+ chars, at least one letter and one number, can't contain the username/email, can't match the last 5 passwords (`password_history`). Admins trigger resets but never see or choose a user's real password |
 | Every request   | `require_role()` re-checks `users.active` live and re-derives the role from table membership (which is why promote/demote and deactivation take effect on the target's next request), sets `Cache-Control: no-store`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, forces `/change_password.php` while a temp password is in effect |
-| Inline-script JSON | Any `json_encode()` that echoes request-derived data into an inline `<script>` uses `JSON_HEX_TAG \| JSON_HEX_APOS \| JSON_HEX_QUOT \| JSON_HEX_AMP` (no `</script>`/quote breakouts). Pattern source: `toast_flash()`; applied across the 7 error-modal-reopen blocks (admin nuclides/pis/labs/institutes/products, customer lab_delivery_locations/lab_product_users). Deliberately exempt: `json_response()` (a real JSON HTTP body) and `labs.php`'s `data-*` attribute encodes (`e()`-wrapped HTML attributes) — don't "fix" those |
+| Inline-script JSON | Any `json_encode()` that echoes request-derived data into an inline `<script>` uses `JSON_HEX_TAG \| JSON_HEX_APOS \| JSON_HEX_QUOT \| JSON_HEX_AMP` (no `</script>`/quote breakouts). Pattern source: `toast_flash()`; applied across the 7 error-modal-reopen blocks (admin nuclides/pis/labs/institutes/products, customer lab_delivery_locations/lab_product_users). Deliberately exempt: `json_response()` (a real JSON HTTP body) and `labs.php`'s `data-*` attribute encodes (`e()`-wrapped HTML attributes); don't "fix" those |
 | Errors          | `display_errors` off. Global exception handler logs and renders a generic 500 page                                                                                                                           |
 | Timezone        | Pinned to `America/New_York` in code                                                                                                                                                                         |
 
@@ -274,12 +274,13 @@ centralize it.
 | Errors              | Inline `.alert--error` plus per-field messages                                                                                         |
 | Exception           | Temporary password reveals use a read-once session flash with a 60-second TTL, never a toast, never the URL                            |
 | Destructive actions | `data-confirm*` attributes intercepted by `script.js` into a custom modal, never `window.confirm`                                      |
-| List pages          | `.status-tabs` strip with live counts, explicit-submit filter forms (never live-as-you-type), shared pagination partial (`table_pagination.php`, fed via `$tablePagination` — see the gotcha section). Query strings stay clean: links (`build_query()`) and native form submits (`initFilterFormCleanup()` in script.js) both omit empty/default params and never emit a bare `?` |
-| List sorting        | Intentionally divergent: `customer/orders.php` keeps one fixed newest-requested-first sort on every tab (order history), `staff/orders.php` sorts per status tab (triage: pending/accepted soonest-requested first, completed/cancelled most recently updated first). Commented in both files — don't align them |
-| Create/edit modals  | One skeleton (copy `admin/nuclides.php`'s Add modal). Dirty-tracking + discard-confirm are shared via `window.petordersWireModalDirtyTracking()` in script.js; each page supplies its own `snapshotForm()` since what counts as a field value varies (labs.php keys its `pi_ids[]` roster by name+value, products.php skips disabled locked-mirror fields). Modal shell intentionally not a shared partial — the one exception is `order_cancel_modal.php`, shared by the two order_detail pages |
+| List pages          | `.status-tabs` strip with live counts, explicit-submit filter forms (never live-as-you-type), shared pagination partial (`table_pagination.php`, fed via `$tablePagination`; see the gotcha section). Query strings stay clean: links (`build_query()`) and native form submits (`initFilterFormCleanup()` in script.js) both omit empty/default params and never emit a bare `?` |
+| Count queries       | Joins that exist solely to back the optional search box are added only when the search term is active, never unconditionally. Each tab-counts query joins only what its active filters reference: full join set when searching, `products` alone for the fulfillment filter, bare `orders` otherwise (`staff/orders.php`, `customer/orders.php`). Performance only; results are identical in every branch, since every droppable join targets a PK via a NOT-NULL FK |
+| List sorting        | Intentionally divergent: `customer/orders.php` keeps one fixed newest-requested-first sort on every tab (order history), `staff/orders.php` sorts per status tab (triage: pending/accepted soonest-requested first, completed/cancelled most recently updated first). Commented in both files; don't align them |
+| Create/edit modals  | One skeleton (copy `admin/nuclides.php`'s Add modal). Dirty-tracking + discard-confirm are shared via `window.petordersWireModalDirtyTracking()` in script.js; each page supplies its own `snapshotForm()` since what counts as a field value varies (labs.php keys its `pi_ids[]` roster by name+value, products.php skips disabled locked-mirror fields). Modal shell intentionally not a shared partial; the one exception is `order_cancel_modal.php`, shared by the two order_detail pages |
 | Order times         | 24-hour `HH:MM` text inputs (pattern-validated), never a native time picker. Real department requirement                               |
 | Badges              | Dotted pills for statuses, square no-dot chips for facts (role, "Not chargeable")                                                      |
-| Color scheme        | Light mode only. No dark-mode tokens, no `prefers-color-scheme` anywhere in the CSS — don't add them                                   |
+| Color scheme        | Light mode only. No dark-mode tokens, no `prefers-color-scheme` anywhere in the CSS; don't add them                                   |
 
 ## Dashboards
 
@@ -289,10 +290,10 @@ lists, refined deliberately (PRs #86–#88):
 | Convention           | Detail                                                                                                                                                                                                                                        |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stat tiles           | Customer: Pending / Upcoming / Requested This Month / Total. Staff: Pending / Accepted / New Today / Total. Admin: Pending Registrations / Active Customers / Active Staff / Admins                                                            |
-| Honest deep links    | A tile links to a filtered list only when an exactly matching filter exists. Staff's New Today and Total tiles link unfiltered on purpose — `staff/orders.php` can't filter on `created_at`, and a mismatched filter would lie                  |
-| `LIMIT 5` previews   | Customer Recent Orders (newest requested time first), staff Due Today & Overdue (pending/accepted requested by end of today, soonest first, overdue included — no lower bound), admin Pending Registrations preview and Recently Added Customers |
-| Uncapped exceptions  | Admin's Lockouts and Rejected Registrations panels use a 7-day window with **no row cap** — each is a complete record for its window, so a burst of events can never silently scroll off the list. Don't re-add a cap                          |
-| No urgency dots      | Urgency/state is plain text (tile meta lines; the staff table's "Timing" column reading "Overdue"/"Due today"), never a colored dot. The one surviving dot is `.dot--info`, the customer "updated since your last visit" flag — not urgency    |
+| Honest deep links    | A tile links to a filtered list only when an exactly matching filter exists. Staff's New Today and Total tiles link unfiltered on purpose: `staff/orders.php` can't filter on `created_at`, and a mismatched filter would lie                  |
+| `LIMIT 5` previews   | Customer Recent Orders (newest requested time first), staff Due Today & Overdue (pending/accepted requested by end of today, soonest first, overdue included, no lower bound), admin Pending Registrations preview and Recently Added Customers |
+| Uncapped exceptions  | Admin's Lockouts and Rejected Registrations panels use a 7-day window with **no row cap**: each is a complete record for its window, so a burst of events can never silently scroll off the list. Don't re-add a cap                          |
+| No urgency dots      | Urgency/state is plain text (tile meta lines; the staff table's "Timing" column reading "Overdue"/"Due today"), never a colored dot. The one surviving dot is `.dot--info`, the customer "updated since your last visit" flag, not urgency    |
 
 ## Things that look like gaps but are decisions
 

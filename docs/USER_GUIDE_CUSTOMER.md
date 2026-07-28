@@ -1,4 +1,4 @@
-# PETOrders — Customer Guide
+# PETOrders Customer Guide
 
 This guide is for lab members who use PETOrders to order products for
 their lab. It walks through everything you can do, one task at a time.
@@ -90,7 +90,7 @@ Two things to know about logging in:
   try again. The fields clear after each failed attempt, so retype both.
 - After several wrong attempts in a row, your account locks for about
   15 minutes and the login page says "Account temporarily locked" with
-  the minutes remaining. Wait it out and try again — even the right
+  the minutes remaining. Wait it out and try again; even the right
   password won't work until the lock expires.
 
 ## 4. Your dashboard
@@ -102,7 +102,7 @@ _The dashboard: your lab's order counts on top, recent orders below, and your la
 
 | Section       | What it shows                                                                                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stat tiles    | Pending Orders (with a note when any are past their requested time), Upcoming Orders (orders requested for today or later, with the next requested time), Requested This Month, and Total Orders — all for your whole lab. Click a tile to jump to the matching filtered list |
+| Stat tiles    | Pending Orders (with a note when any are past their requested time), Upcoming Orders (orders requested for today or later, with the next requested time), Requested This Month, and Total Orders, all for your whole lab. Click a tile to jump to the matching filtered list |
 | Recent Orders | The five of your lab's orders with the most recent requested times. Click **View** to open one                                                                             |
 | My Lab        | Your lab and institute, with a **View full info** button showing your full account details                                                                                 |
 | Quick Links   | Shortcuts to Delivery Locations and Product Users (sections 10 and 11)                                                                                                     |

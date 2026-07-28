@@ -1,4 +1,4 @@
-# PETOrders — Production Deployment Guide (RHEL 8)
+# PETOrders Production Deployment Guide (RHEL 8)
 
 Audience: IT staff deploying PETOrders for the first time. Assumes you
 know RHEL, Apache, and MariaDB in general, but nothing about this app.
@@ -312,7 +312,7 @@ helper that resets every account for the seeded dev database. Never run
 it in production. The same goes for `tools/generate_stress_test.php`, a
 dev-only script that bulk-inserts thousands of synthetic orders
 (configurable count) into whatever database `src/config.php` points
-at — never run it against a production database.
+at. Never run it against a production database.
 
 Once the admin's in, everything else happens through the UI: approve
 registrations, create staff accounts, build the catalog and directory.
@@ -357,9 +357,9 @@ All boxes checked = done.
 - **Lockout:** 5 failed attempts locks the account for 15 min. The
   login page tells the user the account is temporarily locked and how
   many minutes remain (a deliberate disclosure choice for this
-  intranet-only app — see the security posture section of
+  intranet-only app; see the security posture section of
   ARCHITECTURE.md). Admins see every lockout from the past 7 days on
-  the Admin Dashboard (the list has no row cap — within that window
+  the Admin Dashboard (the list has no row cap; within that window
   it's a complete record).
 - **No email, ever.** Temp passwords and reset passwords are shown once
   to the admin, who relays them via NIH email manually.

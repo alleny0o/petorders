@@ -1,4 +1,4 @@
-# PETOrders — Admin Guide
+# PETOrders Admin Guide
 
 This guide is for administrators. Admins can do everything staff can
 (process orders, see the [Staff Guide](USER_GUIDE_STAFF.md)), plus
@@ -152,7 +152,7 @@ _An account's page. Note the safeguards on your own account._
 Note: customer accounts can never be promoted to staff or admin. If a
 customer joins the department as staff, create them a fresh staff
 account here and deactivate their old customer account from its
-customer page — their order history stays on the deactivated account.
+customer page; their order history stays on the deactivated account.
 
 ## 5. Catalog: nuclides
 
@@ -240,7 +240,7 @@ it's active but its institute isn't.
 ![PIs list with contact info and lab/customer counts](images/admin/pis.png)
 _PIs, with their lab and customer counts. Pairing to labs happens on the Labs page._
 
-Add with **+ PI** (name and email required — each PI's email must be
+Add with **+ PI** (name and email required, each PI's email must be
 unique; phone optional).
 Deactivating a PI removes them from new-registration choices, the
 customers they already supervise are unaffected.
