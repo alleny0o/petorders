@@ -60,16 +60,22 @@ if ($labId > 0) {
     // customer in the order's lab sees it here, matching order_detail.php's
     // fetch_order_for_lab -- "view own lab's orders"). lab_product_users is
     // LEFT-joined (product_user_id is a nullable, one-to-one FK, so this
-    // can't multiply rows) to back the Product User column -- shared by
-    // both the tab-counts query and the list query below since it never
-    // affects row counts either way.
-    $joins =
+    // can't multiply rows) to back the Product User column. Invariant for
+    // every join set on this page: a query's join set must cover every
+    // alias its WHERE references.
+    $baseJoins =
         'FROM orders o
          JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
          JOIN products p  ON p.product_id = o.product_id
-         JOIN nuclides n  ON n.nuclide_id = p.nuclide_id
          JOIN users u     ON u.user_id = o.customer_id
          LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id';
+
+    // nuclides is search-only (display carries the nuclide inside the
+    // product name, e.g. "[F18]FDG"); depends on the p alias in base.
+    $searchJoins = '
+         JOIN nuclides n  ON n.nuclide_id = p.nuclide_id';
+
+    $joins = $baseJoins . ($q !== '' ? $searchJoins : '');
 
     // Built without the status condition -- reused for the tab counts
     // (each tab's count reflects the current search/fulfillment/date
@@ -110,7 +116,25 @@ if ($labId > 0) {
 
     $filterWhereSql = where_clause($filterWhere);
 
-    $countsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $joins $filterWhereSql GROUP BY o.status");
+    // Count-query join set: the tab counts group on o.status alone, so
+    // only the joins the active filters reference are needed. The
+    // customers join is NEVER dropped: its c.lab_id = ? condition is
+    // the access control AND consumes the $labId placeholder
+    // $filterParams was seeded with -- both queries must always contain
+    // exactly that one join-embedded ?. Dropping u/pu/n (and p when no
+    // fulfillment filter) is count-neutral: INNER joins on NOT-NULL FKs
+    // to PKs, LEFT join to a PK (schema.sql).
+    if ($q !== '') {
+        $countJoins = $joins;
+    } else {
+        $countJoins =
+            'FROM orders o
+             JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?'
+            . ($fulfillment !== '' ? '
+             JOIN products p  ON p.product_id = o.product_id' : '');
+    }
+
+    $countsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $countJoins $filterWhereSql GROUP BY o.status");
     $countsStmt->execute($filterParams);
     foreach ($countsStmt->fetchAll() as $row) {
         $statusCounts[$row['status']] = (int) $row['c'];

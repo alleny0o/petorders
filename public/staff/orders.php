@@ -35,28 +35,40 @@ canonicalize_get([
     'requested_to' => $queueTo,
 ]);
 
-// Lab/institute/PI joined (LEFT -- customers.lab_id/supervising_pi_id
-// are both nullable) so the search box can cover them per CLAUDE.md's
-// non-negotiable "Order search must cover ID, product, nuclide, date,
-// and customer/lab/PI/institute" -- customer/orders.php's own search
-// doesn't need lab/PI/institute since that page is already lab-scoped,
-// but this queue spans every lab. nuclides is still joined for the same
-// search reason even though the Nuclide column itself was dropped from
-// the table (the product name already carries it, e.g. "[F18]FDG").
-// lab_product_users is joined so the search box can match the order's
-// product user (falling back to the placer when none is attached) --
-// same fallback rule as customer/orders.php's search, even though this
-// queue's own displayed column stays "Lab / Placed by" for now.
-$queueJoins =
+// Base join set: every alias the list query's SELECT columns need
+// (c is the FK path to l; p, l, u are displayed). Invariant for every
+// join set on this page: a query's join set must cover every alias its
+// WHERE references -- the search WHERE below touches n/i/pi/pu, so the
+// search-only fragment is appended whenever a search term is active.
+$queueBaseJoins =
     'FROM orders o
      JOIN customers c ON c.user_id = o.customer_id
      JOIN products p  ON p.product_id = o.product_id
-     JOIN nuclides n  ON n.nuclide_id = p.nuclide_id
      JOIN users u     ON u.user_id = o.customer_id
-     LEFT JOIN labs l       ON l.lab_id = c.lab_id
+     LEFT JOIN labs l       ON l.lab_id = c.lab_id';
+
+// Search-only joins: lab/institute/PI (LEFT -- customers.lab_id/
+// supervising_pi_id are both nullable) exist so the search box can
+// cover them per CLAUDE.md's non-negotiable "Order search must cover
+// ID, product, nuclide, date, and customer/lab/PI/institute" --
+// customer/orders.php's own search doesn't need lab/PI/institute since
+// that page is already lab-scoped, but this queue spans every lab.
+// nuclides is joined for the same search reason even though the Nuclide
+// column itself was dropped from the table (the product name already
+// carries it, e.g. "[F18]FDG"). lab_product_users is joined so the
+// search box can match the order's product user (falling back to the
+// placer when none is attached) -- same fallback rule as
+// customer/orders.php's search, even though this queue's own displayed
+// column stays "Lab / Placed by" for now.
+// Dependency order: n needs p, i needs l, pi needs c -- all in base.
+$queueSearchJoins =
+    '
+     JOIN nuclides n  ON n.nuclide_id = p.nuclide_id
      LEFT JOIN institutes i ON i.institute_id = l.institute_id
      LEFT JOIN pis pi       ON pi.pi_id = c.supervising_pi_id
      LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id';
+
+$queueJoins = $queueBaseJoins . ($queueSearch !== '' ? $queueSearchJoins : '');
 
 // Built without the status condition -- reused for the tab counts (each
 // tab's count reflects the current search/fulfillment/date scope, not
@@ -90,7 +102,22 @@ if ($queueTo !== '') {
 
 $queueFilterWhereSql = where_clause($queueFilterWhere);
 
-$queueCountsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $queueJoins $queueFilterWhereSql GROUP BY o.status");
+// Count-query join set: the tab counts group on o.status alone, so the
+// only joins needed are the ones $queueFilterWhereSql references -- the
+// full set when searching, products alone for the fulfillment filter,
+// bare orders otherwise (date filters use only o. columns). Dropping
+// the rest is count-neutral: every INNER join here is on a NOT-NULL FK
+// to a PK and every LEFT join targets a PK (schema.sql), so no join
+// can add or remove rows.
+if ($queueSearch !== '') {
+    $queueCountJoins = $queueJoins;
+} elseif ($queueFulfillment !== '') {
+    $queueCountJoins = 'FROM orders o JOIN products p ON p.product_id = o.product_id';
+} else {
+    $queueCountJoins = 'FROM orders o';
+}
+
+$queueCountsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $queueCountJoins $queueFilterWhereSql GROUP BY o.status");
 $queueCountsStmt->execute($queueFilterParams);
 $queueStatusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
 foreach ($queueCountsStmt->fetchAll() as $row) {
