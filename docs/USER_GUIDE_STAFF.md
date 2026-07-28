@@ -1,4 +1,4 @@
-# PETOrders — Staff Guide
+# PETOrders Staff Guide
 
 This guide is for staff who process customer orders in PETOrders. Staff
 see and can act on every order from every lab.
@@ -39,7 +39,7 @@ _The staff dashboard: counts across all labs, and the orders that need attention
 | Section             | What it shows                                                                                                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stat tiles          | Pending Orders (needs action), Accepted Orders (in progress), New Today (orders placed today), and Total Orders. The Pending and Accepted tiles jump to that slice of the queue; New Today and Total Orders open the full queue |
-| Due Today & Overdue | Up to five pending or accepted orders requested by the end of today, soonest first — overdue orders included. The Timing column says **Overdue** or **Due today**. Click **View** to open one                   |
+| Due Today & Overdue | Up to five pending or accepted orders requested by the end of today, soonest first, overdue orders included. The Timing column says **Overdue** or **Due today**. Click **View** to open one                   |
 
 ## 2. The Order Queue
 
@@ -47,7 +47,7 @@ _The staff dashboard: counts across all labs, and the orders that need attention
 triage list, you find and prioritize here, then open an order to act on
 it.
 
-![Staff Order Queue — status tabs and search/filter controls](images/staff/order-queue.png)
+![Staff Order Queue: status tabs and search/filter controls](images/staff/order-queue.png)
 _The Order Queue shows all orders as a triage list. Click any row to open its detail page._
 
 | Feature     | Detail                                                                                                                                                                   |

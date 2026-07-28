@@ -1,4 +1,4 @@
-# PETOrders — Local Development Setup
+# PETOrders Local Development Setup
 
 Audience: a developer picking up PETOrders for maintenance or new work.
 Gets you from a clean machine to a running app with a fully seeded test
@@ -129,7 +129,7 @@ production.
 A third script, `tools/generate_stress_test.php`, bulk-inserts
 thousands of synthetic orders (the count is a variable at the top of
 the script) for exercising the dashboards and paginated lists against
-real volume. Dev-only, like `set_temp_passwords.php` — it
+real volume. Dev-only, like `set_temp_passwords.php`: it
 writes into whatever database `src/config.php` points at, so never run
 it against anything but your local dev database.
 
