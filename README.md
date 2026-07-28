@@ -10,7 +10,7 @@ institute/lab/PI directory, and reporting.
 
 ## Tech stack at a glance
 
-|                 |                                                                                                                            |
+                                                                                                                           |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Language        | PHP 7.4, no framework, no ORM (PDO with prepared statements)                                                               |
 | Database        | MySQL 8.0 / MariaDB 10.11 (wire-compatible via PDO)                                                                        |
