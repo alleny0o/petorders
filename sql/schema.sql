@@ -356,7 +356,9 @@ CREATE TABLE orders (
   KEY idx_orders_location_id (location_id),
   KEY idx_orders_product_user_id (product_user_id),
   KEY idx_orders_status (status),
-  KEY idx_orders_requested_datetime (requested_datetime)
+  KEY idx_orders_requested_datetime (requested_datetime),
+  KEY idx_orders_status_requested (status, requested_datetime),
+  KEY idx_orders_status_updated (status, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Status-only, not field-level diffing -- just status_from, status_to,
