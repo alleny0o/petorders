@@ -77,7 +77,7 @@ $queueFilterWhere = [];
 $queueFilterParams = [];
 
 if ($queueSearch !== '') {
-    $queueFilterWhere[] = "(CAST(o.order_id AS CHAR) LIKE ? ESCAPE '\\\\'
+    $queueFilterWhere[] = "(CAST(o.order_id AS CHAR) = ?
                  OR COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
                  OR n.name LIKE ? ESCAPE '\\\\'
                  OR p.name LIKE ? ESCAPE '\\\\'
@@ -85,7 +85,7 @@ if ($queueSearch !== '') {
                  OR i.name LIKE ? ESCAPE '\\\\'
                  OR pi.pi_name LIKE ? ESCAPE '\\\\')";
     $like = like_contains($queueSearch);
-    array_push($queueFilterParams, $like, $like, $like, $like, $like, $like, $like);
+    array_push($queueFilterParams, $queueSearch, $like, $like, $like, $like, $like, $like);
 }
 if ($queueFulfillment !== '') {
     $queueFilterWhere[] = 'p.delivery_method = ?';

@@ -92,12 +92,12 @@ if ($labId > 0) {
         // customer when none is attached) -- the same COALESCE fallback
         // already used to render the Product User column, so the search
         // box matches whatever's actually displayed there.
-        $filterWhere[] = "(CAST(o.order_id AS CHAR) LIKE ? ESCAPE '\\\\'
+        $filterWhere[] = "(CAST(o.order_id AS CHAR) = ?
                      OR COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
                      OR n.name LIKE ? ESCAPE '\\\\'
                      OR p.name LIKE ? ESCAPE '\\\\')";
         $like = like_contains($q);
-        array_push($filterParams, $like, $like, $like, $like);
+        array_push($filterParams, $q, $like, $like, $like);
     }
     if ($fulfillment !== '') {
         $filterWhere[] = 'p.delivery_method = ?';
