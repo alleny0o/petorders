@@ -14,6 +14,12 @@ $pdo = get_db();
 // Not lab-scoped -- staff/admin may view any order regardless of lab
 // ("any staff, any order"), unlike customer/orders.php.
 $queueSearch = trim($_GET['q'] ?? '');
+// Digit-only terms are an exact order-ID lookup (sargable PK seek),
+// never a text search -- an ID is an identifier, not free text, and a
+// numeric LIKE against product/nuclide names ("18" hitting every
+// [F18]FDG order) reads as false positives. To text-search a term that
+// happens to be digits, include any non-digit (e.g. "F-18").
+$queueSearchIsId = $queueSearch !== '' && ctype_digit($queueSearch);
 $queueStatus = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true)
     ? $_GET['status'] : '';
 $queueFulfillment = in_array($_GET['fulfillment'] ?? '', ['radiopharmacy', 'pick_up', 'direct_delivery'], true)
@@ -61,6 +67,8 @@ $queueBaseJoins =
 // customer/orders.php's search, even though this queue's own displayed
 // column stays "Lab / Placed by" for now.
 // Dependency order: n needs p, i needs l, pi needs c -- all in base.
+// Digit-only exception: an order-ID lookup's WHERE touches only
+// o.order_id, so it needs none of these.
 $queueSearchJoins =
     '
      JOIN nuclides n  ON n.nuclide_id = p.nuclide_id
@@ -68,7 +76,7 @@ $queueSearchJoins =
      LEFT JOIN pis pi       ON pi.pi_id = c.supervising_pi_id
      LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id';
 
-$queueJoins = $queueBaseJoins . ($queueSearch !== '' ? $queueSearchJoins : '');
+$queueJoins = $queueBaseJoins . ($queueSearch !== '' && !$queueSearchIsId ? $queueSearchJoins : '');
 
 // Built without the status condition -- reused for the tab counts (each
 // tab's count reflects the current search/fulfillment/date scope, not
@@ -76,16 +84,21 @@ $queueJoins = $queueBaseJoins . ($queueSearch !== '' ? $queueSearchJoins : '');
 $queueFilterWhere = [];
 $queueFilterParams = [];
 
-if ($queueSearch !== '') {
-    $queueFilterWhere[] = "(CAST(o.order_id AS CHAR) = ?
-                 OR COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
+if ($queueSearchIsId) {
+    // Int cast also normalizes "051" -> 51.
+    $queueFilterWhere[] = 'o.order_id = ?';
+    $queueFilterParams[] = (int) $queueSearch;
+} elseif ($queueSearch !== '') {
+    // No order_id clause here: a non-digit term can never equal an
+    // integer ID.
+    $queueFilterWhere[] = "(COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
                  OR n.name LIKE ? ESCAPE '\\\\'
                  OR p.name LIKE ? ESCAPE '\\\\'
                  OR l.lab_name LIKE ? ESCAPE '\\\\'
                  OR i.name LIKE ? ESCAPE '\\\\'
                  OR pi.pi_name LIKE ? ESCAPE '\\\\')";
     $like = like_contains($queueSearch);
-    array_push($queueFilterParams, $queueSearch, $like, $like, $like, $like, $like, $like);
+    array_push($queueFilterParams, $like, $like, $like, $like, $like, $like);
 }
 if ($queueFulfillment !== '') {
     $queueFilterWhere[] = 'p.delivery_method = ?';
@@ -109,7 +122,7 @@ $queueFilterWhereSql = where_clause($queueFilterWhere);
 // the rest is count-neutral: every INNER join here is on a NOT-NULL FK
 // to a PK and every LEFT join targets a PK (schema.sql), so no join
 // can add or remove rows.
-if ($queueSearch !== '') {
+if ($queueSearch !== '' && !$queueSearchIsId) {
     $queueCountJoins = $queueJoins;
 } elseif ($queueFulfillment !== '') {
     $queueCountJoins = 'FROM orders o JOIN products p ON p.product_id = o.product_id';
