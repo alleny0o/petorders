@@ -17,6 +17,10 @@ $labId = current_customer_lab_id($pdo, $myUserId);
 $lastOrdersSeen = mark_orders_seen();
 
 $q = trim($_GET['q'] ?? '');
+// Digit-only terms are an exact order-ID lookup (sargable PK seek),
+// never a text search -- same rule as staff/orders.php; to text-search
+// a digits-only term, include any non-digit (e.g. "F-18").
+$qIsId = $q !== '' && ctype_digit($q);
 // Whitelisted against the real enums -- an unknown value behaves like "all".
 $status = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true)
     ? $_GET['status'] : '';
@@ -75,7 +79,7 @@ if ($labId > 0) {
     $searchJoins = '
          JOIN nuclides n  ON n.nuclide_id = p.nuclide_id';
 
-    $joins = $baseJoins . ($q !== '' ? $searchJoins : '');
+    $joins = $baseJoins . ($q !== '' && !$qIsId ? $searchJoins : '');
 
     // Built without the status condition -- reused for the tab counts
     // (each tab's count reflects the current search/fulfillment/date
@@ -84,20 +88,26 @@ if ($labId > 0) {
     $filterWhere = [];
     $filterParams = [$labId];
 
-    if ($q !== '') {
+    if ($qIsId) {
+        // Exact order-ID lookup; int cast also normalizes "051" -> 51.
+        // Still lab-scoped via the c.lab_id = ? join predicate.
+        $filterWhere[] = 'o.order_id = ?';
+        $filterParams[] = (int) $q;
+    } elseif ($q !== '') {
         // Escape LIKE wildcards in the search term itself, same convention
-        // as accounts.php/customers.php. One box covers order ID, product
-        // user name, nuclide name, and product name.
+        // as accounts.php/customers.php. One box covers product user name,
+        // nuclide name, and product name (digit-only terms take the exact
+        // order-ID branch above; a non-digit term can never equal an
+        // integer ID, so no order_id clause here).
         // Matches the order's product user (falling back to the placing
         // customer when none is attached) -- the same COALESCE fallback
         // already used to render the Product User column, so the search
         // box matches whatever's actually displayed there.
-        $filterWhere[] = "(CAST(o.order_id AS CHAR) = ?
-                     OR COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
+        $filterWhere[] = "(COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
                      OR n.name LIKE ? ESCAPE '\\\\'
                      OR p.name LIKE ? ESCAPE '\\\\')";
         $like = like_contains($q);
-        array_push($filterParams, $q, $like, $like, $like);
+        array_push($filterParams, $like, $like, $like);
     }
     if ($fulfillment !== '') {
         $filterWhere[] = 'p.delivery_method = ?';
@@ -124,7 +134,7 @@ if ($labId > 0) {
     // exactly that one join-embedded ?. Dropping u/pu/n (and p when no
     // fulfillment filter) is count-neutral: INNER joins on NOT-NULL FKs
     // to PKs, LEFT join to a PK (schema.sql).
-    if ($q !== '') {
+    if ($q !== '' && !$qIsId) {
         $countJoins = $joins;
     } else {
         $countJoins =
