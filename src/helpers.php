@@ -325,10 +325,14 @@ function validate_order_input(PDO $pdo, array $input, int $labId): array
         }
     }
 
-    // ---- Activity ----
+    // ---- Activity. Upper bound matches orders.activity_mci
+    // DECIMAL(8,3): without it an oversized value either 500s (strict
+    // sql_mode) or silently clamps the dose (non-strict). ----
     $activityMci = null;
     if ($input['activity_mci'] === '' || !is_numeric($input['activity_mci']) || (float) $input['activity_mci'] <= 0) {
         $fieldErrors['activity_mci'] = 'Enter a valid activity (mCi).';
+    } elseif ((float) $input['activity_mci'] > 99999.999) {
+        $fieldErrors['activity_mci'] = 'Activity must be 99999.999 mCi or less.';
     } else {
         $activityMci = (float) $input['activity_mci'];
     }

@@ -480,7 +480,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                             <div class="field-row field-row--3">
                                 <div class="<?= field_class($editErrors, 'activity_mci') ?>">
                                     <label for="edit_activity_mci">Activity (mCi) <span class="required-mark">*</span></label>
-                                    <input type="number" step="0.01" min="0" id="edit_activity_mci" name="activity_mci" value="<?= e($editOld['activity_mci']) ?>" required>
+                                    <input type="number" step="0.01" min="0" max="99999.999" id="edit_activity_mci" name="activity_mci" value="<?= e($editOld['activity_mci']) ?>" required>
                                     <?= field_error($editErrors, 'activity_mci') ?>
                                 </div>
                                 <div class="<?= field_class($editErrors, 'requested_date') ?>">

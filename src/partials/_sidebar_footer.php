@@ -52,16 +52,16 @@
         <div class="field-row">
           <div class="field">
             <label for="profile-first-name">First name <span class="required-mark">*</span></label>
-            <input type="text" id="profile-first-name" name="first_name" value="<?= e($petordersLayout['account']['first_name']) ?>" required data-modal-focus>
+            <input type="text" id="profile-first-name" name="first_name" value="<?= e($petordersLayout['account']['first_name']) ?>" maxlength="100" required data-modal-focus>
           </div>
           <div class="field">
             <label for="profile-last-name">Last name <span class="required-mark">*</span></label>
-            <input type="text" id="profile-last-name" name="last_name" value="<?= e($petordersLayout['account']['last_name']) ?>" required>
+            <input type="text" id="profile-last-name" name="last_name" value="<?= e($petordersLayout['account']['last_name']) ?>" maxlength="100" required>
           </div>
         </div>
         <div class="field">
           <label for="profile-phone">Phone <span class="required-mark">*</span></label>
-          <input type="text" id="profile-phone" name="phone" value="<?= e($petordersLayout['account']['phone'] ?? '') ?>" required>
+          <input type="text" id="profile-phone" name="phone" value="<?= e($petordersLayout['account']['phone'] ?? '') ?>" maxlength="20" required>
         </div>
         <p class="field-hint mb-0">Need to update your password? <a href="/change_password.php">Change Password</a></p>
       </div>

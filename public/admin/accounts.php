@@ -421,7 +421,7 @@ $pageTitle = 'Accounts';
                             <div class="alert alert--error" data-error-banner-for="new-account-form" <?= $fieldErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= field_class($fieldErrors, 'email') ?>">
                                 <label for="new-account-email">Email <span class="required-mark">*</span></label>
-                                <input type="email" id="new-account-email" name="email" value="<?= e($old['email']) ?>" required data-modal-focus>
+                                <input type="email" id="new-account-email" name="email" value="<?= e($old['email']) ?>" maxlength="50" required data-modal-focus>
                                 <span class="field-hint">This will become their username.</span>
                                 <?= field_error($fieldErrors, 'email') ?>
                             </div>
@@ -429,19 +429,19 @@ $pageTitle = 'Accounts';
                             <div class="field-row">
                                 <div class="<?= field_class($fieldErrors, 'first_name') ?>">
                                     <label for="new-account-first-name">First name <span class="required-mark">*</span></label>
-                                    <input type="text" id="new-account-first-name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                                    <input type="text" id="new-account-first-name" name="first_name" value="<?= e($old['first_name']) ?>" maxlength="100" required>
                                     <?= field_error($fieldErrors, 'first_name') ?>
                                 </div>
                                 <div class="<?= field_class($fieldErrors, 'last_name') ?>">
                                     <label for="new-account-last-name">Last name <span class="required-mark">*</span></label>
-                                    <input type="text" id="new-account-last-name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                                    <input type="text" id="new-account-last-name" name="last_name" value="<?= e($old['last_name']) ?>" maxlength="100" required>
                                     <?= field_error($fieldErrors, 'last_name') ?>
                                 </div>
                             </div>
 
                             <div class="<?= field_class($fieldErrors, 'phone') ?>">
                                 <label for="new-account-phone">Phone <span class="required-mark">*</span></label>
-                                <input type="text" id="new-account-phone" name="phone" value="<?= e($old['phone']) ?>" required>
+                                <input type="text" id="new-account-phone" name="phone" value="<?= e($old['phone']) ?>" maxlength="20" required>
                                 <?= field_error($fieldErrors, 'phone') ?>
                             </div>
 
