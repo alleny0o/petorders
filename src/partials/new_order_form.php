@@ -129,7 +129,7 @@
                 <div class="field-row">
                     <div class="<?= field_class($fieldErrors, 'activity_mci', 'field mb-0') ?>">
                         <label for="activity_mci">Activity (mCi) <span class="required-mark">*</span></label>
-                        <input type="number" step="0.01" min="0" id="activity_mci" name="activity_mci" value="<?= e($old['activity_mci']) ?>" required>
+                        <input type="number" step="0.01" min="0" max="99999.999" id="activity_mci" name="activity_mci" value="<?= e($old['activity_mci']) ?>" required>
                         <?= field_error($fieldErrors, 'activity_mci') ?>
                     </div>
                     <div class="<?= field_class($fieldErrors, 'requested_date', 'field mb-0') ?>">
@@ -159,6 +159,7 @@
                 <div class="<?= field_class($fieldErrors, 'notes', 'field mb-0') ?>">
                     <label for="notes">Notes</label>
                     <textarea id="notes" name="notes" maxlength="500"><?= e($old['notes']) ?></textarea>
+                    <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
                     <span class="field-hint char-count" id="notes-char-count"><?= mb_strlen($old['notes']) ?>/500</span>
                     <?= field_error($fieldErrors, 'notes') ?>
                 </div>

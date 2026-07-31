@@ -24,6 +24,7 @@
                 <label for="order-notes" class="sr-only">Notes</label>
                 <?php $orderNotesValue = $notesOld !== null ? $notesOld : (string) $order['notes']; ?>
                 <textarea id="order-notes" name="notes" maxlength="500"><?= e($orderNotesValue) ?></textarea>
+                <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
                 <span class="field-hint char-count" id="order-notes-char-count"><?= mb_strlen($orderNotesValue) ?>/500</span>
                 <?= field_error($notesErrors, 'notes') ?>
             </div>

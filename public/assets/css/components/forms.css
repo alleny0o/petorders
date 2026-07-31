@@ -65,8 +65,11 @@ textarea {
   resize: vertical;
 }
 
-/* Small helper text under a field (lead time notes, format hints) */
+/* Small helper text under a field (lead time notes, format hints).
+   display: block so stacked hints under the same field each land on
+   their own line instead of running together inline. */
 .field-hint {
+  display: block;
   font-size: 12px;
   color: var(--color-text-tertiary);
   margin-top: var(--sp-1);

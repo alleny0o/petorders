@@ -33,7 +33,7 @@ $nuclideFilter = ctype_digit((string) $nuclideInput) ? (int) $nuclideInput : 0;
 
 // Filter the fulfillment
 $fulfillmentInput = $_GET['fulfillment'] ?? '';
-$fulfillmentFilter = in_array($fulfillmentInput, $deliveryMethods, true) ? statusInput : '';
+$fulfillmentFilter = in_array($fulfillmentInput, $deliveryMethods, true) ? $fulfillmentInput : '';
 
 // Ensure page numbers are a positive integer
 $pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);

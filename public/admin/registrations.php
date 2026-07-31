@@ -99,8 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'reject' && $requestId > 0) {
         $reason = trim($_POST['reason'] ?? '');
 
-        if ($reason === '') {
-            $rejectErrors[$requestId] = 'A reason is required to reject a request.';
+        if ($reason === '' || mb_strlen($reason) > 500) {
+            $rejectErrors[$requestId] = $reason === ''
+                ? 'A reason is required to reject a request.'
+                : 'Reason must be 500 characters or fewer.';
             $rejectOld[$requestId] = $reason;
 
             // $rejectErrors is keyed by request_id (this page's own
@@ -292,7 +294,8 @@ $pageTitle = 'Registrations';
                             <div class="alert alert--error" data-error-banner-for="reject-form" <?= $rejectErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= $rejectErrors ? 'field field--invalid' : 'field' ?> mb-0">
                                 <label for="reject-reason">Reason <span class="required-mark">*</span></label>
-                                <textarea id="reject-reason" name="reason" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
+                                <textarea id="reject-reason" name="reason" maxlength="500" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
+                                <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
                                 <?php if ($rejectErrors): ?>
                                     <span class="field-error"><?= e((string) reset($rejectErrors)) ?></span>
                                 <?php endif; ?>

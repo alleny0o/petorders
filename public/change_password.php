@@ -98,8 +98,10 @@ $pageTitle = 'Change Password';
 
             <div class="<?= field_class($fieldErrors, 'new_password') ?>">
               <label for="new_password">New password</label>
-              <input type="password" id="new_password" name="new_password" required minlength="12">
-              <span class="field-hint">At least 12 characters, with a letter and a number. Must not contain your username or email.</span>
+              <input type="password" id="new_password" name="new_password" required minlength="12" maxlength="72">
+              <span class="field-hint">At least 12 characters (max 72), with a letter and a number. Must not contain your username or email.</span>
+              <span class="field-hint">For security, please do not reuse your NIH network password.</span>
+              <span class="field-hint char-count" id="new-password-char-count">0/72</span>
               <?= field_error($fieldErrors, 'new_password') ?>
             </div>
 
@@ -115,6 +117,26 @@ $pageTitle = 'Change Password';
         </div>
       </div>
     </div>
+<script>
+// DOMContentLoaded (app convention -- script.js, layout partials).
+document.addEventListener('DOMContentLoaded', function () {
+    // ---- Live character counter for the new password: same pattern as
+    // the Notes counters (new_order_form.php, order_detail.php) --
+    // plain input listener writing a span's textContent, called once
+    // immediately so a bfcache-restored value on browser back/forward
+    // reflects the real current length. Purely visual; maxlength and
+    // the server-side check in auth.php stay authoritative. ----
+    var newPasswordField = document.getElementById('new_password');
+    var newPasswordCounter = document.getElementById('new-password-char-count');
+    if (newPasswordField && newPasswordCounter) {
+        var updateNewPasswordCounter = function () {
+            newPasswordCounter.textContent = newPasswordField.value.length + '/' + newPasswordField.maxLength;
+        };
+        newPasswordField.addEventListener('input', updateNewPasswordCounter);
+        updateNewPasswordCounter();
+    }
+});
+</script>
 </body>
 <script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 </html>

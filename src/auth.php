@@ -179,6 +179,7 @@ function logout(): void
 }
 
 const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MAX_LENGTH = 72; // bcrypt hashes only the first 72 bytes; longer input is silently truncated
 const PASSWORD_HISTORY_LIMIT = 4; // plus the current users.password_hash = last 5 checked/kept
 
 /**
@@ -191,6 +192,12 @@ function validate_password_strength(string $password, string $username): array
 
     if (strlen($password) < PASSWORD_MIN_LENGTH) {
         $errors[] = 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
+    }
+
+    // strlen (bytes), matching the min check above: bcrypt's limit is
+    // 72 bytes, so a byte count is the honest measure here.
+    if (strlen($password) > PASSWORD_MAX_LENGTH) {
+        $errors[] = 'Password must be ' . PASSWORD_MAX_LENGTH . ' characters or fewer.';
     }
 
     if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
