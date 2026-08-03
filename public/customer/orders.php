@@ -62,24 +62,21 @@ $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' 
 if ($labId > 0) {
     // Lab-scoped: the c.lab_id join condition IS the access control (any
     // customer in the order's lab sees it here, matching order_detail.php's
-    // fetch_order_for_lab -- "view own lab's orders"). lab_product_users is
-    // LEFT-joined (product_user_id is a nullable, one-to-one FK, so this
-    // can't multiply rows) to back the Product User column. Invariant for
-    // every join set on this page: a query's join set must cover every
-    // alias its WHERE references.
-    $baseJoins =
+    // fetch_order_for_lab -- "view own lab's orders"). Every filter on
+    // this page -- including text search, via order_search_conditions()
+    // below -- filters on orders' own columns, except fulfillment
+    // (products.delivery_method). So the WHERE-serving join set is
+    // orders plus the lab-scope customers join (never droppable: it's
+    // the access control AND consumes the $labId placeholder
+    // $filterParams is seeded with), plus products only while the
+    // fulfillment filter is active. Shared by the tab-counts query and
+    // the list query's inner ID-page subquery; the display joins live
+    // only in the list query's outer half, against one page of rows.
+    $filterJoins =
         'FROM orders o
-         JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
-         JOIN products p  ON p.product_id = o.product_id
-         JOIN users u     ON u.user_id = o.customer_id
-         LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id';
-
-    // nuclides is search-only (display carries the nuclide inside the
-    // product name, e.g. "[F18]FDG"); depends on the p alias in base.
-    $searchJoins = '
-         JOIN nuclides n  ON n.nuclide_id = p.nuclide_id';
-
-    $joins = $baseJoins . ($q !== '' && !$qIsId ? $searchJoins : '');
+         JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?'
+        . ($fulfillment !== '' ? '
+         JOIN products p  ON p.product_id = o.product_id' : '');
 
     // Built without the status condition -- reused for the tab counts
     // (each tab's count reflects the current search/fulfillment/date
@@ -94,20 +91,20 @@ if ($labId > 0) {
         $filterWhere[] = 'o.order_id = ?';
         $filterParams[] = (int) $q;
     } elseif ($q !== '') {
-        // Escape LIKE wildcards in the search term itself, same convention
-        // as accounts.php/customers.php. One box covers product user name,
-        // nuclide name, and product name (digit-only terms take the exact
-        // order-ID branch above; a non-digit term can never equal an
-        // integer ID, so no order_id clause here).
-        // Matches the order's product user (falling back to the placing
-        // customer when none is attached) -- the same COALESCE fallback
-        // already used to render the Product User column, so the search
-        // box matches whatever's actually displayed there.
-        $filterWhere[] = "(COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
-                     OR n.name LIKE ? ESCAPE '\\\\'
-                     OR p.name LIKE ? ESCAPE '\\\\')";
-        $like = like_contains($q);
-        array_push($filterParams, $like, $like, $like);
+        // One box covers product name, nuclide name, and product user
+        // (falling back to the placing customer when none is attached --
+        // the same fallback rule the Product User column renders with,
+        // so the search box matches whatever's actually displayed
+        // there). No lab/institute/PI here ($searchOrgNames = false):
+        // this page is already scoped to one lab, unlike the staff
+        // queue. Digit-only terms take the exact order-ID branch above;
+        // a non-digit term can never equal an integer ID, so no
+        // order_id clause here. The term is resolved against the small
+        // dimension tables up front; the fragment this appends touches
+        // only o. columns.
+        $searchConditions = order_search_conditions($pdo, $q, false);
+        $filterWhere[] = $searchConditions['where'];
+        array_push($filterParams, ...$searchConditions['params']);
     }
     if ($fulfillment !== '') {
         $filterWhere[] = 'p.delivery_method = ?';
@@ -126,25 +123,11 @@ if ($labId > 0) {
 
     $filterWhereSql = where_clause($filterWhere);
 
-    // Count-query join set: the tab counts group on o.status alone, so
-    // only the joins the active filters reference are needed. The
-    // customers join is NEVER dropped: its c.lab_id = ? condition is
-    // the access control AND consumes the $labId placeholder
-    // $filterParams was seeded with -- both queries must always contain
-    // exactly that one join-embedded ?. Dropping u/pu/n (and p when no
-    // fulfillment filter) is count-neutral: INNER joins on NOT-NULL FKs
-    // to PKs, LEFT join to a PK (schema.sql).
-    if ($q !== '' && !$qIsId) {
-        $countJoins = $joins;
-    } else {
-        $countJoins =
-            'FROM orders o
-             JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?'
-            . ($fulfillment !== '' ? '
-             JOIN products p  ON p.product_id = o.product_id' : '');
-    }
-
-    $countsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $countJoins $filterWhereSql GROUP BY o.status");
+    // The tab counts group on o.status alone, so $filterJoins already
+    // covers every alias $filterWhereSql references. The dropped
+    // display joins are count-neutral anyway: INNER joins on NOT-NULL
+    // FKs to PKs, LEFT join to a PK (schema.sql).
+    $countsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $filterJoins $filterWhereSql GROUP BY o.status");
     $countsStmt->execute($filterParams);
     foreach ($countsStmt->fetchAll() as $row) {
         $statusCounts[$row['status']] = (int) $row['c'];
@@ -186,15 +169,34 @@ if ($labId > 0) {
     // different from staff/orders.php, whose status-dependent sort
     // serves triage. This page is order history for the lab; one
     // predictable chronological order is the point.
+    //
+    // Deferred join (late row lookup), same shape as staff/orders.php:
+    // the inner subquery resolves the page of order_ids against the
+    // filter joins alone, so the sort runs over skinny id+datetime rows
+    // (or rides an index outright) instead of filesorting the lab's
+    // entire joined order history; the outer half attaches the display
+    // joins to just that one page and re-applies ORDER BY (a derived
+    // table has no guaranteed order). lab_product_users stays
+    // LEFT-joined (nullable one-to-one FK, can't multiply rows) to back
+    // the Product User column; the outer half needs no customers join
+    // (lab scoping already happened inside).
     $listStmt = $pdo->prepare(
         "SELECT o.order_id, o.status, o.requested_datetime, o.updated_at, o.chargeable,
                 p.name AS product_name, p.delivery_method,
                 u.first_name, u.last_name, u.username,
                 CONCAT(pu.first_name, ' ', pu.last_name) AS product_user_name
-         $joins
-         $whereSql
-         ORDER BY o.requested_datetime DESC, o.order_id DESC
-         LIMIT $offset, $pageSize"
+         FROM (
+             SELECT o.order_id
+             $filterJoins
+             $whereSql
+             ORDER BY o.requested_datetime DESC, o.order_id DESC
+             LIMIT $offset, $pageSize
+         ) AS page_ids
+         JOIN orders o    ON o.order_id = page_ids.order_id
+         JOIN products p  ON p.product_id = o.product_id
+         JOIN users u     ON u.user_id = o.customer_id
+         LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id
+         ORDER BY o.requested_datetime DESC, o.order_id DESC"
     );
     $listStmt->execute($params);
     $orders = $listStmt->fetchAll();

@@ -33,6 +33,18 @@ in that order:
 /Applications/MAMP/Library/bin/mysql -u root -proot --port=8889 petorders < sql/seed.sql
 ```
 
+**Existing dev database?** Schema changes only land in `sql/schema.sql`;
+reloading it doesn't alter a database you already created. Either drop
+and reload (losing local data), or apply the change by hand. Most
+recently, PR #108 added an index that pre-existing dev DBs are missing:
+
+```sql
+ALTER TABLE orders ADD KEY idx_orders_created_at (created_at);
+```
+
+Compare `SHOW INDEX FROM orders` against schema.sql's `orders`
+definition if you're unsure whether your local DB is current.
+
 `sql/seed.sql` gives every screen something on it:
 
 | Data                                                                                     | Count |

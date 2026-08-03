@@ -476,7 +476,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             <span class="form-section__title">Institute &amp; Lab</span>
 
                             <div class="field">
-                                <label for="institute_id">Institute</label>
+                                <label for="institute_id">Institute <span class="required-mark">*</span></label>
                                 <select id="institute_id" name="institute_id">
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($institutes as $institute): ?>
