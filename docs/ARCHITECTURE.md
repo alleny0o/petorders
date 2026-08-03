@@ -190,7 +190,7 @@ named contracts:
   `idPrefix`, `itemLabel`, `hiddenFields`, `page`, `totalPages`,
   `pageSize`, `rangeStart`/`rangeEnd` from `paginate()`, `totalCount`).
   `canonicalize_get()` must have run first; the partial's links call
-  `build_query()`, which reads `$_GET`. All 11 paginated list pages use
+  `build_query()`, which reads `$_GET`. All 12 paginated list pages use
   it; treat `$tablePagination` as a reserved name on any of them.
 - `order_notes_card.php` **writes** `$orderNotesValue` into the caller's
   scope; reserved on both order_detail pages.

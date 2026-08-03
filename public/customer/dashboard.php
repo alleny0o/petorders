@@ -42,28 +42,75 @@ $recentOrders = [];
 if ($labId > 0) {
     // Lab-scoped: the c.lab_id join condition IS the access control, same
     // as orders.php -- "view own lab's orders".
-    $statStmt = $pdo->prepare(
-        "SELECT COUNT(*) AS total_count,
-                COALESCE(SUM(o.status = 'pending'), 0) AS pending_count,
-                COALESCE(SUM(o.status = 'pending' AND o.requested_datetime < ?), 0) AS pending_overdue_count,
-                COALESCE(SUM(o.requested_datetime >= ?), 0) AS upcoming_count,
-                MIN(CASE WHEN o.requested_datetime >= ?
-                         THEN o.requested_datetime END) AS next_upcoming,
-                COALESCE(SUM(o.requested_datetime >= ? AND o.requested_datetime < ?), 0) AS month_count
-         FROM orders o
-         JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?"
-    );
-    $statStmt->execute([$now, $todayStart, $todayStart, $monthStart, $nextMonthStart, $labId]);
-    $stats = $statStmt->fetch();
+    // Four bounded queries, not one WHERE-less aggregate: predicates
+    // buried inside SUM()/CASE can't use an index, which scanned the
+    // lab's entire order history on every load (same fix as
+    // staff/dashboard.php). The datetime queries ride
+    // idx_orders_customer_requested per lab member; the status counts
+    // are inherently all-time, bounded by that index's customer_id
+    // prefix.
+    $labJoin =
+        'FROM orders o
+         JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?';
 
+    // Zero-seeded: GROUP BY omits absent statuses.
+    $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+    $statusStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $labJoin GROUP BY o.status");
+    $statusStmt->execute([$labId]);
+    foreach ($statusStmt->fetchAll() as $row) {
+        $statusCounts[$row['status']] = (int) $row['c'];
+    }
+    $stats['pending_count'] = $statusCounts['pending'];
+    $stats['total_count'] = array_sum($statusCounts);
+
+    // COUNT and MIN deliberately share one query/predicate: the tile
+    // meta renders next_upcoming whenever upcoming_count > 0, so the
+    // two must never come from diverging bounds.
+    $upcomingStmt = $pdo->prepare(
+        "SELECT COUNT(*) AS upcoming_count, MIN(o.requested_datetime) AS next_upcoming
+         $labJoin
+         WHERE o.requested_datetime >= ?"
+    );
+    $upcomingStmt->execute([$labId, $todayStart]);
+    $upcoming = $upcomingStmt->fetch();
+    $stats['upcoming_count'] = (int) $upcoming['upcoming_count'];
+    $stats['next_upcoming'] = $upcoming['next_upcoming'];
+
+    $monthStmt = $pdo->prepare(
+        "SELECT COUNT(*) $labJoin
+         WHERE o.requested_datetime >= ? AND o.requested_datetime < ?"
+    );
+    $monthStmt->execute([$labId, $monthStart, $nextMonthStart]);
+    $stats['month_count'] = (int) $monthStmt->fetchColumn();
+
+    $overdueStmt = $pdo->prepare(
+        "SELECT COUNT(*) $labJoin
+         WHERE o.status = 'pending' AND o.requested_datetime < ?"
+    );
+    $overdueStmt->execute([$labId, $now]);
+    $stats['pending_overdue_count'] = (int) $overdueStmt->fetchColumn();
+
+    // Deferred join (house pattern for order-list queries): the inner
+    // subquery resolves the 5 order_ids against orders + the lab-scope
+    // join alone; the products display join attaches to just those 5
+    // rows. ORDER BY re-applied outside -- a derived table has no
+    // guaranteed order. Same sort + tiebreak as orders.php page 1, so
+    // this preview stays byte-identical to that list's first 5 rows.
+    // o.updated_at stays selected: it drives the "updated since your
+    // last visit" dot below.
     $recentStmt = $pdo->prepare(
         'SELECT o.order_id, o.status, o.requested_datetime, o.updated_at, o.chargeable,
                 p.name AS product_name
-         FROM orders o
-         JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
-         JOIN products p  ON p.product_id = o.product_id
-         ORDER BY o.requested_datetime DESC, o.order_id DESC
-         LIMIT 5'
+         FROM (
+             SELECT o.order_id
+             FROM orders o
+             JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?
+             ORDER BY o.requested_datetime DESC, o.order_id DESC
+             LIMIT 5
+         ) page
+         JOIN orders o   ON o.order_id = page.order_id
+         JOIN products p ON p.product_id = o.product_id
+         ORDER BY o.requested_datetime DESC, o.order_id DESC'
     );
     $recentStmt->execute([$labId]);
     $recentOrders = $recentStmt->fetchAll();

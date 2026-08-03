@@ -170,7 +170,7 @@ layout.
   `pageSize`, `rangeStart`/`rangeEnd` (take from `paginate()`, don't
   recompute), `totalCount`. Precondition: `canonicalize_get()` has
   already run (the partial's links call `build_query()`, which reads
-  `$_GET`). Used by all 11 paginated list pages; the partial
+  `$_GET`). Used by all 12 paginated list pages; the partial
   deliberately never aliases the name to a short local (it's a live
   loop variable on `products.php`/`pis.php`). Treat `$tablePagination`
   as reserved on any paginated page.
