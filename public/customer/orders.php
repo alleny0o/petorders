@@ -11,6 +11,11 @@ $myUserId = (int) $_SESSION['user_id'];
 // never re-queries -- same convention as order_detail.php.
 $labId = current_customer_lab_id($pdo, $myUserId);
 
+// This page owns the app's only data-new-order-trigger buttons (page
+// header + empty state), so it opts in to the layout's New Order modal
+// + catalog load (reserved flag; see layout_customer.php).
+$petordersNeedsOrderForm = true;
+
 // Shared with dashboard.php: previous last-seen marker for the row dots
 // (null = first visit this session, no dots), and this visit becomes
 // the new marker for whichever of the two pages loads next.

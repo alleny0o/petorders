@@ -220,10 +220,11 @@ function customer_display_name(?string $firstName, ?string $lastName, string $us
 
 /**
  * Nuclides/products/locations/product-users backing the new-order form's
- * cascading selects. Consumed by layout_customer.php, which feeds the
- * new-order modal (src/partials/new_order_modal.php) on every customer
- * page -- its only caller now that new_order.php is a POST-only JSON
- * endpoint with no page render of its own. locations/
+ * cascading selects. Consumed by layout_customer.php -- its only caller
+ * now that new_order.php is a POST-only JSON endpoint with no page
+ * render of its own -- which runs it only on pages that opt in via
+ * $petordersNeedsOrderForm (orders.php always; order_detail.php when
+ * editing, whose edit form reuses these lists). locations/
  * product_users come back empty when $labId <= 0 -- same as the inline
  * behavior this was extracted from. Each product row is one flat catalog
  * row (nuclide + name + its one fixed delivery_method); like nuclides,

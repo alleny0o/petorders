@@ -253,6 +253,12 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // and with it the form.
 $editing = $detailsEditable && ($_GET['edit'] ?? null) === '1';
 
+// The edit form below reuses the layout's catalog lists
+// ($petordersLayout['nuclides'/'products'/'locations'/'product_users']),
+// so opt in to the layout's catalog load only in edit mode (reserved
+// flag; see layout_customer.php). Read-only views skip those 4 queries.
+$petordersNeedsOrderForm = $editing;
+
 if ($editing && $editOld === null) {
     // Pre-populate from the order's current values. A product (or
     // location/product user) that has since been deactivated or lost
