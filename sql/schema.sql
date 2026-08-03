@@ -358,7 +358,10 @@ CREATE TABLE orders (
   CONSTRAINT fk_orders_product         FOREIGN KEY (product_id)         REFERENCES products (product_id),
   CONSTRAINT fk_orders_location        FOREIGN KEY (location_id)        REFERENCES lab_delivery_locations (location_id),
   CONSTRAINT fk_orders_product_user    FOREIGN KEY (product_user_id)    REFERENCES lab_product_users (product_user_id),
-  KEY idx_orders_customer_id (customer_id),
+  -- Composite: the (customer_id) prefix backs fk_orders_customer and
+  -- every customer-scoped lookup; requested_datetime serves the customer
+  -- dashboard's date-bounded stat queries (customer/dashboard.php).
+  KEY idx_orders_customer_requested (customer_id, requested_datetime),
   KEY idx_orders_product_id (product_id),
   KEY idx_orders_location_id (location_id),
   KEY idx_orders_product_user_id (product_user_id),

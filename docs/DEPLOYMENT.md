@@ -169,6 +169,20 @@ ALTER TABLE customer_registration_requests
 Verify with `SHOW INDEX FROM lockout_events` and
 `SHOW INDEX FROM customer_registration_requests`.
 
+**If this database predates the customer-dashboard query restructure**
+(second performance pass, which replaced `idx_orders_customer_id` with a
+composite), apply these once by hand, **in this order** — the
+`fk_orders_customer` foreign key needs an index on `customer_id` at all
+times, so the ADD must land before the DROP:
+
+```sql
+ALTER TABLE orders
+  ADD KEY idx_orders_customer_requested (customer_id, requested_datetime);
+ALTER TABLE orders DROP KEY idx_orders_customer_id;
+```
+
+Verify with `SHOW INDEX FROM orders`.
+
 ---
 
 ## 4. Configure the app (src/config.php)
