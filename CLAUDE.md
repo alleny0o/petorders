@@ -111,6 +111,9 @@ petorders/
     generate_stress_test.php (dev-only: bulk-inserts a configurable
     number of synthetic orders, thousands, into the configured DB
     for volume testing; never run it in production)
+    prune_lockout_events.php (retention prune: deletes lockout_events
+    rows older than 90 days; safe to rerun, cron'd monthly on RHEL --
+    see DEPLOYMENT.md)
 
   config/
     app_settings.php (static app-wide settings, e.g. app_name; no table,

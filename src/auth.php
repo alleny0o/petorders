@@ -22,7 +22,12 @@ function attempt_login(string $username, string $password): array
 {
     $pdo = get_db();
 
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
+    // active = 1: username is only unique among active rows
+    // (uq_users_username_active). Without the filter, a deactivated
+    // account sharing a since-freed username could be the row fetched
+    // here -- verifying against the wrong hash and pointing the
+    // failed-count/lockout writes below at the wrong user_id.
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ? AND active = 1');
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
@@ -51,10 +56,6 @@ function attempt_login(string $username, string $password): array
             return ['success' => false, 'reason' => lockout_message($lockedUntil)];
         }
 
-        return ['success' => false, 'reason' => 'Invalid username or password.'];
-    }
-
-    if (!$user['active']) {
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
