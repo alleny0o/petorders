@@ -929,6 +929,7 @@ document.addEventListener('DOMContentLoaded', function () {
         opt.className = 'pi-select__option';
         opt.setAttribute('role', 'option');
         var label = document.createElement('span');
+        label.className = 'pi-select__option-label';
         label.textContent = box.dataset.piName + (box.dataset.piActive === '0' ? ' (inactive)' : '');
         opt.appendChild(label);
         var count = countLabelFor(box);
