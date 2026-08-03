@@ -308,7 +308,11 @@ $labs = [];
 $pis = [];
 $piLabIds = [];
 
-if ($customer !== null) {
+// Only the $editing branch below consumes these four lists, and every
+// path into that branch keeps edit=1 (the edit form's action URL carries
+// it, so a no-JS validation-failure re-render still lands here) -- the
+// read-only view and the toggle/reset re-renders skip all four queries.
+if ($editing) {
     $stmt = $pdo->prepare('SELECT institute_id, name, shorthand_name, active FROM institutes WHERE active = 1 OR institute_id = ? ORDER BY shorthand_name');
     $stmt->execute([$currentInstituteId]);
     $institutes = $stmt->fetchAll();

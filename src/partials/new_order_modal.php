@@ -1,6 +1,8 @@
-<!-- New Order modal: fresh/empty render of new_order_form.php, included on
-     every customer page (layout_customer.php) and opened from
-     dashboard.php's "+ New Order" button. The form submits via fetch to
+<!-- New Order modal: fresh/empty render of new_order_form.php, included
+     by layout_customer.php only on pages that set
+     $petordersNeedsOrderForm (orders.php, which owns the app's only
+     data-new-order-trigger buttons; and order_detail.php in edit mode,
+     for the catalog data). The form submits via fetch to
      /customer/new_order.php (a POST-only JSON endpoint -- there is no
      standalone page); validation failures render inline inside this modal
      without ever leaving it. -->

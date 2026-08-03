@@ -134,8 +134,18 @@ collisions, everything each layout produces is namespaced under a single
 
 **Reserved names before including a layout:**
 - `layout_customer.php`: `$petordersLayout` (`account`, `name`, `initials`,
-  `current_page`, `nuclides`, `products`, `locations`, `product_users`),
-  plus a loose `$labId` (deliberate exception: page-owned, not namespaced).
+  `current_page`; plus `nuclides`, `products`, `locations`, `product_users`
+  only on pages that opt in via `$petordersNeedsOrderForm` — see below),
+  plus two loose page-owned inputs (deliberate exceptions, not
+  namespaced): `$labId`, and `$petordersNeedsOrderForm` (opt-in flag for
+  the New Order modal + its 4 catalog queries; set before the include by
+  `orders.php` (always — it owns the app's only `data-new-order-trigger`
+  buttons) and `order_detail.php` (only when `$editing`; its edit form
+  reuses the catalog lists). The flag gates the data load and the modal
+  markup TOGETHER — `new_order_modal.php` reads all four catalog keys
+  unguarded, so never gate them separately. A new
+  `data-new-order-trigger` on another page requires setting the flag
+  there too.)
 - `layout_staff.php`: `$petordersLayout` (`account`, `name`, `initials`,
   `current_page`). Also reads `$_GET['profile_updated']`/`['profile_error']`
   and echoes toasts.
@@ -176,8 +186,8 @@ layout.
   as reserved on any paginated page.
 - `order_notes_card.php` *writes* `$orderNotesValue` into the including
   page's scope; reserved on both order_detail pages. Its textarea id
-  is `order-notes`, not `notes` (the new-order modal, included on every
-  customer page, owns `#notes`).
+  is `order-notes`, not `notes` (the new-order modal owns `#notes` on
+  pages that opt in via `$petordersNeedsOrderForm`).
 
 The three order_detail partials (`order_cancel_modal.php`,
 `order_cancellation_card.php`, `order_notes_card.php`) are shared by

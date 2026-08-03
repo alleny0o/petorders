@@ -16,13 +16,19 @@ if (!isset($labId)) {
     $labId = current_customer_lab_id(get_db(), (int) $_SESSION['user_id']);
 }
 
-// Backing data for the New Order modal below, needed on every customer
-// page since the sidebar trigger opens it from anywhere. Guarded so
-// get_new_order_form_data() only ever runs once per request. Merged
-// straight into $petordersLayout (adds exactly its four return keys:
-// nuclides, products, locations, product_users) -- no loose temp
+// Backing data for the New Order modal, loaded only when the including
+// page opts in via $petordersNeedsOrderForm (page-owned input like
+// $labId, set before the include; reserved -- see CLAUDE.md). Only
+// orders.php (the sole page with a data-new-order-trigger) and
+// order_detail.php in edit mode (its edit form reuses these lists) opt
+// in; every other customer page skips the 4 catalog queries and the
+// modal markup below. The flag gates BOTH, together: new_order_modal.php
+// reads all four keys unguarded, so data and markup must never diverge.
+// Merged straight into $petordersLayout (adds exactly its four return
+// keys: nuclides, products, locations, product_users) -- no loose temp
 // variable, per the reserved-layout-variables rule above.
-if (!isset($petordersLayout['nuclides'])) {
+$petordersNeedsOrderForm = $petordersNeedsOrderForm ?? false;
+if ($petordersNeedsOrderForm && !isset($petordersLayout['nuclides'])) {
     $petordersLayout += get_new_order_form_data(get_db(), $labId);
 }
 
@@ -183,10 +189,14 @@ if (!isset($petordersLayout['nuclides'])) {
 </div>
 
 <?php
-// Included unconditionally: the modal is the only place the order form
-// renders (new_order.php is a POST-only JSON endpoint with no page of
-// its own), so there is no duplicate-ID risk on any customer page.
-include __DIR__ . '/new_order_modal.php';
+// Gated on the same flag as the catalog load above (never gate them
+// separately -- the modal dereferences all four catalog keys). The modal
+// is still the only place the order form renders (new_order.php is a
+// POST-only JSON endpoint with no page of its own), so there is no
+// duplicate-ID risk on any opted-in page.
+if ($petordersNeedsOrderForm) {
+    include __DIR__ . '/new_order_modal.php';
+}
 // script.js itself is loaded (defer) by _sidebar_footer.php above.
 ?>
 
@@ -204,8 +214,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // New Order triggers are marked with data-new-order-trigger (orders.php
   // has one in its page header and one in its no-orders empty state); the
-  // modal itself is present on every customer page, so a new trigger
-  // anywhere just needs the attribute.
+  // modal only renders on pages that set $petordersNeedsOrderForm before
+  // including this layout, so a new trigger on another page needs BOTH
+  // the attribute and that flag. The null guard below keeps this block
+  // inert on non-opted-in pages.
   var newOrderModal = document.getElementById('new-order-modal');
   if (newOrderModal) {
     document.querySelectorAll('[data-new-order-trigger]').forEach(function (trigger) {
