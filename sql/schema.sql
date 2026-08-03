@@ -136,7 +136,11 @@ CREATE TABLE lockout_events (
   failed_attempts  TINYINT UNSIGNED NOT NULL,
   locked_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_lockout_events_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  KEY idx_lockout_events_user_id (user_id)
+  KEY idx_lockout_events_user_id (user_id),
+  -- Admin dashboard reads a locked_at >= 7-day window; rows older than
+  -- 90 days are pruned by tools/prune_lockout_events.php (growth here is
+  -- attacker-controlled, not order-volume-controlled).
+  KEY idx_lockout_events_locked_at (locked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- No category assignment: any staff member can process any order
@@ -207,7 +211,10 @@ CREATE TABLE customer_registration_requests (
   CONSTRAINT fk_reg_requests_lab      FOREIGN KEY (lab_id)               REFERENCES labs (lab_id),
   CONSTRAINT fk_reg_requests_pi       FOREIGN KEY (pi_id)                REFERENCES pis (pi_id),
   CONSTRAINT fk_reg_requests_reviewer FOREIGN KEY (reviewed_by_admin_id) REFERENCES users (user_id) ON DELETE SET NULL,
-  KEY idx_reg_requests_status (status),
+  -- Composite: the (status) prefix serves every status-only lookup
+  -- (pending queue/preview); reviewed_at serves the admin dashboard's
+  -- 7-day rejected window without scanning all historical rejections.
+  KEY idx_reg_requests_status_reviewed (status, reviewed_at),
   KEY idx_reg_requests_email (email),
   KEY idx_reg_requests_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
