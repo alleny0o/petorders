@@ -134,6 +134,20 @@ sudo mysql petorders < /var/www/petorders/sql/schema.sql
 data (sample labs, accounts, orders). Production should have schema
 only until step 7 creates the first real admin.
 
+**If this database was created from a schema.sql older than PR #108**
+(which added `idx_orders_created_at`, used by the CSV export's date
+filter), the index isn't there — reloading schema.sql doesn't alter an
+existing database. Apply it once by hand:
+
+```sql
+ALTER TABLE orders ADD KEY idx_orders_created_at (created_at);
+```
+
+Verify with `SHOW INDEX FROM orders` — schema.sql's `orders` table
+definition is the authoritative index list. A fresh load of the current
+schema.sql already includes it; this only concerns databases that
+predate the change.
+
 ---
 
 ## 4. Configure the app (src/config.php)

@@ -797,6 +797,108 @@ function like_contains(string $q): string
 }
 
 /**
+ * Resolves an order-search text term into an orders-only WHERE fragment
+ * by running the %term% LIKEs against the small dimension tables first
+ * (products+nuclides, lab_product_users, customer names, and -- when
+ * $searchOrgNames, for the staff queue -- labs/institutes/PIs), then
+ * filtering orders by the matched ID sets. Shared by customer/orders.php
+ * and staff/orders.php.
+ *
+ * Why: every searched column lives on a dimension table, none on orders
+ * itself, and a leading-wildcard LIKE OR'd across joined tables forces a
+ * full scan of orders however it's indexed. The dimension tables stay
+ * seed-sized (tens of rows) while orders grows unboundedly, so matching
+ * the small side first turns the orders query into indexable
+ * product_id/customer_id/product_user_id IN (...) branches and lets the
+ * orders pages drop their search-only joins entirely.
+ *
+ * Semantics are identical to the joined LIKEs this replaces:
+ * - product/nuclide name matches -> the product's orders
+ *   (products.nuclide_id is a NOT-NULL FK, so the nuclides join never
+ *   drops a product);
+ * - product-user name matches -> orders with that product user attached;
+ * - customer (placer) name matches -> only orders with NO product user
+ *   attached -- the COALESCE fallback rule the Product User column
+ *   renders with (product user name when set, else placer name);
+ * - lab/institute/PI name matches (staff queue only) -> all of that
+ *   customer's orders, regardless of product user (these were never
+ *   inside the COALESCE). A customer with no lab/PI assigned matches
+ *   nothing here, same as the LEFT-joined LIKEs before.
+ *
+ * Returns ['where' => fragment, 'params' => bound values]. When the term
+ * matches no dimension row at all, the fragment is '0 = 1' (zero rows,
+ * zero counts) -- the caller ANDs it in unconditionally either way.
+ */
+function order_search_conditions(PDO $pdo, string $q, bool $searchOrgNames): array
+{
+    $like = like_contains($q);
+    $branches = [];
+    $params = [];
+    $inList = fn(array $ids) => implode(', ', array_fill(0, count($ids), '?'));
+
+    $stmt = $pdo->prepare(
+        "SELECT p.product_id
+         FROM products p
+         JOIN nuclides n ON n.nuclide_id = p.nuclide_id
+         WHERE p.name LIKE ? ESCAPE '\\\\' OR n.name LIKE ? ESCAPE '\\\\'"
+    );
+    $stmt->execute([$like, $like]);
+    $productIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    if ($productIds) {
+        $branches[] = 'o.product_id IN (' . $inList($productIds) . ')';
+        array_push($params, ...$productIds);
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT product_user_id FROM lab_product_users
+         WHERE CONCAT(first_name, ' ', last_name) LIKE ? ESCAPE '\\\\'"
+    );
+    $stmt->execute([$like]);
+    $productUserIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    if ($productUserIds) {
+        $branches[] = 'o.product_user_id IN (' . $inList($productUserIds) . ')';
+        array_push($params, ...$productUserIds);
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT c.user_id
+         FROM customers c
+         JOIN users u ON u.user_id = c.user_id
+         WHERE CONCAT(u.first_name, ' ', u.last_name) LIKE ? ESCAPE '\\\\'"
+    );
+    $stmt->execute([$like]);
+    $placerIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    if ($placerIds) {
+        $branches[] = '(o.product_user_id IS NULL AND o.customer_id IN (' . $inList($placerIds) . '))';
+        array_push($params, ...$placerIds);
+    }
+
+    if ($searchOrgNames) {
+        $stmt = $pdo->prepare(
+            "SELECT c.user_id
+             FROM customers c
+             LEFT JOIN labs l       ON l.lab_id = c.lab_id
+             LEFT JOIN institutes i ON i.institute_id = l.institute_id
+             LEFT JOIN pis pi       ON pi.pi_id = c.supervising_pi_id
+             WHERE l.lab_name LIKE ? ESCAPE '\\\\'
+                OR i.name LIKE ? ESCAPE '\\\\'
+                OR pi.pi_name LIKE ? ESCAPE '\\\\'"
+        );
+        $stmt->execute([$like, $like, $like]);
+        $orgCustomerIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        if ($orgCustomerIds) {
+            $branches[] = 'o.customer_id IN (' . $inList($orgCustomerIds) . ')';
+            array_push($params, ...$orgCustomerIds);
+        }
+    }
+
+    return [
+        'where' => $branches ? '(' . implode(' OR ', $branches) . ')' : '0 = 1',
+        'params' => $params,
+    ];
+}
+
+/**
  * The signed-in customer's lab_id, or 0 if none is assigned yet. Shared
  * by every customer-role page (and layout_customer.php's own guarded
  * lookup) that needs to scope a query to "my lab".
