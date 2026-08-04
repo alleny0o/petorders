@@ -219,6 +219,7 @@ All in `src/helpers.php` unless noted:
 | `get_new_order_form_data()`                                                   | nuclides/products/locations/product-users for the order form, availability-filtered                                        |
 | `fetch_order_audit_trail()` / `describe_order_transition()`                   | audit feed and human-readable labels                                                                                       |
 | `fetch_order_cancellation_actor()`                                            | who performed the → cancelled transition (staff/admin collapse to "Staff")                                                 |
+| `order_status_label()`                                                        | `orders.status` display label; only override is `cancelled` → "Canceled" (American spelling), everything else is `ucfirst()` |
 | `can_edit_order_notes()`                                                      | notes-edit permission: staff/admin always, customer only on their own order                                                |
 | `csrf_token()` / `csrf_field()` / `verify_csrf()`                             | CSRF token, hidden form field, and POST verification                                                                       |
 | `e()`                                                                         | HTML escaping (htmlspecialchars, ENT_QUOTES, UTF-8)                                                                        |

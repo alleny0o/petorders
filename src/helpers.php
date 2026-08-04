@@ -628,6 +628,18 @@ function fetch_order_audit_trail(PDO $pdo, int $orderId): array
 }
 
 /**
+ * Display label for an orders.status value. A plain ucfirst() of the raw
+ * DB value would print "Cancelled" (the stored enum spelling, British);
+ * this is the one override needed to show the American "Canceled" in the
+ * UI without touching the enum itself. Every other status already
+ * ucfirst()s correctly as-is.
+ */
+function order_status_label(string $status): string
+{
+    return $status === 'cancelled' ? 'Canceled' : ucfirst($status);
+}
+
+/**
  * Plain-English description of one order_audit_log transition. Used by
  * staff/order_detail.php's per-order Activity card (on-screen and in
  * its print document). The staff dashboard's Recent Activity card,
@@ -644,11 +656,11 @@ function describe_order_transition(?string $from, string $to): string
         'accepted_pending'   => 'Returned to pending',
         'cancelled_pending'  => 'Reopened',
         'accepted_completed' => 'Marked completed',
-        'pending_cancelled'  => 'Cancelled',
-        'accepted_cancelled' => 'Cancelled',
+        'pending_cancelled'  => 'Canceled',
+        'accepted_cancelled' => 'Canceled',
     ];
 
-    return $descriptions[$from . '_' . $to] ?? (ucfirst($from) . ' → ' . ucfirst($to));
+    return $descriptions[$from . '_' . $to] ?? (order_status_label($from) . ' → ' . order_status_label($to));
 }
 
 /**

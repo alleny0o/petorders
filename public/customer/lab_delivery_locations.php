@@ -261,7 +261,7 @@ $pageTitle = 'Delivery Locations';
 
             <?php // Query flags carry the toast across the PRG redirect --
                   // same convention as order_detail.php's ?placed=1 /
-                  // ?cancelled=1 / ?updated=1 / ?notes_updated=1. ?>
+                  // ?canceled=1 / ?updated=1 / ?notes_updated=1. ?>
             <?php if ($labId > 0 && $justCreated): ?>
                 <?= toast_flash('success', 'Delivery location added.') ?>
             <?php elseif ($labId > 0 && $justUpdated): ?>

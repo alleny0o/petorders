@@ -172,7 +172,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     $pdo->commit();
                     // Query flag carries the toast across the redirect,
-                    // mirroring ?placed=1 / ?cancelled=1.
+                    // mirroring ?placed=1 / ?canceled=1.
                     $dest = '/customer/order_detail.php?id=' . $orderId . '&updated=1';
                     if (request_wants_json()) {
                         json_response(['ok' => true, 'redirect' => $dest]);
@@ -213,7 +213,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result['ok']) {
             // Query flag carries the toast across the redirect,
             // mirroring the ?placed=1 arrival pattern.
-            $dest = '/customer/order_detail.php?id=' . $orderId . '&cancelled=1';
+            $dest = '/customer/order_detail.php?id=' . $orderId . '&canceled=1';
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -221,7 +221,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($result['reason'] === 'reason_required') {
-            $cancelErrors['cancellation_reason'] = 'Enter a reason for cancelling this order (500 characters max).';
+            $cancelErrors['cancellation_reason'] = 'Enter a reason for canceling this order (500 characters max).';
             // AJAX: the error renders inside the still-open modal -- no
             // full-page re-render + reopen flicker. Plain POST falls
             // through to the reopen-on-error script below.
@@ -230,13 +230,13 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             if (request_wants_json()) {
-                json_response(['ok' => false, 'message' => 'This order can no longer be cancelled.'], 422);
+                json_response(['ok' => false, 'message' => 'This order can no longer be canceled.'], 422);
             }
             // The order moved on mid-request (e.g. staff accepted it).
             // Re-fetch AND re-derive the gates so the page renders the
             // real current state, not our stale copy -- same pattern as
             // save_details above.
-            $flash = ['type' => 'error', 'message' => 'This order can no longer be cancelled.'];
+            $flash = ['type' => 'error', 'message' => 'This order can no longer be canceled.'];
             $order = fetch_order_for_lab($pdo, $orderId, $labId);
             $isOwnOrder = $order !== null && (int) $order['customer_id'] === $myUserId;
             $canEditNotes = $order !== null && can_edit_order_notes('customer', $isOwnOrder);
@@ -283,15 +283,15 @@ if ($editing && $editOld === null) {
 $cancellationActor = ($order !== null && $order['status'] === 'cancelled')
     ? fetch_order_cancellation_actor($pdo, (int) $order['order_id'])
     : null;
-$cancelledByLabel = null;
+$canceledByLabel = null;
 if ($cancellationActor !== null) {
     if ($cancellationActor['is_customer']) {
-        $cancelledByLabel = customer_display_name($cancellationActor['first_name'], $cancellationActor['last_name'], $cancellationActor['username']);
+        $canceledByLabel = customer_display_name($cancellationActor['first_name'], $cancellationActor['last_name'], $cancellationActor['username']);
         if ((int) $order['customer_id'] === $myUserId) {
-            $cancelledByLabel .= ' (you)';
+            $canceledByLabel .= ' (you)';
         }
     } else {
-        $cancelledByLabel = 'Staff';
+        $canceledByLabel = 'Staff';
     }
 }
 
@@ -326,8 +326,8 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
         <main class="app-main">
             <?php if ($order !== null && ($_GET['placed'] ?? null) === '1'): ?>
                 <?= toast_flash('success', 'Order placed.') ?>
-            <?php elseif ($order !== null && ($_GET['cancelled'] ?? null) === '1'): ?>
-                <?= toast_flash('success', 'Order cancelled.') ?>
+            <?php elseif ($order !== null && ($_GET['canceled'] ?? null) === '1'): ?>
+                <?= toast_flash('success', 'Order canceled.') ?>
             <?php elseif ($order !== null && ($_GET['updated'] ?? null) === '1'): ?>
                 <?= toast_flash('success', 'Order updated.') ?>
             <?php elseif ($order !== null && ($_GET['notes_updated'] ?? null) === '1'): ?>
@@ -353,7 +353,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="page-header">
                     <div>
                         <a href="/customer/orders.php" class="page-header__back mb-4">&larr; Back to Orders</a>
-                        <span class="badge badge--<?= e($order['status']) ?> page-header__status"><?= e(ucfirst($order['status'])) ?></span>
+                        <span class="badge badge--<?= e($order['status']) ?> page-header__status"><?= e(order_status_label($order['status'])) ?></span>
                         <?php // Chargeable is the default -- quiet text; the
                               // exception gets the warning chip. ?>
                         <?php if ($order['chargeable']): ?>
@@ -597,7 +597,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
 
                 <?php // Cancellation Reason + Notes cards: shared partials (see
                       // their headers for the variable contracts; the
-                      // cancellation card self-guards on cancelled+reason). ?>
+                      // cancellation card self-guards on canceled+reason). ?>
                 <?php include __DIR__ . '/../../src/partials/order_cancellation_card.php'; ?>
 
                 <?php include __DIR__ . '/../../src/partials/order_notes_card.php'; ?>
@@ -620,7 +620,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                       // that's staff-only). ?>
                 <div class="order-print__identity">
                     <span class="order-print__title">Order #<?= (int) $order['order_id'] ?></span>
-                    <span class="order-print__status-pill"><?= e(ucfirst($order['status'])) ?></span>
+                    <span class="order-print__status-pill"><?= e(order_status_label($order['status'])) ?></span>
                     <span><?= $order['chargeable'] ? 'Chargeable' : 'Not chargeable' ?></span>
                 </div>
             </div>
@@ -657,8 +657,8 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
             <?php if ($order['status'] === 'cancelled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
                 <div class="order-print__section-title">Cancellation Reason</div>
                 <dl class="order-print__grid">
-                    <?php if ($cancelledByLabel !== null): ?>
-                        <div class="order-print__field"><dt>Cancelled by</dt><dd><?= e($cancelledByLabel) ?></dd></div>
+                    <?php if ($canceledByLabel !== null): ?>
+                        <div class="order-print__field"><dt>Canceled by</dt><dd><?= e($canceledByLabel) ?></dd></div>
                     <?php endif; ?>
                     <div class="order-print__field"><dt>Reason</dt><dd><?= e($order['cancellation_reason']) ?></dd></div>
                 </dl>
@@ -674,14 +674,14 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
 <?php if ($order !== null): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Strip one-time arrival-toast query flags (placed/cancelled/
+    // Strip one-time arrival-toast query flags (placed/canceled/
     // updated/notes_updated) from the URL bar once their toast has been
     // queued above, so a reload or back-navigation doesn't re-show a
     // toast for an action that already happened. This is separate from
     // the PRG pattern every POST handler above already uses -- PRG is
     // what stops the browser's resubmit-form prompt; this only stops a
     // stale success toast from replaying on a plain GET reload.
-    window.petordersCleanArrivalFlags(['placed', 'cancelled', 'updated', 'notes_updated']);
+    window.petordersCleanArrivalFlags(['placed', 'canceled', 'updated', 'notes_updated']);
 
     // Browsers' print dialog includes "Save as PDF", so one native
     // mechanism covers both print and PDF -- no libraries (CLAUDE.md).

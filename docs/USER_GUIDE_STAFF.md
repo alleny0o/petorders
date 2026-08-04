@@ -5,7 +5,7 @@ see and can act on every order from every lab.
 
 The short version of the workflow: orders come in as Pending, you Accept
 the ones you're working on, when the dose is delivered you mark them
-Complete. Everything else (returning, cancelling, reopening) handles the
+Complete. Everything else (returning, canceling, reopening) handles the
 exceptions.
 
 A couple of things that apply everywhere:
@@ -23,8 +23,8 @@ A couple of things that apply everywhere:
 4. [Accepting an order](#4-accepting-an-order)
 5. [Returning an order to pending](#5-returning-an-order-to-pending)
 6. [Completing an order](#6-completing-an-order)
-7. [Cancelling an order](#7-cancelling-an-order)
-8. [Reopening a cancelled order](#8-reopening-a-cancelled-order)
+7. [Canceling an order](#7-canceling-an-order)
+8. [Reopening a canceled order](#8-reopening-a-canceled-order)
 9. [The Chargeable flag](#9-the-chargeable-flag)
 10. [Notes](#10-notes)
 11. [Your profile and password](#11-your-profile-and-password)
@@ -52,9 +52,9 @@ _The Order Queue shows all orders as a triage list. Click any row to open its de
 
 | Feature     | Detail                                                                                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status tabs | All, Pending, Accepted, Completed, Cancelled, each with a live count                                                                                                     |
+| Status tabs | All, Pending, Accepted, Completed, Canceled, each with a live count                                                                                                      |
 | Search      | Matches order number, product, nuclide, product user, lab, PI, or institute. Combine with the fulfillment dropdown and requested date range, then click **Filter**       |
-| Sorting     | Built for the work: Pending and Accepted tabs show the soonest-requested orders first (most urgent on top). Completed and Cancelled show the most recently updated first |
+| Sorting     | Built for the work: Pending and Accepted tabs show the soonest-requested orders first (most urgent on top). Completed and Canceled show the most recently updated first  |
 | Row info    | Lab and who placed the order, fulfillment method, status, and whether it's chargeable ("Not chargeable" stands out, "Chargeable" is the quiet default)                   |
 
 Click **View** on a row to open the order.
@@ -75,9 +75,9 @@ The cards, top to bottom:
 | Order Details       | Product, nuclide, fulfillment, activity, requested date/time, when and by whom it was placed, the product user (recipient), and the customer's lab, institute, and supervising PI |
 | Delivery            | Only on Direct Delivery orders: where in the lab the dose goes                                                                                                                    |
 | Billing             | The Chargeable flag (section 9)                                                                                                                                                   |
-| Cancellation Reason | Only on cancelled orders: who cancelled and why                                                                                                                                   |
+| Cancellation Reason | Only on canceled orders: who canceled and why                                                                                                                                     |
 | Notes               | The shared communication field (section 10)                                                                                                                                       |
-| Activity            | The order's history, newest first: placed, accepted, returned, completed, cancelled, reopened, each with who did it and when                                                      |
+| Activity            | The order's history, newest first: placed, accepted, returned, completed, canceled, reopened, each with who did it and when                                                       |
 
 ![Activity card showing an order's status history](images/staff/activity-trail.png)
 _The Activity card records every status change with the person and time._
@@ -111,7 +111,7 @@ On an accepted order, click **Complete** and confirm. This is final: a
 completed order can never change status again, there is no undo and no
 reopen. If you're not certain, leave it accepted until you are.
 
-## 7. Cancelling an order
+## 7. Canceling an order
 
 When: an order that won't be fulfilled, the customer asked, the run was
 scrapped, or it can't be produced. Staff can cancel any Pending or
@@ -125,20 +125,20 @@ so write it for them.
 _Cancelling always requires a reason. The customer sees it on the order, attributed to "Staff"._
 
 Click **Cancel Order** to confirm or **Keep Order** to back out. The
-order moves to Cancelled. (Customers can also cancel their own pending
-orders themselves, those show the customer's name as the canceller.)
+order moves to Canceled. (Customers can also cancel their own pending
+orders themselves, those show the customer's name as the canceler.)
 
-## 8. Reopening a cancelled order
+## 8. Reopening a canceled order
 
 When: a cancellation turned out to be a mistake, or the order is back
 on.
 
-On a cancelled order, click **Reopen** and confirm. The order returns to
+On a canceled order, click **Reopen** and confirm. The order returns to
 Pending (not Accepted, it re-enters the queue from the start), and the
 old cancellation reason is cleared.
 
 ![Cancelled order with the Reopen button and cancellation reason card](images/staff/order-detail-cancelled.png)
-_A cancelled order shows who cancelled it and why, and offers Reopen._
+_A canceled order shows who canceled it and why, and offers Reopen._
 
 ## 9. The Chargeable flag
 
