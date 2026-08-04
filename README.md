@@ -13,6 +13,7 @@ institute/lab/PI directory, and reporting.
 | Document                                           | Audience             | What's in it                                                                                                                           |
 | -------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | [Deployment Guide](docs/DEPLOYMENT.md)             | IT / sysadmin        | Step-by-step first-time production deployment on RHEL, prerequisites through verification checklist                                    |
+| [Demo Deployment Notes](docs/DEMO_DEPLOYMENT.md)   | IT / sysadmin        | AWS-specific notes from a temporary public demo instance; infrastructure choices and quirks layered on top of the main Deployment Guide |
 | [Local Dev Setup](docs/LOCAL_DEV_SETUP.md)         | Developer            | Local development environment (MAMP), seeded test database, and dev-only tooling                                                       |
 | [Architecture & Conventions](docs/ARCHITECTURE.md) | Developer            | How the app is built: role model, catalog and order state machine, key conventions, and the gotchas worth knowing before changing code |
 | [Customer Guide](docs/USER_GUIDE_CUSTOMER.md)      | Lab members          | Registering, logging in, placing and managing orders, delivery locations, and product users                                            |

@@ -11,6 +11,10 @@ Deployment = install prerequisites, put files on disk, create the
 database, fill in one config file, point the web server at `public/`,
 create the first admin.
 
+> This guide was validated end-to-end against a fresh RHEL 8.10
+> install in August 2026. Steps marked **(validated fix)** were
+> corrected as a result of that pass.
+
 ---
 
 ## Contents
@@ -21,9 +25,10 @@ create the first admin.
 4. [Configure the app (src/config.php)](#4-configure-the-app-srcconfigphp)
 5. [Configure Apache: document root must be public/](#5-configure-apache-document-root-must-be-public)
 6. [HTTPS](#6-https)
-7. [Create the first admin account](#7-create-the-first-admin-account)
-8. [Verification checklist](#8-verification-checklist)
-9. [Operational notes](#9-operational-notes)
+7. [SELinux (required)](#7-selinux-required)
+8. [Create the first admin account](#8-create-the-first-admin-account)
+9. [Verification checklist](#9-verification-checklist)
+10. [Operational notes](#10-operational-notes)
 
 ---
 
@@ -61,14 +66,18 @@ If PHP or MariaDB are missing:
 sudo dnf module enable -y php:7.4
 sudo dnf install -y php php-mysqlnd php-json
 
-# MariaDB (module stream name varies by RHEL release, use whatever
-# stream your team supports; the app needs nothing newer than InnoDB
-# + utf8mb4)
+# MariaDB 10.11 (available natively as a RHEL 8 module stream)
+sudo dnf module enable -y mariadb:10.11
 sudo dnf install -y mariadb-server
 sudo systemctl enable --now mariadb
 ```
 
 Re-run the check commands to confirm everything's in place.
+
+> **PHP version note:** the app has also been run successfully on PHP
+> 8.3 with zero code changes (verified August 2026). 7.4 remains the
+> supported target for production; treat this only as a data point for
+> a future version-bump decision.
 
 ---
 
@@ -94,6 +103,12 @@ sudo find /var/www/petorders -type d -exec chmod 750 {} \;
 sudo find /var/www/petorders -type f -exec chmod 640 {} \;
 ```
 
+> **Expected after this step:** your own (non-root) login can no
+> longer `ls` or `cd` into `/var/www/petorders`, since it isn't in the
+> `apache` group. That is the permissions working, not a mistake. Use
+> `sudo` for any inspection, and use absolute paths with `sudo` for
+> the CLI tools in step 8 (a plain `cd` into the directory will fail).
+
 Layout:
 
 ```
@@ -102,7 +117,7 @@ Layout:
   src/       # app code + config.php (DB credentials)
   config/    # static app settings (display name)
   sql/       # schema.sql (required), seed.sql (dev only, NOT for production)
-  tools/     # command-line setup scripts (one is dev-only -- step 7)
+  tools/     # command-line setup scripts (one is dev-only -- step 8)
 ```
 
 ---
@@ -124,34 +139,58 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-Load the schema:
+> **Replace `CHOOSE_A_STRONG_PASSWORD` before running.** If the
+> statement is run with the placeholder still in it, the user is
+> silently created with that literal string as its password. Recovery
+> is one statement. No need to drop and recreate:
+>
+> ```sql
+> ALTER USER 'petorders_app'@'localhost' IDENTIFIED BY 'the_real_password';
+> ```
+>
+> Verify the credentials before continuing:
+>
+> ```bash
+> mysql -u petorders_app -p petorders
+> ```
+
+Load the schema **(validated fix)**. Note the `sudo bash -c`
+wrapping. The plain form `sudo mysql petorders < .../schema.sql` fails
+with `Permission denied` after step 2's permissions pass, because the
+`<` redirection is performed by your unprivileged shell, not by sudo:
 
 ```bash
-sudo mysql petorders < /var/www/petorders/sql/schema.sql
+sudo bash -c "mysql petorders < /var/www/petorders/sql/schema.sql"
+```
+
+Confirm all tables landed:
+
+```bash
+sudo mysql petorders -e "SHOW TABLES;"
 ```
 
 **Don't load `sql/seed.sql` in production.** It's fictional dev/test
 data (sample labs, accounts, orders). Production should have schema
-only until step 7 creates the first real admin.
+only until step 8 creates the first real admin.
 
 **If this database was created from a schema.sql older than PR #108**
 (which added `idx_orders_created_at`, used by the CSV export's date
-filter), the index isn't there — reloading schema.sql doesn't alter an
-existing database. Apply it once by hand:
+filter), the index isn't there, because reloading schema.sql doesn't
+alter an existing database. Apply it once by hand:
 
 ```sql
 ALTER TABLE orders ADD KEY idx_orders_created_at (created_at);
 ```
 
-Verify with `SHOW INDEX FROM orders` — schema.sql's `orders` table
+Verify with `SHOW INDEX FROM orders`. schema.sql's `orders` table
 definition is the authoritative index list. A fresh load of the current
 schema.sql already includes it; this only concerns databases that
 predate the change.
 
 **If this database predates the performance pass that followed PR #109**
 (which indexed the admin dashboard's two 7-day activity windows), apply
-these once by hand — same caveat as above, reloading schema.sql doesn't
-alter an existing database:
+these once by hand, subject to the same caveat as above (reloading
+schema.sql doesn't alter an existing database):
 
 ```sql
 -- Admin dashboard "Lockouts (last 7 days)" list
@@ -171,7 +210,7 @@ Verify with `SHOW INDEX FROM lockout_events` and
 
 **If this database predates the customer-dashboard query restructure**
 (second performance pass, which replaced `idx_orders_customer_id` with a
-composite), apply these once by hand, **in this order** — the
+composite), apply these once by hand, **in this order**, because the
 `fk_orders_customer` foreign key needs an index on `customer_id` at all
 times, so the ADD must land before the DROP:
 
@@ -201,13 +240,24 @@ sudo vi src/config.php
 Set every constant:
 
 | Constant                 | Production value         | Notes                                                                                                                                                 |
-| ------------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DB_HOST`                | `127.0.0.1`              | Assumes DB runs on the same host. Use the actual hostname if it doesn't.                                                                              |
 | `DB_PORT`                | `3306`                   | MariaDB default.                                                                                                                                      |
 | `DB_NAME`                | `petorders`              | The database from step 3.                                                                                                                             |
 | `DB_USER`                | `petorders_app`          | The dedicated user from step 3, never `root`.                                                                                                         |
 | `DB_PASS`                | _(password from step 3)_ |                                                                                                                                                       |
 | `REQUIRE_SECURE_COOKIES` | `true`                   | **Must be `true` in production.** Marks session cookies HTTPS-only. Requires working HTTPS (step 6). Login won't work over plain HTTP with this set. |
+
+Optional but recommended: smoke-test the credentials from the CLI
+before touching Apache. It turns a wrong password into a 5-second
+diagnosis instead of a mystery error page later:
+
+```bash
+php -r "
+\$pdo = new PDO('mysql:host=127.0.0.1;port=3306;dbname=petorders', 'petorders_app', 'THE_PASSWORD');
+echo 'Connected successfully!' . PHP_EOL;
+"
+```
 
 `config/app_settings.php` holds the app display name (currently
 `PETOrders`). Plain PHP file, no admin UI. Leave it alone unless you
@@ -233,6 +283,18 @@ Same reason `public/.htaccess` (dotfile deny, no directory listing,
 server signature off, 404 handler) must stay inside `public/`. A
 `.htaccess` at the project root does nothing, since Apache never serves
 that directory.
+
+> **⚠ Sequencing warning (validated fix):** do **not** create the
+> `:443` vhost below until the certificate files it references
+> actually exist on disk (step 6). A vhost with `SSLEngine on` and no
+> usable certificate doesn't degrade gracefully, and mod_ssl fails hard
+> at startup (`AH02572` / `AH02312: Fatal error initialising
+> mod_ssl`) and **httpd will not start at all**, taking down anything
+> else it serves. Merely commenting out the `SSLCertificateFile`
+> lines is not enough; `SSLEngine on` with no cert bound still kills
+> the server. If the cert isn't available yet, deploy an HTTP-only
+> (`:80`) vhost first and add the `:443` block after the cert is
+> installed.
 
 Create the vhost:
 
@@ -273,28 +335,9 @@ sudo apachectl configtest        # expect: Syntax OK
 sudo systemctl restart httpd
 ```
 
-Check SELinux (read-only, changes nothing):
-
-```bash
-sestatus
-```
-
-or, if unavailable:
-
-```bash
-cat /sys/fs/selinux/enforce
-```
-
-(`1` = enforcing, `0` = permissive, file missing = SELinux inactive.)
-
-If enforcing, label the content for httpd:
-
-```bash
-sudo semanage fcontext -a -t httpd_sys_content_t "/var/www/petorders(/.*)?"
-sudo restorecon -R /var/www/petorders
-```
-
-Open the firewall if needed:
+Open the firewall if needed (skip if `firewall-cmd` is absent, since
+some environments, including cloud images, omit firewalld and rely on
+an external firewall layer instead):
 
 ```bash
 sudo firewall-cmd --permanent --add-service=https
@@ -312,7 +355,8 @@ are for local dev only.
 2. Install cert + key where the vhost expects them
    (`/etc/pki/tls/certs/`, `/etc/pki/tls/private/`), key readable only
    by root (`chmod 600`).
-3. Keep the HTTP→HTTPS redirect vhost from step 5 in place.
+3. Only now enable the `:443` vhost from step 5 (see the sequencing
+   warning there), keeping the HTTP→HTTPS redirect vhost in place.
 
 This is what makes `REQUIRE_SECURE_COOKIES = true` (step 4) work:
 session cookies get flagged HTTPS-only, never sent in clear text. Real
@@ -320,14 +364,62 @@ cert, then `true`. The two go together.
 
 ---
 
-## 7. Create the first admin account
+## 7. SELinux (required)
 
-No default accounts, no public way to create an admin. First (and only)
-admin comes from the command line:
+**(validated fix)**. Previously framed as conditional; it is not.
+
+On a stock RHEL 8 install SELinux is enforcing (the default, confirm
+with `sestatus`), and the policy **blocks the web server from opening
+TCP connections to the database port**. Every DB-backed page in the
+app will fail with the generic error page until this boolean is set:
 
 ```bash
-cd /var/www/petorders
-php tools/bootstrap_admin.php jane.smith@example.com Jane Smith 301-555-0199
+sudo setsebool -P httpd_can_network_connect_db 1
+```
+
+`-P` makes it persistent across reboots. Takes effect immediately, no
+restart needed.
+
+**How this failure presents if missed**, worth knowing because it is
+easy to misdiagnose:
+
+- The login page and other static-ish pages may load fine; the break
+  surfaces on pages that open a DB connection.
+- **Nothing useful appears in the Apache error log.** The evidence is
+  only in the audit log:
+
+  ```bash
+  sudo grep httpd /var/log/audit/audit.log | grep denied | tail
+  ```
+
+  showing denials of the form
+  `avc: denied { name_connect } ... comm="php-fpm" dest=3306 ...
+  tcontext=...:mysqld_port_t:...`.
+
+**File contexts:** if the app lives under `/var/www` (this guide's
+layout), the default `httpd_sys_content_t` context is already correct
+and no relabeling is needed. Only if you place the app elsewhere:
+
+```bash
+sudo semanage fcontext -a -t httpd_sys_content_t "/path/to/petorders(/.*)?"
+sudo restorecon -R /path/to/petorders
+```
+
+Leave SELinux enforcing. Do not disable it to "fix" the app. The one
+boolean above is the entire requirement.
+
+---
+
+## 8. Create the first admin account
+
+No default accounts, no public way to create an admin. First (and only)
+admin comes from the command line.
+
+Use the **absolute path with sudo** (a plain `cd` into the project
+fails under step 2's permissions for non-root users):
+
+```bash
+sudo php /var/www/petorders/tools/bootstrap_admin.php jane.smith@example.com Jane Smith 301-555-0199
 ```
 
 Arguments: `<username> <first_name> <last_name> <phone>`. Username must
@@ -368,7 +460,7 @@ registrations, create staff accounts, build the catalog and directory.
 
 ---
 
-## 8. Verification checklist
+## 9. Verification checklist
 
 Manual only, no test tooling needed.
 
@@ -389,6 +481,13 @@ Manual only, no test tooling needed.
       document root is correct. PHP source or a blank 200 page here
       means the DocumentRoot is wrong (step 5). Stop and fix it.
 - [ ] `https://<hostname>/assets/` returns 403/404, not a file listing
+- [ ] Response headers on the login page include
+      `Set-Cookie: ... secure; HttpOnly; SameSite=Lax`, confirming
+      `REQUIRE_SECURE_COOKIES` is active (check with
+      `curl -I https://<hostname>/`)
+- [ ] A DB-backed page (e.g. the registration page) renders instead of
+      the generic error page, confirming the SELinux boolean from
+      step 7 is set
 - [ ] Log in with the bootstrapped admin's username + temp password →
       forced to Change Password → set a real one (12+ chars, letter +
       number)
@@ -399,7 +498,7 @@ All boxes checked = done.
 
 ---
 
-## 9. Operational notes
+## 10. Operational notes
 
 - **Sessions time out after 15 min idle.** Returns to login on next
   click. By design.
@@ -420,7 +519,14 @@ All boxes checked = done.
   0 3 1 * * php /var/www/petorders/tools/prune_lockout_events.php
   ```
 
-  Running it manually now and then works too — it's safe to rerun.
+  Running it manually now and then works too, and it's safe to rerun.
+- **Internet exposure:** any internet-reachable install will see
+  automated probes for `/.env`, `/.git`, and similar within minutes of
+  DNS resolving (observed during validation). The app's `.htaccess`
+  hardening denies these, but on the NIH intranet this shouldn't arise
+  at all, since the app is not designed to be public-facing. If it must be
+  temporarily internet-reachable (e.g. a demo), put HTTP Basic Auth in
+  front of it at the Apache level.
 - **No email, ever.** Temp passwords and reset passwords are shown once
   to the admin, who relays them via NIH email manually.
 - Admins can trigger a password reset but never see or set the actual
@@ -432,4 +538,5 @@ All boxes checked = done.
   not in git).
 - **Logs:** PHP errors go to the system PHP/Apache error log
   (`display_errors` off, users see a generic error page). Nothing
-  app-specific to rotate.
+  app-specific to rotate. SELinux denials, if any, go to
+  `/var/log/audit/audit.log` (see step 7).

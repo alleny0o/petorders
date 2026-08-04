@@ -45,7 +45,7 @@ dependencies.
 <details>
 <summary>Full tree (click to expand)</summary>
 
-```
+```text
 public/            # ONLY web-reachable folder (Apache doc root)
   .htaccess        # dotfile deny, no dir listings, ServerSignature Off,
                    #   ErrorDocument 404 -> /404.php (extensionless-URL
@@ -57,7 +57,8 @@ public/            # ONLY web-reachable folder (Apache doc root)
                    #   new_order.php = POST-only JSON endpoint,
                    #   lab_delivery_locations, lab_product_users)
   staff/           # dashboard, orders.php (Order Queue), order_detail.php
-  admin/           # dashboard, registrations, customers, accounts,
+  admin/           # dashboard, registrations, customers,
+                   #   customer_detail, accounts, account_detail,
                    #   nuclides, products, institutes, labs, pis,
                    #   reports, export_csv
   favicons/        # favicon set + site.webmanifest (local, like all assets)
