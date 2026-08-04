@@ -1,14 +1,16 @@
 # PETOrders AWS Demo Deployment Notes
 
 Temporary public demo instance for the NIH SIP chief review, built on a
-personal AWS account, August 2026. The deployment followed
-`docs/DEPLOYMENT.md` end-to-end and served as its first real-world
-validation pass. **The RHEL-general fixes found during this run have
-been folded into DEPLOYMENT.md itself** (SSL vhost sequencing, the
-SELinux boolean as a required step, the schema-load `sudo` redirection
-fix, and related notes). This file records only what was **specific to
-the AWS demo**: infrastructure choices, AWS-only quirks, and the
-demo's reduced scope.
+personal AWS account, August 2026. It followed `docs/DEPLOYMENT.md`
+end-to-end and served as that guide's first real-world validation pass.
+
+> The RHEL-general fixes found during this run were folded into
+> DEPLOYMENT.md itself: SSL vhost sequencing, the SELinux boolean as a
+> required step, the schema-load `sudo` redirection fix, and related
+> notes.
+
+This file records only what was **specific to the AWS demo**:
+infrastructure choices, AWS-only quirks, and the demo's reduced scope.
 
 **This is a demo, not production.** No real data anywhere. Scope was
 deliberately reduced: one admin account only, with no seed data, no
@@ -75,7 +77,7 @@ Security group `petorders-demo-sg`, inbound:
 | No firewalld | `firewall-cmd: command not found` on this AMI. The AWS security group is the only firewall layer; DEPLOYMENT.md's firewalld step is a no-op here (guide now notes this case). |
 | PHP source | RHEL 8 AppStream tops out at PHP 8.2, and the demo intentionally ran PHP **8.3.33** from the Remi repo (`php:remi-8.3` module stream) instead of the 7.4.33 production target. App ran with zero code changes, noted in DEPLOYMENT.md as a version-bump data point. |
 | Cert issuance | `certbot --apache` (Let's Encrypt) instead of an IT-issued cert. Required port 80 reachable during issuance; certbot generated its own `:443` vhost (`petorders-le-ssl.conf`) and the HTTP→HTTPS redirect. This path is what surfaced the SSL sequencing trap now documented in DEPLOYMENT.md §5. |
-| Internet exposure | Automated bots probed `/.env`, `/.git`, `/.aws`, and cgi-bin paths within minutes of DNS going live. All denied (403/404) by the app's `.htaccess` hardening. Motivated the Basic Auth layer below. |
+| Internet exposure | Automated bots probed `/.env`, `/.git`, `/.aws`, and cgi-bin paths within minutes of DNS going live. All denied (403/404) by the app's `.htaccess` hardening. This motivated the Basic Auth layer below. |
 
 ## 4. DNS (Cloudflare)
 

@@ -3,12 +3,12 @@
 This guide is for staff who process customer orders in PETOrders. Staff
 see and can act on every order from every lab.
 
-The short version of the workflow: orders come in as Pending, you Accept
-the ones you're working on, when the dose is delivered you mark them
+The short version of the workflow: orders come in as Pending. You Accept
+the ones you're working on. When the dose is delivered, you mark them
 Complete. Everything else (returning, canceling, reopening) handles the
 exceptions.
 
-A couple of things that apply everywhere:
+Two things apply everywhere:
 
 - You are signed out after 15 minutes of inactivity. Log back in and
   continue.
@@ -44,7 +44,7 @@ _The staff dashboard: counts across all labs, and the orders that need attention
 ## 2. The Order Queue
 
 **Order Queue** in the sidebar lists every order in the system. It's a
-triage list, you find and prioritize here, then open an order to act on
+triage list: find and prioritize orders here, then open one to act on
 it.
 
 ![Staff Order Queue: status tabs and search/filter controls](images/staff/order-queue.png)
@@ -87,8 +87,8 @@ _The Activity card records every status change with the person and time._
 When: a Pending order you're taking on for processing.
 
 On a pending order, click **Accept** and confirm. The order moves to
-Accepted, it's now marked as in progress, the customer can no longer
-edit or cancel it themselves, and it stays yours to complete, return, or
+Accepted and is now marked as in progress. The customer can no longer
+edit or cancel it themselves. It stays yours to complete, return, or
 cancel.
 
 ## 5. Returning an order to pending
@@ -107,8 +107,8 @@ _An accepted order offers Return, Complete, and Cancel Order._
 
 When: the order has been fulfilled, the dose was delivered or picked up.
 
-On an accepted order, click **Complete** and confirm. This is final: a
-completed order can never change status again, there is no undo and no
+On an accepted order, click **Complete** and confirm. This is final. A
+completed order can never change status again: there is no undo and no
 reopen. If you're not certain, leave it accepted until you are.
 
 ## 7. Canceling an order
@@ -117,16 +117,16 @@ When: an order that won't be fulfilled, the customer asked, the run was
 scrapped, or it can't be produced. Staff can cancel any Pending or
 Accepted order.
 
-Click **Cancel Order**. A dialog asks for a cancellation reason, it's
+Click **Cancel Order**. A dialog asks for a cancellation reason. It's
 required, and it's saved on the order where the customer will see it,
 so write it for them.
 
 ![Cancel order dialog with the required reason field](images/staff/order-cancel-modal.png)
-_Cancelling always requires a reason. The customer sees it on the order, attributed to "Staff"._
+_Canceling always requires a reason. The customer sees it on the order, attributed to "Staff"._
 
 Click **Cancel Order** to confirm or **Keep Order** to back out. The
 order moves to Canceled. (Customers can also cancel their own pending
-orders themselves, those show the customer's name as the canceler.)
+orders. Those show the customer's name as the canceler.)
 
 ## 8. Reopening a canceled order
 
@@ -134,8 +134,8 @@ When: a cancellation turned out to be a mistake, or the order is back
 on.
 
 On a canceled order, click **Reopen** and confirm. The order returns to
-Pending (not Accepted, it re-enters the queue from the start), and the
-old cancellation reason is cleared.
+Pending, not Accepted: it re-enters the queue from the start. The old
+cancellation reason is cleared.
 
 ![Cancelled order with the Reopen button and cancellation reason card](images/staff/order-detail-cancelled.png)
 _A canceled order shows who canceled it and why, and offers Reopen._
@@ -143,7 +143,7 @@ _A canceled order shows who canceled it and why, and offers Reopen._
 ## 9. The Chargeable flag
 
 Every order is Chargeable by default. The flag marks orders for billing
-follow-up and is completely separate from the order's status, you can
+follow-up. It's completely separate from the order's status: you can
 toggle it on any order, in any status, at any time.
 
 ![Billing card with the chargeable toggle button](images/staff/billing-chargable-toggle.png)
@@ -152,12 +152,12 @@ _The Billing card. The button reads "Remove Chargeable Flag" or "Mark as Chargea
 Click **Remove Chargeable Flag** to mark an order not chargeable (it
 gets a highlighted "Not chargeable" badge everywhere), or **Mark as
 Chargeable** to restore the default. There's no confirmation dialog, and
-the change is not recorded in the Activity trail, it's a bookkeeping
+the change isn't recorded in the Activity trail: it's a bookkeeping
 flag, not part of the order's history.
 
 ## 10. Notes
 
-The Notes card is the one shared message field on an order, you and the
+The Notes card is the one shared message field on an order. You and the
 customer both read and write the same text (up to 500 characters).
 Staff can edit notes on any order, in any status: type and click **Save
 Notes**.
@@ -173,12 +173,12 @@ sees everything you write.
 
 Click your name at the bottom of the sidebar to open your profile,
 where you can update your name and phone. Your username and role are
-fixed, an admin manages those.
+fixed. An admin manages those.
 
 ![Staff profile panel opened from the sidebar](images/staff/profile-modal.png)
 _Your profile: name and phone are yours to edit._
 
 To change your password, use **Change Password** (you'll need your
-current one, new passwords are at least 12 characters with a letter and
+current one; new passwords are at least 12 characters with a letter and
 a number). If you've forgotten your password entirely, an admin can
 issue you a new temporary one.
