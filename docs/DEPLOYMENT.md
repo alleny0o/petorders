@@ -49,6 +49,7 @@ php -v
 php -m | grep -i pdo_mysql
 httpd -v
 mysql --version || mariadb --version
+php -m | grep mbstring
 ```
 
 Install whatever's missing. If PHP/MariaDB are already present at the
@@ -70,6 +71,17 @@ sudo dnf install -y php php-mysqlnd php-json
 sudo dnf module enable -y mariadb:10.11
 sudo dnf install -y mariadb-server
 sudo systemctl enable --now mariadb
+```
+
+Additionally, ensure that you have the mbstring extension
+
+```bash
+php -m | grep mbstring
+```
+
+If not, install it via
+```bash
+sudo dnf install php-mbstring
 ```
 
 Re-run the check commands to confirm everything's in place.

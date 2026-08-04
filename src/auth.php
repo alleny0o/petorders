@@ -8,8 +8,12 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
 
 const SESSION_IDLE_LIMIT_SECONDS = 15 * 60;
+
+// Lockout thresholds and durations
 const FAILED_LOGIN_LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_SECONDS = 15 * 60;
+const FAILED_FULL_LOGIN_LOCKOUT_THRESHOLD = 10;
+const FULL_LOCKOUT_SECONDS = 60 * 60 * 24 * 365;
 
 function lockout_message(string $lockedUntil): string
 {
@@ -40,16 +44,22 @@ function attempt_login(string $username, string $password): array
         return ['success' => false, 'reason' => lockout_message($user['locked_until'])];
     }
 
+    // Case: password is incorrect.
     if (!password_verify($password, $user['password_hash'])) {
         $failedCount = $user['failed_login_count'] + 1;
         $lockedUntil = null;
-        if ($failedCount >= FAILED_LOGIN_LOCKOUT_THRESHOLD) {
+        // Check if the number of failed login attempts have exceeded the threshold. If so, locked their accounts.
+        if($failedCount >= FAILED_FULL_LOGIN_LOCKOUT_THRESHOLD) {
+            $lockedUntil = date('Y-m-d H:i:s', time() + FULL_LOCKOUT_SECONDS);
+        } else if ($failedCount >= FAILED_LOGIN_LOCKOUT_THRESHOLD) {
             $lockedUntil = date('Y-m-d H:i:s', time() + LOCKOUT_DURATION_SECONDS);
-        }
+        } 
 
+        // Update the failed login count
         $pdo->prepare('UPDATE users SET failed_login_count = ?, locked_until = ? WHERE user_id = ?')
             ->execute([$failedCount, $lockedUntil, $user['user_id']]);
 
+        // Log the lockout in the lockout_events table
         if ($lockedUntil !== null) {
             $pdo->prepare('INSERT INTO lockout_events (user_id, failed_attempts) VALUES (?, ?)')
                 ->execute([$user['user_id'], $failedCount]);

@@ -9,7 +9,7 @@ require_once __DIR__ . '/../src/db.php';
 $pdo = get_db();
 
 // 2. Stress Test Settings
-$records_to_generate = 1000; // Change this number to generate more/less orders
+$records_to_generate = 10; // Change this number to generate more/less orders
 
 echo "Starting Stress Test Generation for $records_to_generate orders...\n";
 
@@ -93,7 +93,8 @@ try {
         $activity_mci = mt_rand(1000, 150000) / 1000; // Random decimal between 1.000 and 150.000
         $chargeable = (rand(0, 100) > 10) ? 1 : 0; // 90% chance to be chargeable
         $status = $statuses[array_rand($statuses)];
-        $notes = $sample_notes[array_rand($sample_notes)];
+        #$notes = $sample_notes[array_rand($sample_notes)];
+        $notes = "Auto-genereated by internal test";
         
         // Generate a random requested date within the last 30 days to next 30 days
         $random_timestamp = time() + rand(-2592000, 2592000); 
