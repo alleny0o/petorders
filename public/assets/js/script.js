@@ -991,13 +991,21 @@ function initCopyButtons() {
 // BUILD_QUERY_DEFAULTS in helpers.php -- keep in sync.
 const FORM_FIELD_DEFAULTS = { page: '1', page_size: '10' };
 
+// Cleans up the GET search/filter URLs when a user submits a form to prevent
+// messy URLs filled with empty or default parameters. Also prevents trailing
+// '?'s when no filters are applied
 function initFilterFormCleanup() {
   document.querySelectorAll('form.table-card-controls').forEach((form) => {
-    if (form.method.toLowerCase() !== 'get') return;
+    if (form.method.toLowerCase() !== 'get') return; // Only GET forms put input directly into the url string.
     form.addEventListener('submit', (e) => {
       let anyEnabled = false;
+
+      // When the user submits the form, it loops through every form field/control, 
+      // skipping elements that have no 'name' attribute or are submit/action buttons.
       Array.from(form.elements).forEach((el) => {
         if (!el.name || el.type === 'submit' || el.type === 'button') return;
+
+        // Disable empty or default fields
         if (el.value === '' || FORM_FIELD_DEFAULTS[el.name] === el.value) {
           el.disabled = true;
         } else {
@@ -1040,7 +1048,11 @@ function initFilterFormCleanup() {
 // passing submission falls through untouched to the ordinary native GET,
 // so the download behaves exactly as it always has.
 
+// Manages the reports form interface by setting up default date ranges, 
+// handling a reset button, and performing client-side validation before 
+// the form submits.
 function initReportsForm() {
+  // Safety checks
   const form = document.getElementById('report-form');
   if (!form) return;
 
@@ -1049,6 +1061,7 @@ function initReportsForm() {
   const resetBtn = document.getElementById('reset-dates');
   if (!startDateInput || !endDateInput || !resetBtn) return;
 
+  // Sets up the default range to be between today and 30 days ago
   function setDefaultDateRange() {
     const today = new Date();
     const lastMonth = new Date();
@@ -1059,6 +1072,7 @@ function initReportsForm() {
 
   setDefaultDateRange();
 
+  // Create a reset button that restores the date inputs to the default range
   resetBtn.addEventListener('click', () => {
     setDefaultDateRange();
     form.querySelectorAll('select').forEach((select) => {
@@ -1066,6 +1080,8 @@ function initReportsForm() {
     });
   });
 
+  // Validate date entries. If both are valid, submit normally, otherwise, show
+  // the validation messages to the user
   form.addEventListener('submit', (e) => {
     const errors = {};
     if (!startDateInput.value) {
@@ -1093,15 +1109,22 @@ function initReportsForm() {
 // containment, because the New Order modal's banner sits outside its
 // form element.
 
+// DOM helper that retrieves the error banner element associated with a specific form.
 function formErrorBanner(form) {
   if (!form || !form.id) return null;
   return document.querySelector('[data-error-banner-for="' + form.id + '"]');
 }
 
+// Resets and cleans up all visual error states and validation error messages from a form
 function clearFieldErrors(form) {
+  // Hide form level error banner
   const banner = formErrorBanner(form);
   if (banner) banner.hidden = true;
+
+  // Remove inline error text
   form.querySelectorAll('.field-error').forEach((el) => el.remove());
+
+  // Strip invalid styling classes, returning them to normal styling
   form.querySelectorAll('.field--invalid').forEach((el) => {
     el.classList.remove('field--invalid');
   });
@@ -1117,6 +1140,10 @@ function clearFieldErrors(form) {
 // posts under "name[]" while its server error key is the bare "name" --
 // falling back to the bracketed form covers that convention too; any
 // one checkbox in the group resolves to the same shared .field wrapper.
+
+// Safely retrieves a specific form input control by its name attribute, 
+// with built-in fallbacks for array-style names. For more details,
+// see above
 function resolveNamedFormControl(form, name) {
   let match = form.elements[name];
   if (!match) match = form.elements[name + '[]'];
@@ -1127,21 +1154,33 @@ function resolveNamedFormControl(form, name) {
   return match[0];
 }
 
+// Takes an object containing field error messages and renders them visually on the form.
 function renderFieldErrors(form, errors) {
   clearFieldErrors(form);
   let firstInvalidControl = null;
+
+  // Iterate through all the fields with error messages
   Object.keys(errors).forEach((name) => {
+    // Find the matching html element
     const control = resolveNamedFormControl(form, name);
     if (!control || !control.closest) return; // unknown key — banner still shows
+
+    // Find the nearest parent container and add error styling
     const fieldWrap = control.closest('.field');
     if (!fieldWrap) return;
     fieldWrap.classList.add('field--invalid');
+
+    // Inject inline error messages
     const span = document.createElement('span');
     span.className = 'field-error';
     span.textContent = errors[name];
     fieldWrap.appendChild(span);
+
+    // Record the first invalid form control
     if (!firstInvalidControl) firstInvalidControl = control;
   });
+
+  // Show the error banner and move the focus to the first invalid form
   const banner = formErrorBanner(form);
   if (banner) banner.hidden = false;
   if (firstInvalidControl) firstInvalidControl.focus();
@@ -1158,13 +1197,21 @@ function renderFieldErrors(form, errors) {
 // form's LAST invalid field clears, its summary banner (if it has
 // one) hides too.
 
+// Dismisses error messages in real time as they are corrected
 function initFieldErrorClearing() {
+  // Attach global listeners to detect when the user starts to make changes
   ['input', 'change'].forEach((type) => {
     document.addEventListener(type, (e) => {
+
+      // Check if the field was marked as invalid. If not, no update is needed
       const wrap = e.target.closest && e.target.closest('.field--invalid');
       if (!wrap) return;
+
+      // Clear the field's error state
       wrap.classList.remove('field--invalid');
       wrap.querySelectorAll('.field-error').forEach((el) => el.remove());
+
+      // Hide the top error banner if all errors have been corrected
       const form = wrap.closest('form');
       if (form && !form.querySelector('.field--invalid')) {
         const banner = formErrorBanner(form);
@@ -1197,96 +1244,114 @@ function initFieldErrorClearing() {
 // document-level loading guard — which skips preventDefault-ed
 // submits — and loading state is owned here, as in New Order.
 
+
+// Turns standard HTML forms marked with data-ajax-submit into asynchronous (AJAX) forms.
+// Does not expicitly return anything
 function initAjaxForms() {
   document.querySelectorAll('form[data-ajax-submit]').forEach((form) => {
-    form.addEventListener('submit', (e) => {
-      // A data-confirm form's interceptor (attached first — see the
-      // DOMContentLoaded init order) preventDefaults the unconfirmed
-      // submit to show its dialog; fetching then would bypass the
-      // confirmation. The confirmed requestSubmit() arrives unprevented.
-      if (e.defaultPrevented) return;
+    form.addEventListener('submit', async (e) => {
+      // 1. Guard checks (confirm dialogs & double-submit protection)
+      if (e.defaultPrevented || form.dataset.submitting === 'true') return;
       e.preventDefault();
-      if (form.dataset.submitting === 'true') return;
       form.dataset.submitting = 'true';
 
-      const btn =
-        e.submitter && e.submitter.classList && e.submitter.classList.contains('btn')
-          ? e.submitter
-          : form.querySelector('button[type="submit"]');
-      setButtonLoading(btn);
+      let btn;
+      if (e.submitter?.classList?.contains('btn')) {  // Check if the user clicked a valid submit button
+        btn = e.submitter;
+      } 
+      else {                                          // If not, find the default submit button
+        btn = form.querySelector('button[type="submit"]');
+      }
+      setButtonLoading(btn);                          // Set it to loading
 
-      function finishSubmitAttempt() {
+      const finishSubmitAttempt = () => {
         form.dataset.submitting = 'false';
         clearButtonLoading(btn);
-      }
+      };
 
-      // getAttribute, NOT form.action: these forms carry a hidden input
-      // named "action" (the CRUD verb), and HTMLFormElement's named-control
-      // access overrides built-in properties -- form.action would be that
-      // input element, not the URL.
-      fetch(form.getAttribute('action') || window.location.href, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      })
-        .then((response) => {
-          if (response.redirected) {
-            // require_role() bounced us (idle timeout, forced password
-            // change) — follow its redirect for real.
-            window.location.href = response.url;
-            return null;
-          }
-          if (response.ok || response.status === 422) {
-            return response.json();
-          }
-          // CSRF failure (403 text), 500s, anything non-JSON.
-          throw new Error('Unexpected response ' + response.status);
-        })
-        .then((data) => {
-          if (!data) return; // already navigating
-          if (data.ok) {
-            if (data.redirect) {
-              // Button stays in its loading state while the browser
-              // navigates to the usual PRG destination.
-              window.location.href = data.redirect;
-              return;
-            }
-            // No redirect target -- a self-contained detail-page form
-            // (account_detail.php/customer_detail.php's Edit forms) that
-            // never PRGs even on a full-page POST, just re-renders in
-            // place with a success toast. Same visible result, no reload.
-            clearFieldErrors(form);
-            if (data.message) window.showToast('success', data.message);
-            finishSubmitAttempt();
+      try {
+        // Perform background request
+        const url = form.getAttribute('action') || window.location.href;
+        const response = await fetch(url, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        // Handle session timeouts / auth bounces
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+
+        // Ensure valid status codes before parsing JSON
+        if (!response.ok && response.status !== 422) {
+          throw new Error(`Unexpected HTTP status ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data) return;
+
+        // Success Path
+        if (data.ok) {
+          if (data.redirect) {
+            // Keep button loading while browser navigates to PRG destination
+            window.location.href = data.redirect;
             return;
           }
-          if (data.errors) renderFieldErrors(form, data.errors);
-          if (data.message) {
-            const inlineAlert = form.hasAttribute('data-ajax-inline-error')
-              ? form.parentElement.querySelector('[data-ajax-error]')
-              : null;
-            if (inlineAlert) {
-              inlineAlert.textContent = data.message;
-              inlineAlert.hidden = false;
-            } else {
-              window.showToast('error', data.message);
-            }
-          }
-          if (form.hasAttribute('data-reset-on-error')) {
-            const usernameInput = form.elements.username;
-            const passwordInput = form.elements.password;
-            if (usernameInput) usernameInput.value = '';
-            if (passwordInput) passwordInput.value = '';
-            if (usernameInput) usernameInput.focus();
-          }
+          clearFieldErrors(form);
+          if (data.message) window.showToast('success', data.message);
           finishSubmitAttempt();
-        })
-        .catch(() => {
-          window.showToast('error', 'Something went wrong. Please try again.');
-          finishSubmitAttempt();
-        });
+          return;
+        }
+
+        // Error Path (Validation / Business logic failures)
+        handleAjaxFormErrors(form, data);
+        finishSubmitAttempt();
+
+      } catch (error) {
+        window.showToast('error', 'Something went wrong. Please try again.');
+        finishSubmitAttempt();
+      }
     });
   });
+}
+
+/**
+ * Helper for initAjaxForms: Processes form validation errors, inline alerts, and error resets
+ */
+function handleAjaxFormErrors(form, data) {
+  if (data.errors) {
+    renderFieldErrors(form, data.errors);
+  }
+
+  // Display general error message
+  if (data.message) {
+    let inlineAlert = null;
+  
+    // Check if the form prefers inline errors, and if so, try to find the container
+    if (form.hasAttribute('data-ajax-inline-error')) {
+      inlineAlert = form.parentElement.querySelector('[data-ajax-error]');
+    }
+  
+    // If the container was found, inject the text and show it
+    if (inlineAlert) {
+      inlineAlert.textContent = data.message;
+      inlineAlert.hidden = false;
+    } 
+    // Otherwise, fall back to a global toast notification
+    else {
+      window.showToast('error', data.message);
+    }
+  }
+
+  // Handle sensitive login/password field wipes on failure
+  if (form.hasAttribute('data-reset-on-error')) {
+    const { username, password } = form.elements;
+    if (username) username.value = '';
+    if (password) password.value = '';
+    username?.focus();
+  }
 }
 
 
