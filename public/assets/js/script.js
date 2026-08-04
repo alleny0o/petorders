@@ -129,7 +129,11 @@ function initSidebarMobileSafety() {
 function setSubmenuExpanded(item, expand) {
   const toggleBtn = item.querySelector(':scope > .menu-link');
   item.classList.toggle('is-expanded', expand);
-  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', expand ? 'true' : 'false');
+  if (!toggleBtn) {
+    return;
+  } else {
+    toggleBtn.setAttribute('aria-expanded', expand ? 'true' : 'false');
+  }
 }
 
 function initSidebarSubmenus() {
@@ -179,36 +183,44 @@ function initSidebarSubmenus() {
 let activeFlyout = null; // { panel, toggleBtn, defaultAriaControls, outsideClickHandler, keydownHandler, scrollHandler }
 
 function closeSidebarFlyout() {
+  // Reset sidebar state
   if (!activeFlyout) return;
   const { panel, toggleBtn, defaultAriaControls, outsideClickHandler, keydownHandler, scrollHandler } =
     activeFlyout;
   activeFlyout = null;
 
+  // Clean up event listeners
   document.removeEventListener('mousedown', outsideClickHandler, true);
   document.removeEventListener('keydown', keydownHandler, true);
   const sidebarContent = document.querySelector('.sidebar-content');
   if (sidebarContent) sidebarContent.removeEventListener('scroll', scrollHandler);
 
+  // Remove the panel from the DOM and update aria attributes
   panel.remove();
   toggleBtn.setAttribute('aria-expanded', 'false');
   toggleBtn.setAttribute('aria-controls', defaultAriaControls);
   toggleBtn.focus();
 }
 
+// Create the sidebar flyout and return it
 function buildSidebarFlyout(item) {
-  const labelText = item.querySelector('.menu-label__text')?.textContent.trim() || 'Menu';
+  // Grab and clean the label text
+  const labelText = item.querySelector('.menu-label__text')?.textContent.trim() || 'Menu'; 
   const slug = labelText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+  // Set up the main container element
   const panel = document.createElement('div');
   panel.className = 'sidebar-flyout';
   panel.id = `${slug}-flyout`;
   panel.setAttribute('role', 'menu');
 
+  // Set up the header element
   const heading = document.createElement('div');
   heading.className = 'sidebar-flyout__title';
   heading.textContent = labelText;
   panel.appendChild(heading);
 
+  // Create the list elements
   const list = document.createElement('ul');
   list.className = 'sidebar-flyout__list';
   item.querySelectorAll('.submenu-link').forEach((link) => {
@@ -221,25 +233,35 @@ function buildSidebarFlyout(item) {
   return panel;
 }
 
+// Controls the sidebar flyout. Opens or closes it depending on the current state of the flyout. 
+// If the flyout is closed, build and return the opened flyout.
 function toggleSidebarFlyout(toggleBtn) {
+  // If sidebar flyout is open close it and return;
   if (activeFlyout && activeFlyout.toggleBtn === toggleBtn) {
     closeSidebarFlyout();
     return;
   }
   closeSidebarFlyout(); // only one flyout open at a time
 
+  // Build the sidbar via buildSideBarFlyout()
   const item = toggleBtn.closest('.menu-item--has-submenu');
   const panel = buildSidebarFlyout(item);
   document.body.appendChild(panel);
 
+  // Sidebar positioning
   const rect = toggleBtn.getBoundingClientRect();
   panel.style.top = `${rect.top}px`;
   panel.style.left = `${rect.right + 8}px`;
 
+  // Update aria attributes
   const defaultAriaControls = toggleBtn.getAttribute('aria-controls');
   toggleBtn.setAttribute('aria-expanded', 'true');
   toggleBtn.setAttribute('aria-controls', panel.id);
 
+  // Set up a listener that close the flyout if they
+  // 1) Click outside of it
+  // 2) Press escape
+  // 3) Scroll on the flyout (to prevent it from being misaligned)
   const outsideClickHandler = (e) => {
     if (!panel.contains(e.target) && !toggleBtn.contains(e.target)) {
       closeSidebarFlyout();
@@ -255,6 +277,7 @@ function toggleSidebarFlyout(toggleBtn) {
   const sidebarContent = document.querySelector('.sidebar-content');
   if (sidebarContent) sidebarContent.addEventListener('scroll', scrollHandler);
 
+  // Add click events to all links that close the flyout if they are clicked
   panel.querySelectorAll('a').forEach((link) => {
     link.addEventListener('click', () => closeSidebarFlyout());
   });
@@ -273,6 +296,7 @@ function toggleSidebarFlyout(toggleBtn) {
 const TOAST_DURATION_MS = 4000;
 const TOAST_MAX_VISIBLE = 3;
 
+// Create the toast region container if it does not exist and return it.
 function ensureToastRegion() {
   let region = document.querySelector('.toast-region');
   if (!region) {
@@ -283,8 +307,10 @@ function ensureToastRegion() {
   return region;
 }
 
+// Dismiss the toast from the webpage
 function dismissToast(toast) {
   if (toast.dataset.leaving === 'true') return;
+
   toast.dataset.leaving = 'true';
   toast.classList.add('toast--leaving');
   setTimeout(() => toast.remove(), 220);
@@ -293,7 +319,7 @@ function dismissToast(toast) {
 function showToast(type, message, options = {}) {
   const region = ensureToastRegion();
 
-  // Oldest toast makes room once the stack is full
+  // Once the stack is full, remove the oldest toasts
   const visible = region.querySelectorAll('.toast:not(.toast--leaving)');
   if (visible.length >= TOAST_MAX_VISIBLE) {
     dismissToast(visible[0]);
@@ -304,13 +330,16 @@ function showToast(type, message, options = {}) {
   // Errors interrupt screen readers; everything else waits its turn
   toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
+  // Build toast dot
   const dot = document.createElement('span');
   dot.className = 'toast__dot';
 
+  // Build toast msg
   const msg = document.createElement('div');
   msg.className = 'toast__msg';
   msg.textContent = message;
 
+  // Build close button
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'toast__close';
@@ -381,8 +410,11 @@ window.petordersCleanArrivalFlags = petordersCleanArrivalFlags;
 const MODAL_FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])';
 
-let activeModal = null; // { overlay, opener, keydownHandler, temporary }
+let activeModal = null; // Format: { overlay, opener, keydownHandler, temporary }
 
+// This function manages the closing behavior of the pop up modal. If the modal has a special safety feature, such as a confirm prompt
+// It will prompt the user. If the user decides not to close the modal after all, it will return. If the user decides to continue,
+// it will set the activeModal to null, remove the keydownHandler event listener, and remove or set the overlay to null
 function petordersCloseModal(force = false) {
   if (!activeModal) return;
   // Opt-in veto hook: an overlay may carry a petordersBeforeClose callback
@@ -399,6 +431,8 @@ function petordersCloseModal(force = false) {
   ) {
     return;
   }
+
+  // Grab elements and hide/delete them
   const { overlay, opener, keydownHandler, temporary } = activeModal;
   activeModal = null;
 
@@ -410,11 +444,15 @@ function petordersCloseModal(force = false) {
   } else {
     overlay.hidden = true;
   }
+
+  // restore focus
   if (opener && document.contains(opener)) {
     opener.focus();
   }
 }
 
+// This function manages the opening behavior of the pop up modal. It safely opens the modal, sets up keyboard navigation behavior
+// and sets up the tracking state.
 function petordersOpenModal(overlay, options = {}) {
   if (activeModal) {
     petordersCloseModal();
@@ -423,10 +461,13 @@ function petordersOpenModal(overlay, options = {}) {
     if (activeModal) return;
   }
 
+  // unhide the modal container
   overlay.hidden = false;
   document.documentElement.dataset.modalOpen = 'true';
 
+  // Keyboard navigation (for accessibility)
   const keydownHandler = (e) => {
+    // Pressing escape closes the modal
     if (e.key === 'Escape') {
       e.preventDefault();
       petordersCloseModal();
@@ -434,33 +475,41 @@ function petordersOpenModal(overlay, options = {}) {
     }
     if (e.key !== 'Tab') return;
 
-    // Keep Tab cycling inside the dialog
+    // Pressing Tab cycles between elements inside the dialog
     const focusables = overlay.querySelectorAll(MODAL_FOCUSABLE);
     if (!focusables.length) return;
+
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
+
+    // Case 1: User presses Shift + Tab while on the first element -> wrap around to the last
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
+    } 
+    // Case 2: User presses Tab while on the last element -> wrap around to the first
+    else if (!e.shiftKey && document.activeElement === last) {
       e.preventDefault();
       first.focus();
     }
   };
   document.addEventListener('keydown', keydownHandler, true);
 
-  // Close on backdrop click — mousedown must start on the backdrop
-  // itself so a drag-select ending outside the card doesn't close it.
+
+  // Handle cloasing the modal
   if (overlay.dataset.modalWired !== 'true') {
     overlay.dataset.modalWired = 'true';
+    // Make it so that clicking outside the modal box closes the modal
     overlay.addEventListener('mousedown', (e) => {
       if (e.target === overlay) petordersCloseModal();
     });
+    // Link any close button (labed with 'data-modal-close') and add the close event listener to them
     overlay.querySelectorAll('[data-modal-close]').forEach((el) => {
       el.addEventListener('click', () => petordersCloseModal());
     });
   }
 
+  // Save modal state
   activeModal = {
     overlay,
     opener: options.opener || document.activeElement,
@@ -468,6 +517,7 @@ function petordersOpenModal(overlay, options = {}) {
     temporary: options.temporary === true,
   };
 
+  // Set focus to the designated 'data-modal-focus' element or the first element.
   const focusTarget =
     overlay.querySelector('[data-modal-focus]') ||
     overlay.querySelector(MODAL_FOCUSABLE);
@@ -477,16 +527,19 @@ function petordersOpenModal(overlay, options = {}) {
 window.petordersOpenModal = petordersOpenModal;
 window.petordersCloseModal = petordersCloseModal;
 
+// A dynamic HTML factory that builds the confirm modal
 function buildConfirmModal({ title, message, verb, danger }) {
-  const overlay = document.createElement('div');
+  // Create the containers for elements
+  const overlay = document.createElement('div');  // the dark background
   overlay.className = 'modal-overlay';
 
-  const modal = document.createElement('div');
+  const modal = document.createElement('div');    // the actual popup modal
   modal.className = 'modal';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
   modal.setAttribute('aria-labelledby', 'petorders-confirm-title');
 
+  // Create the body
   const body = document.createElement('div');
   body.className = 'modal__body';
 
@@ -501,6 +554,7 @@ function buildConfirmModal({ title, message, verb, danger }) {
 
   body.append(heading, msg);
 
+  // Create the footer
   const footer = document.createElement('div');
   footer.className = 'modal__footer';
 
@@ -508,13 +562,14 @@ function buildConfirmModal({ title, message, verb, danger }) {
   cancelBtn.type = 'button';
   cancelBtn.className = 'btn btn--ghost';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.setAttribute('data-modal-close', '');
+  cancelBtn.setAttribute('data-modal-close', ''); // Cancel button is tagged with data-modal-close so it can be found by petordersOpenModal later
 
   const confirmBtn = document.createElement('button');
   confirmBtn.type = 'button';
   confirmBtn.className = danger ? 'btn btn--danger-solid' : 'btn btn--primary';
   confirmBtn.textContent = verb;
 
+  // Assemble and return the overlay (the dark background) and the confirm button
   footer.append(cancelBtn, confirmBtn);
   modal.append(body, footer);
   overlay.appendChild(modal);
@@ -523,6 +578,7 @@ function buildConfirmModal({ title, message, verb, danger }) {
 }
 
 // Promise-based confirm dialog that can STACK on top of an open modal.
+// Returns a promise
 // Deliberately does NOT go through petordersOpenModal — the modal system is
 // strictly single-modal (opening force-closes activeModal), which would
 // kill the host modal underneath. Instead this reuses buildConfirmModal's
@@ -535,28 +591,32 @@ function buildConfirmModal({ title, message, verb, danger }) {
 // no host modal open — it is fully self-contained.
 function petordersConfirm({ title, message, verb, danger }) {
   return new Promise((resolve) => {
+    // Build the modal
     const { overlay, confirmBtn } = buildConfirmModal({ title, message, verb, danger });
     overlay.classList.add('modal-overlay--stacked');
+
     const cancelBtn = overlay.querySelector('[data-modal-close]');
     const previouslyFocused = document.activeElement;
 
+    // Helper function to clean up after the confirm modal has been dismissed
     const settle = (result) => {
       window.removeEventListener('keydown', keydownHandler, true);
       overlay.remove();
-      if (previouslyFocused && document.contains(previouslyFocused)) {
+      if (previouslyFocused && document.contains(previouslyFocused)) { // return focus to previous element
         previouslyFocused.focus();
       }
       resolve(result);
     };
 
+    // helper function that handles keyboard navigation
     const keydownHandler = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape') { // If the user presses esc, they cancel
         e.preventDefault();
         e.stopPropagation();
         settle(false);
         return;
       }
-      if (e.key === 'Tab') {
+      if (e.key === 'Tab') { // Move between the cancel and confirm button
         // Mini focus trap over the dialog's two buttons. Trapping Tab
         // here (not just Esc) matters: the host modal's own trap is
         // still listening and would otherwise yank focus back into the
@@ -564,17 +624,20 @@ function petordersConfirm({ title, message, verb, danger }) {
         // Tab both just swap between them.
         e.preventDefault();
         e.stopPropagation();
-        (document.activeElement === confirmBtn ? cancelBtn : confirmBtn).focus();
+        (document.activeElement === confirmBtn ? cancelBtn : confirmBtn).focus(); // Uses a ternary check to switch buttons
       }
     };
     window.addEventListener('keydown', keydownHandler, true);
 
+    // Close the modal when clicking the backdrop.
     // Same backdrop semantics as petordersOpenModal: the mousedown must
     // START on the backdrop, so a drag-select ending outside the card
     // doesn't dismiss it.
     overlay.addEventListener('mousedown', (e) => {
       if (e.target === overlay) settle(false);
     });
+
+    // Wire the action buttons
     cancelBtn.addEventListener('click', () => settle(false));
     confirmBtn.addEventListener('click', () => settle(true));
 
@@ -585,12 +648,16 @@ function petordersConfirm({ title, message, verb, danger }) {
 
 window.petordersConfirm = petordersConfirm;
 
+// Adds a confirmation modal (popup) to html forms before they are submitted.
+// Does not return anything.
 function initConfirmForms() {
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (e) => {
-      if (form.dataset.confirmed === 'true') return; // user already confirmed
+      if (form.dataset.confirmed === 'true') return; // If user already confirmed, continue without showing the modal
 
       e.preventDefault();
+
+      // Build the modal
       const opener = document.activeElement;
       const { overlay, confirmBtn } = buildConfirmModal({
         title: form.dataset.confirmTitle || 'Are you sure?',
@@ -599,6 +666,7 @@ function initConfirmForms() {
         danger: form.dataset.confirmDanger !== undefined,
       });
 
+      // Wire the confirm button
       confirmBtn.addEventListener('click', () => {
         setButtonLoading(confirmBtn);
         form.dataset.confirmed = 'true';
@@ -641,33 +709,53 @@ function initConfirmForms() {
 // Returns { markPristine, isDirty }; isDirty backs the New Order
 // modal's beforeunload guard (new_order_form.php).
 function petordersWireModalDirtyTracking(overlay, form, snapshot, discardCopy, onDiscard) {
+  // Stores the baseline, unchanged state of the form
   let pristineValues = {};
 
+  // Compares the current form state against the pristine baseline.
+  // @returns {boolean} True if any field has changed.
   function isDirty() {
-    const now = snapshot(form);
-    return Object.keys(pristineValues).some((name) => now[name] !== pristineValues[name]);
+    const currentValues = snapshot(form);
+    
+    // Check if at least one field value differs from the pristine baseline
+    return Object.keys(pristineValues).some(
+      (fieldName) => currentValues[fieldName] !== pristineValues[fieldName]
+    );
   }
 
+  //  Intercepts the modal close event.
+  //  @returns {boolean} True to allow close, False to block it for confirmation.
   overlay.petordersBeforeClose = function () {
-    if (!isDirty()) return true;
+    // If nothing changed, let the modal close immediately
+    if (!isDirty()) {
+      return true;
+    }
+
+    // If changes exist, prompt the user before discarding
     window.petordersConfirm({
       title: discardCopy.title,
       message: discardCopy.message,
       verb: 'Discard',
       danger: true,
-    }).then((discard) => {
-      if (!discard) return;
-      if (onDiscard) onDiscard();
-      window.petordersCloseModal(true);
+    }).then((userConfirmedDiscard) => {
+      if (!userConfirmedDiscard) return; // User cancelled; keep modal open
+
+      if (onDiscard) onDiscard();        // Run any optional cleanup code
+      window.petordersCloseModal(true); // Force close the modal
     });
-    return false;
+
+    return false; // Temporarily block the close action while waiting for confirmation
   };
 
+  // Return public methods to control the tracker externally
   return {
-    markPristine: function () { pristineValues = snapshot(form); },
+    markPristine: function () { 
+      pristineValues = snapshot(form); 
+    },
     isDirty: isDirty,
   };
 }
+
 window.petordersWireModalDirtyTracking = petordersWireModalDirtyTracking;
 
 
@@ -679,6 +767,7 @@ window.petordersWireModalDirtyTracking = petordersWireModalDirtyTracking;
 // the confirm interceptor above) run first — if they preventDefault,
 // nothing here fires.
 
+// Takes a button element and transforms it into a 'loading' state that the user can see
 function setButtonLoading(btn) {
   if (!btn || btn.classList.contains('is-loading')) return;
   btn.classList.add('is-loading');
@@ -686,10 +775,8 @@ function setButtonLoading(btn) {
   btn.insertAdjacentHTML('afterbegin', '<span class="spinner" aria-hidden="true"></span>');
 }
 
-// Inverse of setButtonLoading, for AJAX submits that stay on the page
-// after a failure (a native full-page POST never needs this — the
-// response replaces the document). Used only by initAjaxForms below;
-// the New Order modal rides that same pipeline via data-ajax-submit.
+// Inverse of setButtonLoading, removes the 'loading' state from the button element
+// and restores it to its normal interactive state
 function clearButtonLoading(btn) {
   if (!btn || !btn.classList.contains('is-loading')) return;
   btn.classList.remove('is-loading');
@@ -698,9 +785,11 @@ function clearButtonLoading(btn) {
   if (spinner) spinner.remove();
 }
 
+// Creates a global event listener that automatically manages submit button loading states 
+// and prevent accidental double submissions for HTML forms across the webpage.
 function initFormLoadingStates() {
   document.addEventListener('submit', (e) => {
-    if (e.defaultPrevented) return;
+    if (e.defaultPrevented) return; // if another script stopped the default form submission, ignore the event for now
     const form = e.target;
     if (!(form instanceof HTMLFormElement)) return;
 
@@ -715,17 +804,25 @@ function initFormLoadingStates() {
     // double-submit guard here costs nothing.
     if (form.dataset.noLoadingGuard !== undefined) return;
 
-    if (form.dataset.submitting === 'true') {
-      e.preventDefault(); // double-submit guard
+    if (form.dataset.submitting === 'true') { // double-submit guard
+      e.preventDefault(); 
       return;
     }
     form.dataset.submitting = 'true';
 
-    const btn =
-      e.submitter && e.submitter.classList && e.submitter.classList.contains('btn')
-        ? e.submitter
-        : form.querySelector('button[type="submit"], input[type="submit"]');
-    if (btn && btn.tagName === 'BUTTON') {
+    let btn;
+
+    // Check if the event provides a valid trigger button
+    if (e.submitter?.classList?.contains('btn')) {
+      btn = e.submitter;
+    } 
+    // Otherwise, fall back to the form's default submit button
+    else {
+      btn = form.querySelector('button[type="submit"], input[type="submit"]');
+    }
+
+    // Apply the loading state if it is an actual <button> element
+    if (btn?.tagName === 'BUTTON') {
       setButtonLoading(btn);
     }
   });
@@ -747,9 +844,15 @@ function initFormLoadingStates() {
 // nuclide). Returns { refresh } so a caller can re-derive the cascade
 // after form.reset().
 
+// This manages the dynamic relationship between choosing an isotope or 
+// nuclide, selecting a product, and dynamically showing/requiring a 
+// delivery location field based on the selected product's requirements.
 function petordersInitOrderCascade({ nuclideSelect, productSelect, locationField, locationSelect, deliveryHint }) {
   const productOptions = Array.from(productSelect.querySelectorAll('option[data-nuclide-id]'));
 
+  // Dynamically show, hide, enable, disable, and toggle the 'required' status of the 
+  // delivery location depending on whether the currently selected product requires a 
+  // delivery locaiton
   function updateLocationRequirement() {
     const selected = productSelect.selectedOptions[0];
     const requiresLocation = !!selected && selected.dataset.requiresLocation === '1';
@@ -758,11 +861,12 @@ function petordersInitOrderCascade({ nuclideSelect, productSelect, locationField
     // Disabled as well as hidden so a stale pick is excluded from
     // both checkValidity() and the POST, while surviving a toggle
     // away and back.
-    locationField.hidden = !requiresLocation;
+    locationField.hidden = !requiresLocation; // show the location field
     locationSelect.disabled = !requiresLocation;
     locationSelect.required = requiresLocation;
   }
 
+  // Updates the fullfillment hint (the small grey text below the selected option)
   function updateDeliveryHint() {
     const selected = productSelect.selectedOptions[0];
     // data-delivery-label is rendered server-side from the one PHP
@@ -776,18 +880,23 @@ function petordersInitOrderCascade({ nuclideSelect, productSelect, locationField
     deliveryHint.hidden = false;
   }
 
+  // Sub function that only shows products that match the current nuclide selected
   function filterProducts() {
     const nuclideId = nuclideSelect.value;
+
+    // Iterate through the product options and filter for those with the correct nuclide
     productOptions.forEach((opt) => {
       // Exact match: each flat product row has exactly one nuclide.
       const matches = opt.dataset.nuclideId === nuclideId;
       opt.hidden = !matches;
       opt.disabled = !matches;
     });
+
+    // Resets product dropdown to '' if the nuclide changes
     if (productSelect.selectedOptions[0] && productSelect.selectedOptions[0].hidden) {
       productSelect.value = '';
     }
-    productSelect.disabled = !nuclideId;
+    productSelect.disabled = !nuclideId; // disable product dropdown if no nuclide is selected
     updateLocationRequirement();
     updateDeliveryHint();
   }
@@ -813,13 +922,19 @@ window.petordersInitOrderCascade = petordersInitOrderCascade;
 // Clipboard API needs a secure context (localhost / HTTPS — both
 // true here); a text-selection fallback covers anything older.
 
+
+// Implements a "Copy to Clipboard" feature for buttons across the webpage
+// These buttons also have temporary visual feedback and an automatic 
+// fallback mechanism.
 function initCopyButtons() {
-  document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+  document.querySelectorAll('[data-copy-target]').forEach((btn) => { // Find copy buttons
     btn.addEventListener('click', () => {
+      // Extract text
       const target = document.querySelector(btn.dataset.copyTarget);
       if (!target) return;
       const text = target.textContent.trim();
 
+      // Temporarily update the text on the button to say 'copied' for 1.5s
       const markCopied = () => {
         const original = btn.textContent;
         btn.textContent = 'Copied';
@@ -828,6 +943,11 @@ function initCopyButtons() {
         }, 1500);
       };
 
+    // Checks if the modern navigator.clipboard.writeText API is supported 
+    // by the user's browser and permitted by permissions. If so, it copies
+    // text silently to the user's clipboard and run markCopied to update
+    // the text on the button. If not, run selectFallback to select all
+    // text
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(markCopied, () => selectFallback(target));
       } else {
@@ -836,9 +956,9 @@ function initCopyButtons() {
     });
   });
 
+  // Highlights/selects all text inside the target element, making it easy 
+  // for the user to press Ctrl+C (or Cmd+C) in a single keystroke.
   function selectFallback(target) {
-    // Can't write to the clipboard — select the value so a manual
-    // Ctrl/Cmd+C is one keystroke away.
     const range = document.createRange();
     range.selectNodeContents(target);
     const selection = window.getSelection();
