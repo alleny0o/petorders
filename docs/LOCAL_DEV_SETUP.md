@@ -11,6 +11,18 @@ database, done.
 
 ---
 
+## Contents
+
+1. [Prerequisites](#1-prerequisites)
+2. [Clone and create the database](#2-clone-and-create-the-database)
+3. [Configure the app](#3-configure-the-app)
+4. [Set passwords for the seeded accounts](#4-set-passwords-for-the-seeded-accounts)
+5. [Point Apache at public/ and log in](#5-point-apache-at-public-and-log-in)
+6. [seed.sql vs. bootstrap_admin.php: don't mix them up](#6-seedsql-vs-bootstrap_adminphp-dont-mix-them-up)
+7. [Development notes](#7-development-notes)
+
+---
+
 ## 1. Prerequisites
 
 - Apache + PHP 7.4 + MySQL (MAMP ships all three)
@@ -35,15 +47,10 @@ in that order:
 
 **Existing dev database?** Schema changes only land in `sql/schema.sql`;
 reloading it doesn't alter a database you already created. Either drop
-and reload (losing local data), or apply the change by hand. Most
-recently, PR #108 added an index that pre-existing dev DBs are missing:
-
-```sql
-ALTER TABLE orders ADD KEY idx_orders_created_at (created_at);
-```
-
-Compare `SHOW INDEX FROM orders` against schema.sql's `orders`
-definition if you're unsure whether your local DB is current.
+and reload (losing local data), or apply the change by hand. The
+pending index migrations (most recently from PR #108) and how to check
+whether your local DB needs them are documented in full in
+[DEPLOYMENT.md](DEPLOYMENT.md#3-create-the-database).
 
 `sql/seed.sql` gives every screen something on it:
 
@@ -134,7 +141,7 @@ Two very different setup paths share the `tools/` folder:
 | Guard             | none (re-runnable)                                                         | refuses to run if `users` has any rows                                                                          |
 
 `bootstrap_admin.php` is documented in full in
-[DEPLOYMENT.md](DEPLOYMENT.md#7-create-the-first-admin-account). You'll
+[DEPLOYMENT.md](DEPLOYMENT.md#8-create-the-first-admin-account). You'll
 normally never run it locally, and never run `set_temp_passwords.php` in
 production.
 
