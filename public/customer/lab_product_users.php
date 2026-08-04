@@ -292,7 +292,7 @@ $pageTitle = 'Product Users';
 
             <?php // Query flags carry the toast across the PRG redirect --
                   // same convention as order_detail.php's ?placed=1 /
-                  // ?cancelled=1 / ?updated=1 / ?notes_updated=1 and
+                  // ?canceled=1 / ?updated=1 / ?notes_updated=1 and
                   // lab_delivery_locations.php's ?created=1 / ?updated=1 /
                   // ?activated=1 / ?deactivated=1. ?>
             <?php if ($labId > 0 && $justCreated): ?>

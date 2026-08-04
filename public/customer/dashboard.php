@@ -242,7 +242,7 @@ $pageTitle = 'Dashboard';
                                                       // chargeable is the default (muted), "Not
                                                       // chargeable" the full-weight exception. ?>
                                                 <td>
-                                                    <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(ucfirst($o['status'])) ?></span></div>
+                                                    <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(order_status_label($o['status'])) ?></span></div>
                                                     <?php if ($o['chargeable']): ?>
                                                         <div class="muted text-sm">Chargeable</div>
                                                     <?php else: ?>

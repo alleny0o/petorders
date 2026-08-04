@@ -145,7 +145,7 @@ if ($labId > 0) {
         ['value' => 'pending',   'label' => 'Pending',   'count' => $statusCounts['pending']],
         ['value' => 'accepted',  'label' => 'Accepted',  'count' => $statusCounts['accepted']],
         ['value' => 'completed', 'label' => 'Completed', 'count' => $statusCounts['completed']],
-        ['value' => 'cancelled', 'label' => 'Cancelled', 'count' => $statusCounts['cancelled']],
+        ['value' => 'cancelled', 'label' => 'Canceled', 'count' => $statusCounts['cancelled']],
     ];
 
     $where = $filterWhere;
@@ -370,7 +370,7 @@ $pageTitle = 'Orders';
                                                   // default (muted); "Not chargeable" is the exception
                                                   // that reads at full weight. ?>
                                             <td>
-                                                <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(ucfirst($o['status'])) ?></span></div>
+                                                <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(order_status_label($o['status'])) ?></span></div>
                                                 <?php if ($o['chargeable']): ?>
                                                     <div class="muted text-sm">Chargeable</div>
                                                 <?php else: ?>

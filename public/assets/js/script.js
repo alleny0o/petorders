@@ -738,7 +738,7 @@ function petordersWireModalDirtyTracking(overlay, form, snapshot, discardCopy, o
       verb: 'Discard',
       danger: true,
     }).then((userConfirmedDiscard) => {
-      if (!userConfirmedDiscard) return; // User cancelled; keep modal open
+      if (!userConfirmedDiscard) return; // User canceled; keep modal open
 
       if (onDiscard) onDiscard();        // Run any optional cleanup code
       window.petordersCloseModal(true); // Force close the modal

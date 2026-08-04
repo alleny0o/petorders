@@ -111,7 +111,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // (and which status the button renders under) distinguishes them.
         $toStatus = ['accept' => 'accepted', 'return' => 'pending', 'complete' => 'completed', 'reopen' => 'pending'][$action];
         // Past-tense flag names, distinct from $action itself, matching
-        // $arrivalMessages' keys below (and 'cancelled=1' from the cancel
+        // $arrivalMessages' keys below (and 'canceled=1' from the cancel
         // branch further down, which already happened to be past-tense).
         $doneFlag = ['accept' => 'accepted', 'return' => 'returned', 'complete' => 'completed', 'reopen' => 'reopened'][$action];
         $verbPast = ['accept' => 'accepted', 'return' => 'returned to pending', 'complete' => 'completed', 'reopen' => 'reopened'][$action];
@@ -137,7 +137,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = transition_order_status($pdo, $orderId, 'cancelled', $staffRole, $staffUserId, $cancelReasonOld);
 
         if ($result['ok']) {
-            $dest = '/staff/order_detail.php?id=' . $orderId . '&cancelled=1';
+            $dest = '/staff/order_detail.php?id=' . $orderId . '&canceled=1';
             if (request_wants_json()) {
                 json_response(['ok' => true, 'redirect' => $dest]);
             }
@@ -145,7 +145,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($result['reason'] === 'reason_required') {
-            $cancelErrors['cancellation_reason'] = 'Enter a reason for cancelling this order (500 characters max).';
+            $cancelErrors['cancellation_reason'] = 'Enter a reason for canceling this order (500 characters max).';
             // AJAX: the error renders inside the still-open modal -- no
             // full-page re-render + reopen flicker. Plain POST falls
             // through to the reopen-on-error script below.
@@ -156,9 +156,9 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // AJAX can only surface this as an error toast; its page
             // keeps the stale state, so the re-fetch below is skipped.
             if (request_wants_json()) {
-                json_response(['ok' => false, 'message' => 'This order can no longer be cancelled.'], 422);
+                json_response(['ok' => false, 'message' => 'This order can no longer be canceled.'], 422);
             }
-            $flash = ['type' => 'error', 'message' => 'This order can no longer be cancelled.'];
+            $flash = ['type' => 'error', 'message' => 'This order can no longer be canceled.'];
             $order = fetch_order_for_staff($pdo, $orderId);
             $notesEditable = $order !== null && can_edit_order_notes($staffRole, false);
         }
@@ -184,12 +184,12 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 $cancellationActor = ($order !== null && $order['status'] === 'cancelled')
     ? fetch_order_cancellation_actor($pdo, (int) $order['order_id'])
     : null;
-$cancelledByLabel = null;
+$canceledByLabel = null;
 if ($cancellationActor !== null) {
     if ($cancellationActor['is_customer']) {
-        $cancelledByLabel = customer_display_name($cancellationActor['first_name'], $cancellationActor['last_name'], $cancellationActor['username']);
+        $canceledByLabel = customer_display_name($cancellationActor['first_name'], $cancellationActor['last_name'], $cancellationActor['username']);
     } else {
-        $cancelledByLabel = 'Staff';
+        $canceledByLabel = 'Staff';
     }
 }
 
@@ -236,7 +236,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 'accepted'           => 'Order accepted.',
                 'returned'           => 'Order returned to pending.',
                 'completed'          => 'Order completed.',
-                'cancelled'          => 'Order cancelled.',
+                'canceled'           => 'Order canceled.',
                 'reopened'           => 'Order reopened.',
                 'chargeable_updated' => 'Chargeable status updated.',
                 'notes_updated'      => 'Notes saved.',
@@ -265,7 +265,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="page-header">
                     <div>
                         <a href="/staff/orders.php" class="page-header__back mb-4">&larr; Back to Order Queue</a>
-                        <span class="badge badge--<?= e($order['status']) ?> page-header__status"><?= e(ucfirst($order['status'])) ?></span>
+                        <span class="badge badge--<?= e($order['status']) ?> page-header__status"><?= e(order_status_label($order['status'])) ?></span>
                         <?php // Chargeable is the default -- quiet text; the
                               // exception gets the warning chip. ?>
                         <?php if ($order['chargeable']): ?>
@@ -313,7 +313,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                         <?php elseif ($order['status'] === 'cancelled'): ?>
                             <?php // Same weight as Return (btn--secondary, plain
                                   // data-confirm) -- reopening needs no
-                                  // justification, unlike cancelling, so no
+                                  // justification, unlike canceling, so no
                                   // reason modal here. ?>
                             <form method="post" action="/staff/order_detail.php?id=<?= (int) $order['order_id'] ?>"
                                   data-confirm="Reopen order #<?= (int) $order['order_id'] ?>? This returns it to pending."
@@ -497,7 +497,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 <div class="order-print__brand"><?= e(app_setting('app_name')) ?></div>
                 <div class="order-print__identity">
                     <span class="order-print__title">Order #<?= (int) $order['order_id'] ?></span>
-                    <span class="order-print__status-pill"><?= e(ucfirst($order['status'])) ?></span>
+                    <span class="order-print__status-pill"><?= e(order_status_label($order['status'])) ?></span>
                     <span><?= $order['chargeable'] ? 'Chargeable' : 'Not chargeable' ?></span>
                 </div>
             </div>
@@ -533,8 +533,8 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
             <?php if ($order['status'] === 'cancelled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
                 <div class="order-print__section-title">Cancellation Reason</div>
                 <dl class="order-print__grid">
-                    <?php if ($cancelledByLabel !== null): ?>
-                        <div class="order-print__field"><dt>Cancelled by</dt><dd><?= e($cancelledByLabel) ?></dd></div>
+                    <?php if ($canceledByLabel !== null): ?>
+                        <div class="order-print__field"><dt>Canceled by</dt><dd><?= e($canceledByLabel) ?></dd></div>
                     <?php endif; ?>
                     <div class="order-print__field"><dt>Reason</dt><dd><?= e($order['cancellation_reason']) ?></dd></div>
                 </dl>
@@ -575,7 +575,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
 document.addEventListener('DOMContentLoaded', function () {
     // Strip one-time arrival-toast query flags once their toast has
     // been queued above -- same convention as customer/order_detail.php.
-    window.petordersCleanArrivalFlags(['accepted', 'returned', 'completed', 'cancelled', 'reopened', 'chargeable_updated', 'notes_updated']);
+    window.petordersCleanArrivalFlags(['accepted', 'returned', 'completed', 'canceled', 'reopened', 'chargeable_updated', 'notes_updated']);
 
     // Browsers' print dialog includes "Save as PDF", so one native
     // mechanism covers both print and PDF -- no libraries (CLAUDE.md).

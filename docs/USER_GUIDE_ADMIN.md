@@ -104,7 +104,7 @@ rule to know about lab and PI changes:
 
 **Deactivate Customer** signs them out immediately and blocks future
 logins. Their order history stays fully intact and visible, nothing is
-hidden or cancelled. **Reactivate Customer** restores access.
+hidden or canceled. **Reactivate Customer** restores access.
 
 **Reset Password** generates a new temporary password (their current
 password stops working immediately, and any lockout is cleared):

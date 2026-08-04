@@ -111,7 +111,7 @@ $queueTabs = [
     ['value' => 'pending',   'label' => 'Pending',   'count' => $queueStatusCounts['pending']],
     ['value' => 'accepted',  'label' => 'Accepted',  'count' => $queueStatusCounts['accepted']],
     ['value' => 'completed', 'label' => 'Completed', 'count' => $queueStatusCounts['completed']],
-    ['value' => 'cancelled', 'label' => 'Cancelled', 'count' => $queueStatusCounts['cancelled']],
+    ['value' => 'cancelled', 'label' => 'Canceled', 'count' => $queueStatusCounts['cancelled']],
 ];
 
 // pending/accepted (actionable) sort soonest-due first -- "delivery
@@ -341,7 +341,7 @@ $pageTitle = 'Order Queue';
                                               // chargeable" is the exception that reads at full
                                               // weight. ?>
                                         <td>
-                                            <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(ucfirst($o['status'])) ?></span></div>
+                                            <div><span class="badge badge--<?= e($o['status']) ?>"><?= e(order_status_label($o['status'])) ?></span></div>
                                             <?php if ($o['chargeable']): ?>
                                                 <div class="muted text-sm">Chargeable</div>
                                             <?php else: ?>

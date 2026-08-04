@@ -8,7 +8,7 @@
  * actually exists for. Same detail-list row styling as the Order
  * Details/Delivery cards, not a bare paragraph.
  *
- * Included (not called): reads $order and $cancelledByLabel from the
+ * Included (not called): reads $order and $canceledByLabel from the
  * caller's scope; assigns nothing into that scope. Renders nothing at
  * all unless the order is cancelled with a stored reason, so callers
  * include it unconditionally.
@@ -18,10 +18,10 @@
     <div class="card">
         <span class="card__title">Cancellation Reason</span>
         <div class="detail-list">
-            <?php if ($cancelledByLabel !== null): ?>
+            <?php if ($canceledByLabel !== null): ?>
                 <div class="detail-list__row">
-                    <span class="detail-list__label">Cancelled by</span>
-                    <span class="detail-list__value"><?= e($cancelledByLabel) ?></span>
+                    <span class="detail-list__label">Canceled by</span>
+                    <span class="detail-list__value"><?= e($canceledByLabel) ?></span>
                 </div>
             <?php endif; ?>
             <div class="detail-list__row">

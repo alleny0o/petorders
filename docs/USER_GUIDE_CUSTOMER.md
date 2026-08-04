@@ -22,7 +22,7 @@ A few things that apply everywhere:
 6. [Viewing and searching your lab's orders](#6-viewing-and-searching-your-labs-orders)
 7. [Editing a pending order](#7-editing-a-pending-order)
 8. [Adding or editing notes on an order](#8-adding-or-editing-notes-on-an-order)
-9. [Cancelling an order](#9-cancelling-an-order)
+9. [Canceling an order](#9-canceling-an-order)
 10. [Managing delivery locations](#10-managing-delivery-locations)
 11. [Managing product users](#11-managing-product-users)
 12. [Your account info and password](#12-your-account-info-and-password)
@@ -157,7 +157,7 @@ _The Orders page: status tabs across the top, search and filters below, and the 
 
 | Control            | What it does                                                                                               |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Status tabs        | All, Pending, Accepted, Completed, Cancelled, each with a count. Click a tab to filter                     |
+| Status tabs        | All, Pending, Accepted, Completed, Canceled, each with a count. Click a tab to filter                      |
 | Search box         | Find orders by order number, product, nuclide, or product user name. Type your search and click **Filter** |
 | Fulfillment filter | Narrow to Radiopharmacy, Pick Up, or Direct Delivery orders                                                |
 | Date range         | Show orders requested between two dates                                                                    |
@@ -192,7 +192,7 @@ Notes are one shared field on the order. Staff read and can update the
 same text. If you're adding to an existing note, add your text rather
 than replacing what's there.
 
-## 9. Cancelling an order
+## 9. Canceling an order
 
 You can cancel your own orders while they're Pending. Open the order and
 click **Cancel Order** in the top-right.
@@ -200,11 +200,11 @@ click **Cancel Order** in the top-right.
 ![Cancel order dialog asking for a reason](images/customer/order-cancel-modal.png)
 _Cancelling always requires a reason._
 
-Type the reason for cancelling (required) and click **Cancel Order**, or
-**Keep Order** to back out. The order moves to Cancelled, and the reason
+Type the reason for canceling (required) and click **Cancel Order**, or
+**Keep Order** to back out. The order moves to Canceled, and the reason
 is saved on the order for everyone to see.
 
-If you cancel by mistake, contact staff, they can reopen a cancelled
+If you cancel by mistake, contact staff, they can reopen a canceled
 order.
 
 Once staff have accepted an order, you can no longer cancel it yourself.

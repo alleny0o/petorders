@@ -124,7 +124,7 @@ while ($row = $stmt->fetch()) {
         csv_safe($row['institute_name'] ?? 'N/A'), // Fallback if no location found
         csv_safe($row['nuclide_name'] ?? 'N/A'),   // Fallback if no nuclide found
         csv_safe($row['product_name'] ?? 'N/A'),
-        ucfirst($row['status']),
+        order_status_label($row['status']),
         $chargeable_text,
         csv_safe($row['cancellation_reason'])
     ]);
