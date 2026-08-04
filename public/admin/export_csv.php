@@ -22,29 +22,29 @@ $dateRegex = '/^\d{4}-\d{2}-\d{2}$/';
 $startInvalid = !$start_date || !preg_match($dateRegex, $start_date);
 $endInvalid   = !$end_date || !preg_match($dateRegex, $end_date);
 if ($startInvalid || $endInvalid) {
-    if (request_wants_json()) {
-        $errors = [];
-        if ($startInvalid) {
-            $errors['start_date'] = 'From Date is required.';
-        }
-        if ($endInvalid) {
-            $errors['end_date'] = 'To Date is required.';
-        }
-        json_response(['ok' => false, 'errors' => $errors], 422);
-    }
+    // No JSON branch: nothing fetches this endpoint with an AJAX Accept
+    // header -- the reports form validates client-side (initReportsForm(),
+    // script.js) and submits a plain native GET.
     http_response_code(400);
     die('Please provide a valid date range.');
 }
 
-if (request_wants_json()) {
-    // Valid -- the client's precheck fetch stops here; it never sets this
-    // header on the real download request, so the query + CSV streaming
-    // below only ever runs for an actual (non-AJAX) navigation.
-    json_response(['ok' => true]);
-}
-
 $start_datetime = $start_date . " 00:00:00";
 $end_datetime   = $end_date . " 23:59:59";
+
+// Download headers + output stream open BEFORE the query runs: rows are
+// streamed to the client as they arrive, so memory stays O(1) no matter
+// how large the date range is.
+$filename = "pet_orders_report_" . date('Y-m-d') . ".csv";
+
+header("Content-Type: text/csv; charset=utf-8");
+header("Content-Disposition: attachment; filename=\"$filename\"");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+$output = fopen('php://output', 'w');
+
+fputcsv($output, ['Order ID', 'Order Date (Y/M/D)', 'Institute', 'Nuclide', 'Product', 'Status', 'Chargeable', 'Cancellation Reason']);
 
 // Base query joins through the current schema: orders -> customers
 // (customer_id, not created_by) -> labs -> institutes for the institute
@@ -86,6 +86,12 @@ if ($chargeable !== '') {
 
 $sql .= " ORDER BY o.created_at DESC";
 
+// Unbuffered so mysqlnd hands rows over as they arrive instead of
+// materializing the whole result set first. Only safe here because this
+// is the script's last query and it exit()s -- an unbuffered handle can't
+// run another query until it's fully consumed.
+$pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+
 // Prepare and bind parameters
 $stmt = $pdo->prepare($sql);
 $stmt->bindParam(':start_date', $start_datetime);
@@ -99,24 +105,12 @@ if ($product > 0)       $stmt->bindParam(':product', $product, PDO::PARAM_INT);
 if ($chargeable !== '') $stmt->bindParam(':chargeable', $chargeable);
 
 $stmt->execute();
-$orders = $stmt->fetchAll();
 
-// 6. Set Headers to force CSV Download
-$filename = "pet_orders_report_" . date('Y-m-d') . ".csv";
-
-header("Content-Type: text/csv; charset=utf-8");
-header("Content-Disposition: attachment; filename=\"$filename\"");
-header("Pragma: no-cache");
-header("Expires: 0");
-
-// 7. Create a file pointer connected to the output stream
-$output = fopen('php://output', 'w');
-
-// 8. Write the Column Headers to the CSV
-fputcsv($output, ['Order ID', 'Order Date (Y/M/D)', 'Institute', 'Nuclide', 'Product', 'Status', 'Chargeable', 'Cancellation Reason']);
-
-// 9. Write the Data Rows
-foreach ($orders as $row) {
+// Stream row-by-row: a fetchAll() here held the entire result set in
+// memory (twice, with the buffered driver) and fataled on large ranges
+// before a single byte reached the client.
+$rowsWritten = 0;
+while ($row = $stmt->fetch()) {
     // Format the date to Y/M/D exactly as requested
     $formatted_date = date('Y/m/d', strtotime($row['created_at']));
 
@@ -134,6 +128,10 @@ foreach ($orders as $row) {
         $chargeable_text,
         csv_safe($row['cancellation_reason'])
     ]);
+
+    if (++$rowsWritten % 500 === 0) {
+        flush();
+    }
 }
 
 // Close the file pointer

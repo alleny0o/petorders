@@ -114,6 +114,7 @@
   flex: 1;
   padding: var(--sp-4) var(--sp-3);
   overflow: hidden auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--color-text-placeholder) transparent;
 }

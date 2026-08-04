@@ -14,6 +14,12 @@ $pdo = get_db();
 // Not lab-scoped -- staff/admin may view any order regardless of lab
 // ("any staff, any order"), unlike customer/orders.php.
 $queueSearch = trim($_GET['q'] ?? '');
+// Digit-only terms are an exact order-ID lookup (sargable PK seek),
+// never a text search -- an ID is an identifier, not free text, and a
+// numeric LIKE against product/nuclide names ("18" hitting every
+// [F18]FDG order) reads as false positives. To text-search a term that
+// happens to be digits, include any non-digit (e.g. "F-18").
+$queueSearchIsId = $queueSearch !== '' && ctype_digit($queueSearch);
 $queueStatus = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true)
     ? $_GET['status'] : '';
 $queueFulfillment = in_array($_GET['fulfillment'] ?? '', ['radiopharmacy', 'pick_up', 'direct_delivery'], true)
@@ -35,40 +41,18 @@ canonicalize_get([
     'requested_to' => $queueTo,
 ]);
 
-// Base join set: every alias the list query's SELECT columns need
-// (c is the FK path to l; p, l, u are displayed). Invariant for every
-// join set on this page: a query's join set must cover every alias its
-// WHERE references -- the search WHERE below touches n/i/pi/pu, so the
-// search-only fragment is appended whenever a search term is active.
-$queueBaseJoins =
-    'FROM orders o
-     JOIN customers c ON c.user_id = o.customer_id
-     JOIN products p  ON p.product_id = o.product_id
-     JOIN users u     ON u.user_id = o.customer_id
-     LEFT JOIN labs l       ON l.lab_id = c.lab_id';
-
-// Search-only joins: lab/institute/PI (LEFT -- customers.lab_id/
-// supervising_pi_id are both nullable) exist so the search box can
-// cover them per CLAUDE.md's non-negotiable "Order search must cover
-// ID, product, nuclide, date, and customer/lab/PI/institute" --
-// customer/orders.php's own search doesn't need lab/PI/institute since
-// that page is already lab-scoped, but this queue spans every lab.
-// nuclides is joined for the same search reason even though the Nuclide
-// column itself was dropped from the table (the product name already
-// carries it, e.g. "[F18]FDG"). lab_product_users is joined so the
-// search box can match the order's product user (falling back to the
-// placer when none is attached) -- same fallback rule as
-// customer/orders.php's search, even though this queue's own displayed
-// column stays "Lab / Placed by" for now.
-// Dependency order: n needs p, i needs l, pi needs c -- all in base.
-$queueSearchJoins =
-    '
-     JOIN nuclides n  ON n.nuclide_id = p.nuclide_id
-     LEFT JOIN institutes i ON i.institute_id = l.institute_id
-     LEFT JOIN pis pi       ON pi.pi_id = c.supervising_pi_id
-     LEFT JOIN lab_product_users pu ON pu.product_user_id = o.product_user_id';
-
-$queueJoins = $queueBaseJoins . ($queueSearch !== '' ? $queueSearchJoins : '');
+// Every filter on this page -- including text search, via
+// order_search_conditions() below -- filters on orders' own columns,
+// except fulfillment (products.delivery_method). So the WHERE-serving
+// join set is orders alone, plus products only while the fulfillment
+// filter is active; shared by the tab-counts query and the list query's
+// inner ID-page subquery. The display joins (product name, lab,
+// placed-by; c is the FK path to l) live only in the list query's outer
+// half, where they run against one page of rows, never the full
+// filtered set.
+$queueFilterJoins = 'FROM orders o'
+    . ($queueFulfillment !== '' ? '
+     JOIN products p  ON p.product_id = o.product_id' : '');
 
 // Built without the status condition -- reused for the tab counts (each
 // tab's count reflects the current search/fulfillment/date scope, not
@@ -76,16 +60,22 @@ $queueJoins = $queueBaseJoins . ($queueSearch !== '' ? $queueSearchJoins : '');
 $queueFilterWhere = [];
 $queueFilterParams = [];
 
-if ($queueSearch !== '') {
-    $queueFilterWhere[] = "(CAST(o.order_id AS CHAR) = ?
-                 OR COALESCE(CONCAT(pu.first_name, ' ', pu.last_name), CONCAT(u.first_name, ' ', u.last_name)) LIKE ? ESCAPE '\\\\'
-                 OR n.name LIKE ? ESCAPE '\\\\'
-                 OR p.name LIKE ? ESCAPE '\\\\'
-                 OR l.lab_name LIKE ? ESCAPE '\\\\'
-                 OR i.name LIKE ? ESCAPE '\\\\'
-                 OR pi.pi_name LIKE ? ESCAPE '\\\\')";
-    $like = like_contains($queueSearch);
-    array_push($queueFilterParams, $queueSearch, $like, $like, $like, $like, $like, $like);
+if ($queueSearchIsId) {
+    // Int cast also normalizes "051" -> 51.
+    $queueFilterWhere[] = 'o.order_id = ?';
+    $queueFilterParams[] = (int) $queueSearch;
+} elseif ($queueSearch !== '') {
+    // No order_id clause here: a non-digit term can never equal an
+    // integer ID. One box covers product, nuclide, product user
+    // (falling back to the placer when none is attached), lab,
+    // institute, and PI -- the queue spans every lab, so unlike
+    // customer/orders.php's lab-scoped search it includes the org
+    // names ($searchOrgNames = true). The term is resolved against the
+    // small dimension tables up front; the fragment this appends
+    // touches only o. columns.
+    $queueSearchConditions = order_search_conditions($pdo, $queueSearch, true);
+    $queueFilterWhere[] = $queueSearchConditions['where'];
+    array_push($queueFilterParams, ...$queueSearchConditions['params']);
 }
 if ($queueFulfillment !== '') {
     $queueFilterWhere[] = 'p.delivery_method = ?';
@@ -102,22 +92,12 @@ if ($queueTo !== '') {
 
 $queueFilterWhereSql = where_clause($queueFilterWhere);
 
-// Count-query join set: the tab counts group on o.status alone, so the
-// only joins needed are the ones $queueFilterWhereSql references -- the
-// full set when searching, products alone for the fulfillment filter,
-// bare orders otherwise (date filters use only o. columns). Dropping
-// the rest is count-neutral: every INNER join here is on a NOT-NULL FK
-// to a PK and every LEFT join targets a PK (schema.sql), so no join
-// can add or remove rows.
-if ($queueSearch !== '') {
-    $queueCountJoins = $queueJoins;
-} elseif ($queueFulfillment !== '') {
-    $queueCountJoins = 'FROM orders o JOIN products p ON p.product_id = o.product_id';
-} else {
-    $queueCountJoins = 'FROM orders o';
-}
-
-$queueCountsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $queueCountJoins $queueFilterWhereSql GROUP BY o.status");
+// The tab counts group on o.status alone, so $queueFilterJoins (orders,
+// plus products only under the fulfillment filter) already covers every
+// alias $queueFilterWhereSql references. The dropped display joins are
+// count-neutral anyway: INNER joins on NOT-NULL FKs to PKs, LEFT join
+// to a PK (schema.sql), so no join can add or remove rows.
+$queueCountsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $queueFilterJoins $queueFilterWhereSql GROUP BY o.status");
 $queueCountsStmt->execute($queueFilterParams);
 $queueStatusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
 foreach ($queueCountsStmt->fetchAll() as $row) {
@@ -144,12 +124,22 @@ $queueTabs = [
 // status-dependent sort is deliberate and queue-only: customer/
 // orders.php keeps a fixed chronological sort on every tab (it's
 // order history, not triage) -- not a bug, don't "align" them.
+// The o.order_id tiebreak always runs in the SAME direction as the
+// primary sort column: a mixed-direction ORDER BY (requested ASC,
+// order_id DESC) can't be served by any index and forced a filesort of
+// the whole status tab, while a uniform direction rides
+// idx_orders_status_requested / idx_orders_status_updated /
+// idx_orders_requested_datetime directly (forward or reverse scan).
+// Measured on the 100k-order stress DB: 49.5ms -> 0.28ms on the
+// Pending tab. Semantics on the ASC tabs: orders sharing a requested
+// time now tie-break oldest-placed-first -- FIFO, the right call for
+// triage anyway.
 if (in_array($queueStatus, ['pending', 'accepted'], true)) {
-    $queueOrderBy = 'o.requested_datetime ASC';
+    $queueOrderBy = 'o.requested_datetime ASC, o.order_id ASC';
 } elseif (in_array($queueStatus, ['completed', 'cancelled'], true)) {
-    $queueOrderBy = 'o.updated_at DESC';
+    $queueOrderBy = 'o.updated_at DESC, o.order_id DESC';
 } else {
-    $queueOrderBy = 'o.requested_datetime DESC';
+    $queueOrderBy = 'o.requested_datetime DESC, o.order_id DESC';
 }
 
 $queueWhere = $queueFilterWhere;
@@ -170,15 +160,34 @@ canonicalize_get(['page' => $queuePage]);
 // this point (page size clamped against a fixed option set, offset
 // derived from a clamped page number), same convention as
 // customer/orders.php.
+//
+// Deferred join (late row lookup): the inner subquery resolves the
+// page of order_ids against orders alone (plus products under the
+// fulfillment filter), so the optimizer can walk the ORDER BY's index
+// and stop at LIMIT instead of joining and filesorting the entire
+// filtered set -- with the display joins present, it did exactly that
+// (measured on the 100k-order stress DB: All tab 704ms -> sub-ms).
+// The outer half then attaches the display joins to just that one
+// page of rows and re-applies ORDER BY (a derived table has no
+// guaranteed order).
 $queueListStmt = $pdo->prepare(
     "SELECT o.order_id, o.status, o.requested_datetime, o.updated_at, o.chargeable,
             p.name AS product_name, p.delivery_method,
             l.lab_name,
             u.first_name, u.last_name, u.username
-     $queueJoins
-     $queueWhereSql
-     ORDER BY $queueOrderBy, o.order_id DESC
-     LIMIT $queueOffset, $queuePageSize"
+     FROM (
+         SELECT o.order_id
+         $queueFilterJoins
+         $queueWhereSql
+         ORDER BY $queueOrderBy
+         LIMIT $queueOffset, $queuePageSize
+     ) AS page_ids
+     JOIN orders o    ON o.order_id = page_ids.order_id
+     JOIN customers c ON c.user_id = o.customer_id
+     JOIN products p  ON p.product_id = o.product_id
+     JOIN users u     ON u.user_id = o.customer_id
+     LEFT JOIN labs l ON l.lab_id = c.lab_id
+     ORDER BY $queueOrderBy"
 );
 $queueListStmt->execute($queueParams);
 $queueOrders = $queueListStmt->fetchAll();

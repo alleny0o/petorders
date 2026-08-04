@@ -8,24 +8,27 @@ $pdo = get_db();
 
 // Not lab-scoped -- staff triage spans every lab ("any staff, any
 // order"), unlike the customer dashboard's own-lab-only stats.
+// Two queries, not one WHERE-less aggregate: predicates buried inside
+// SUM() can't use an index, which full-scanned orders on every load.
+// The GROUP BY is an index-only scan of idx_orders_status; the new-today
+// count is a range on idx_orders_created_at.
 // 4th tile (new_today_count) uses created_at, set once at insert and
 // never modified -- an exact count, not a proxy. Its tile links
 // unfiltered to the queue since staff/orders.php only date-filters on
 // requested_datetime, not created_at.
 $todayStart = date('Y-m-d 00:00:00');
-$dashStatStmt = $pdo->prepare(
-    "SELECT COUNT(*) AS total_count,
-            COALESCE(SUM(status = 'pending'), 0) AS pending_count,
-            COALESCE(SUM(status = 'accepted'), 0) AS accepted_count,
-            COALESCE(SUM(created_at >= ?), 0) AS new_today_count
-     FROM orders"
-);
-$dashStatStmt->execute([$todayStart]);
-$dashStats = $dashStatStmt->fetch();
-$dashPendingCount = (int) $dashStats['pending_count'];
-$dashAcceptedCount = (int) $dashStats['accepted_count'];
-$dashNewTodayCount = (int) $dashStats['new_today_count'];
-$dashTotalCount = (int) $dashStats['total_count'];
+
+$statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+foreach ($pdo->query('SELECT status, COUNT(*) AS c FROM orders GROUP BY status') as $statusRow) {
+    $statusCounts[$statusRow['status']] = (int) $statusRow['c'];
+}
+$dashPendingCount = $statusCounts['pending'];
+$dashAcceptedCount = $statusCounts['accepted'];
+$dashTotalCount = array_sum($statusCounts);
+
+$dashNewTodayStmt = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE created_at >= ?');
+$dashNewTodayStmt->execute([$todayStart]);
+$dashNewTodayCount = (int) $dashNewTodayStmt->fetchColumn();
 
 // Due Today & Overdue: the operationally useful view for a radiotracer
 // department -- pending/accepted orders (the two actionable statuses)

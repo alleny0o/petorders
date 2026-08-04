@@ -253,6 +253,12 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // and with it the form.
 $editing = $detailsEditable && ($_GET['edit'] ?? null) === '1';
 
+// The edit form below reuses the layout's catalog lists
+// ($petordersLayout['nuclides'/'products'/'locations'/'product_users']),
+// so opt in to the layout's catalog load only in edit mode (reserved
+// flag; see layout_customer.php). Read-only views skip those 4 queries.
+$petordersNeedsOrderForm = $editing;
+
 if ($editing && $editOld === null) {
     // Pre-populate from the order's current values. A product (or
     // location/product user) that has since been deactivated or lost
@@ -480,7 +486,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                             <div class="field-row field-row--3">
                                 <div class="<?= field_class($editErrors, 'activity_mci') ?>">
                                     <label for="edit_activity_mci">Activity (mCi) <span class="required-mark">*</span></label>
-                                    <input type="number" step="0.01" min="0" id="edit_activity_mci" name="activity_mci" value="<?= e($editOld['activity_mci']) ?>" required>
+                                    <input type="number" step="0.01" min="0" max="99999.999" id="edit_activity_mci" name="activity_mci" value="<?= e($editOld['activity_mci']) ?>" required>
                                     <?= field_error($editErrors, 'activity_mci') ?>
                                 </div>
                                 <div class="<?= field_class($editErrors, 'requested_date') ?>">

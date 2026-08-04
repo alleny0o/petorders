@@ -16,16 +16,32 @@ $deliveryMethods = ['radiopharmacy', 'pick_up', 'direct_delivery'];
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
     = consume_arrival_flags(['created', 'updated', 'activated', 'deactivated']);
 
+// Get and clean the search query
 $q = trim($_GET['q'] ?? '');
-// Status is the DERIVED effective-availability state, not the raw column:
-// active = p.active AND n.active, unavailable = p.active but nuclide off,
-// inactive = p.active off. See the badge treatment in the list below.
-$status = in_array($_GET['status'] ?? '', ['active', 'unavailable', 'inactive'], true) ? $_GET['status'] : '';
-$nuclideFilter = ctype_digit((string) ($_GET['nuclide'] ?? '')) ? (int) $_GET['nuclide'] : 0;
-$fulfillmentFilter = in_array($_GET['fulfillment'] ?? '', $deliveryMethods, true) ? $_GET['fulfillment'] : '';
-$page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
+
+// Whitelist specific status values. Note that status is the DERIVED effective-availability state with
+// active = p.active AND n.active
+// unavailable = p.active but n.active off
+// inactive = p.active off
+$allowedStatuses = ['active', 'unavailable', 'inactive'];
+$statusInput     = $_GET['status'] ?? '';
+$status          = in_array($statusInput, $allowedStatuses, true) ? $statusInput : '';
+
+// Filter the nuclide ID
+$nuclideInput = $_GET['nuclide'] ?? '';
+$nuclideFilter = ctype_digit((string) $nuclideInput) ? (int) $nuclideInput : 0;
+
+// Filter the fulfillment
+$fulfillmentInput = $_GET['fulfillment'] ?? '';
+$fulfillmentFilter = in_array($fulfillmentInput, $deliveryMethods, true) ? $fulfillmentInput : '';
+
+// Ensure page numbers are a positive integer
+$pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
+$page      = ($pageInput !== false && $pageInput > 0) ? $pageInput : 1;
+
+// Ensure page size matches one of our allowed options
+$pageSizeInput = filter_var($_GET['page_size'] ?? 0, FILTER_VALIDATE_INT);
+$pageSize      = in_array($pageSizeInput, PAGE_SIZE_OPTIONS, true) ? $pageSizeInput : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below carries the
 // real applied values -- same convention as accounts.php / nuclides.php.

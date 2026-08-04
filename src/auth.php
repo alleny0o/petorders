@@ -26,7 +26,12 @@ function attempt_login(string $username, string $password): array
 {
     $pdo = get_db();
 
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
+    // active = 1: username is only unique among active rows
+    // (uq_users_username_active). Without the filter, a deactivated
+    // account sharing a since-freed username could be the row fetched
+    // here -- verifying against the wrong hash and pointing the
+    // failed-count/lockout writes below at the wrong user_id.
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ? AND active = 1');
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
@@ -61,10 +66,6 @@ function attempt_login(string $username, string $password): array
             return ['success' => false, 'reason' => lockout_message($lockedUntil)];
         }
 
-        return ['success' => false, 'reason' => 'Invalid username or password.'];
-    }
-
-    if (!$user['active']) {
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
@@ -189,6 +190,7 @@ function logout(): void
 }
 
 const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MAX_LENGTH = 72; // bcrypt hashes only the first 72 bytes; longer input is silently truncated
 const PASSWORD_HISTORY_LIMIT = 4; // plus the current users.password_hash = last 5 checked/kept
 
 /**
@@ -201,6 +203,12 @@ function validate_password_strength(string $password, string $username): array
 
     if (strlen($password) < PASSWORD_MIN_LENGTH) {
         $errors[] = 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters.';
+    }
+
+    // strlen (bytes), matching the min check above: bcrypt's limit is
+    // 72 bytes, so a byte count is the honest measure here.
+    if (strlen($password) > PASSWORD_MAX_LENGTH) {
+        $errors[] = 'Password must be ' . PASSWORD_MAX_LENGTH . ' characters or fewer.';
     }
 
     if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {

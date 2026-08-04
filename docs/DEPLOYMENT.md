@@ -146,6 +146,55 @@ sudo mysql petorders < /var/www/petorders/sql/schema.sql
 data (sample labs, accounts, orders). Production should have schema
 only until step 7 creates the first real admin.
 
+**If this database was created from a schema.sql older than PR #108**
+(which added `idx_orders_created_at`, used by the CSV export's date
+filter), the index isn't there — reloading schema.sql doesn't alter an
+existing database. Apply it once by hand:
+
+```sql
+ALTER TABLE orders ADD KEY idx_orders_created_at (created_at);
+```
+
+Verify with `SHOW INDEX FROM orders` — schema.sql's `orders` table
+definition is the authoritative index list. A fresh load of the current
+schema.sql already includes it; this only concerns databases that
+predate the change.
+
+**If this database predates the performance pass that followed PR #109**
+(which indexed the admin dashboard's two 7-day activity windows), apply
+these once by hand — same caveat as above, reloading schema.sql doesn't
+alter an existing database:
+
+```sql
+-- Admin dashboard "Lockouts (last 7 days)" list
+ALTER TABLE lockout_events ADD KEY idx_lockout_events_locked_at (locked_at);
+
+-- Admin dashboard "Rejected registrations (last 7 days)" list. The
+-- composite's (status) prefix serves everything the old single-column
+-- index served, so the old index is dropped as redundant.
+ALTER TABLE customer_registration_requests
+  ADD KEY idx_reg_requests_status_reviewed (status, reviewed_at);
+ALTER TABLE customer_registration_requests
+  DROP KEY idx_reg_requests_status;
+```
+
+Verify with `SHOW INDEX FROM lockout_events` and
+`SHOW INDEX FROM customer_registration_requests`.
+
+**If this database predates the customer-dashboard query restructure**
+(second performance pass, which replaced `idx_orders_customer_id` with a
+composite), apply these once by hand, **in this order** — the
+`fk_orders_customer` foreign key needs an index on `customer_id` at all
+times, so the ADD must land before the DROP:
+
+```sql
+ALTER TABLE orders
+  ADD KEY idx_orders_customer_requested (customer_id, requested_datetime);
+ALTER TABLE orders DROP KEY idx_orders_customer_id;
+```
+
+Verify with `SHOW INDEX FROM orders`.
+
 ---
 
 ## 4. Configure the app (src/config.php)
@@ -373,6 +422,17 @@ All boxes checked = done.
   ARCHITECTURE.md). Admins see every lockout from the past 7 days on
   the Admin Dashboard (the list has no row cap; within that window
   it's a complete record).
+- **Lockout history retention:** nothing in the app prunes
+  `lockout_events`, and its growth rate is attacker-controlled (one row
+  per lockout), so schedule `tools/prune_lockout_events.php` (deletes
+  rows older than 90 days; the dashboard only ever shows 7 days)
+  monthly via cron:
+
+  ```
+  0 3 1 * * php /var/www/petorders/tools/prune_lockout_events.php
+  ```
+
+  Running it manually now and then works too — it's safe to rerun.
 - **No email, ever.** Temp passwords and reset passwords are shown once
   to the admin, who relays them via NIH email manually.
 - Admins can trigger a password reset but never see or set the actual

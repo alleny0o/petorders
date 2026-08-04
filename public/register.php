@@ -250,12 +250,12 @@ $pageTitle = 'Register';
                 <div class="field-row">
                   <div class="<?= field_class($fieldErrors, 'first_name') ?>">
                     <label for="first_name">First name <span class="required-mark">*</span></label>
-                    <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" required>
+                    <input type="text" id="first_name" name="first_name" value="<?= e($old['first_name']) ?>" maxlength="100" required>
                     <?= field_error($fieldErrors, 'first_name') ?>
                   </div>
                   <div class="<?= field_class($fieldErrors, 'last_name') ?>">
                     <label for="last_name">Last name <span class="required-mark">*</span></label>
-                    <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" required>
+                    <input type="text" id="last_name" name="last_name" value="<?= e($old['last_name']) ?>" maxlength="100" required>
                     <?= field_error($fieldErrors, 'last_name') ?>
                   </div>
                 </div>
@@ -263,13 +263,13 @@ $pageTitle = 'Register';
                 <div class="field-row">
                   <div class="<?= field_class($fieldErrors, 'email') ?>">
                     <label for="email">Email <span class="required-mark">*</span></label>
-                    <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" required>
+                    <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" maxlength="50" required>
                     <span class="field-hint">This becomes your username.</span>
                     <?= field_error($fieldErrors, 'email') ?>
                   </div>
                   <div class="<?= field_class($fieldErrors, 'phone') ?>">
                     <label for="phone">Phone <span class="required-mark">*</span></label>
-                    <input type="text" id="phone" name="phone" value="<?= e($old['phone']) ?>" required>
+                    <input type="text" id="phone" name="phone" value="<?= e($old['phone']) ?>" maxlength="20" required>
                     <?= field_error($fieldErrors, 'phone') ?>
                   </div>
                 </div>

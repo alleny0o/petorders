@@ -1,28 +1,19 @@
 -- ============================================================
--- PETOrders — seed.sql
--- Minimal test data. Load after schema.sql, into an empty
--- `petorders` database (relies on AUTO_INCREMENT starting at 1).
+-- PETOrders — seed.sql (expanded synthetic dataset)
+-- Minimal-realism test data at larger scale for demo/testing.
+-- Load after schema.sql, into an empty `petorders` database
+-- (relies on AUTO_INCREMENT starting at 1).
+--
+-- ALL person names, emails, and phone numbers below are
+-- deliberately fictitious placeholders (not real people),
+-- using example-test.local email domains, generated for
+-- demo/testing purposes only.
 --
 -- password_hash values are placeholders — run
 -- tools/set_temp_passwords.php once to replace with real hashes.
---
--- Institutes here ARE the NIH institutes/centers (NIH Clinical
--- Center PET Department system — all customers are NIH-internal).
---
--- customers does not store institute_id directly — always
--- derived via lab_id -> labs.institute_id.
---
--- customer name is first_name + last_name (no middle_initial —
--- removed as unnecessary complexity with no real requirement
--- behind it).
---
--- Usernames follow the real convention: NIH email address.
 -- ============================================================
 
 -- ---- Institutes (all 27 real NIH institutes/centers) ----
--- ids 1-6 are the original seed set (referenced by lab_id below via
--- their institute_id, so their order/ids are left unchanged); ids 7-27
--- are the rest of the real NIH ICs, appended rather than interleaved.
 INSERT INTO institutes (name, shorthand_name, active) VALUES
   ('Clinical Center', 'CC', 1),
   ('National Cancer Institute', 'NCI', 1),
@@ -52,60 +43,137 @@ INSERT INTO institutes (name, shorthand_name, active) VALUES
   ('Center for Scientific Review', 'CSR', 1),
   ('Fogarty International Center', 'FIC', 1);
 
--- ---- Labs (3) ----
+-- ---- Labs (8) ----
 INSERT INTO labs (institute_id, lab_name, building, room, active) VALUES
-  (2, 'Molecular Imaging Lab', 'Bldg 10', 'B1D43', 1),      -- NCI
-  (3, 'Neuroimaging Lab', 'Bldg 10', '2C401', 1),           -- NIMH
-  (6, 'Cerebrovascular Imaging Lab', 'Bldg 10', 'C107', 1); -- NINDS
+  (2, 'Molecular Imaging Lab', 'Bldg 10', 'B1D43', 1),
+  (3, 'Neuroimaging Lab', 'Bldg 10', '2C401', 1),
+  (6, 'Cerebrovascular Imaging Lab', 'Bldg 10', 'C107', 1),
+  (4, 'Cardiac Imaging Lab', 'Bldg 10', '4B210', 1),
+  (2, 'Oncology Tracer Lab', 'Bldg 10', '1B550', 1),
+  (13, 'Pediatric Imaging Lab', 'Bldg 10', '5D112', 1),
+  (16, 'Metabolic Imaging Lab', 'Bldg 10', '3C075', 1),
+  (11, 'Musculoskeletal Imaging Lab', 'Bldg 10', '2A118', 1);
 
--- ---- PIs (2) ----
+-- ---- PIs (6, fictitious names) ----
 INSERT INTO pis (pi_name, email, phone, active) VALUES
-  ('Dr. Susan Carter', 'susan.carter@nih.gov', '301-555-0101', 1),
-  ('Dr. Mark Ellison', 'mark.ellison@nih.gov', '301-555-0199', 1);
+  ('Dr. Dazzle Bogglesworth', 'dazzle.bogglesworth1@example-test.local', '555-799-2169', 1),
+  ('Dr. Rumble Fandangle', 'rumble.fandangle2@example-test.local', '555-275-9751', 1),
+  ('Dr. Hobnob Featherpot', 'hobnob.featherpot3@example-test.local', '555-267-8573', 1),
+  ('Dr. Hazzle Wrinklebee', 'hazzle.wrinklebee4@example-test.local', '555-755-4598', 1),
+  ('Dr. Yonder Gribblesnatch', 'yonder.gribblesnatch5@example-test.local', '555-963-1916', 1),
+  ('Dr. Fizzle Quackenbush', 'fizzle.quackenbush6@example-test.local', '555-132-6168', 1);
 
--- ---- lab_pis (a lab can have multiple PIs, a PI can oversee multiple labs) ----
+-- ---- lab_pis ----
 INSERT INTO lab_pis (lab_id, pi_id) VALUES
-  (1, 1), -- Molecular Imaging Lab <- Dr. Carter
-  (2, 1), -- Neuroimaging Lab <- Dr. Carter
-  (2, 2), -- Neuroimaging Lab <- Dr. Ellison (lab with two PIs)
-  (3, 2); -- Cerebrovascular Imaging Lab <- Dr. Ellison
+  (1, 3),
+  (2, 2),
+  (3, 6),
+  (3, 3),
+  (4, 6),
+  (5, 4),
+  (6, 4),
+  (6, 2),
+  (7, 2),
+  (8, 6);
 
--- ---- Users (7): 1 admin, 2 staff, 4 customers ----
--- Usernames are real NIH-email-style, matching Kris's requirement
--- that username = NIH email address.
--- first_name/last_name/phone live on users now (moved off staff/customers)
--- -- every user gets a placeholder phone now that it's required for all
--- three roles, not just customers: register.php requires it for
--- self-registered customers (copied onto users by registrations.php's
--- approval), and accounts.php/bootstrap_admin.php now require it the
--- same way for staff/admin.
+-- ---- Users (40): 10 staff (5 of whom are also admins) + 30 customers ----
+-- All names/emails are fictitious placeholders for demo/testing.
 INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES
-  ('robert.nguyen@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Robert', 'Nguyen',   '301-555-0110', 1, 1), -- 1: admin
-  ('maria.santos@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Maria',  'Santos',   '301-555-0125', 1, 1), -- 2: staff
-  ('james.oconnor@nih.gov',  'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'James',  'O''Connor', '301-555-0136', 1, 1), -- 3: staff
-  ('alice.carter@nih.gov',   'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Alice',  'Carter',   '301-555-0142', 1, 1), -- 4: customer
-  ('brian.kim@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Brian',  'Kim',      '301-555-0157', 1, 1), -- 5: customer
-  ('deepa.patel@nih.gov',    'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Deepa',  'Patel',    '301-555-0163', 1, 1), -- 6: customer
-  ('evan.feng@nih.gov',      'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Evan',   'Feng',     '301-555-0178', 1, 1); -- 7: customer (lab-mate of Alice, for lab-wide visibility testing)
+  ('puddle.fizzlewick1@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Puddle', 'Fizzlewick', '555-369-8019', 1, 1),
+  ('blimzy.wumblesby2@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Blimzy', 'Wumblesby', '555-470-4593', 1, 1),
+  ('twinkle.bumblecraft3@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Twinkle', 'Bumblecraft', '555-605-2489', 1, 1),
+  ('plumber.twinklehop4@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Plumber', 'Twinklehop', '555-981-2796', 1, 1),
+  ('grovel.fandangle5@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Grovel', 'Fandangle', '555-263-7916', 1, 1),
+  ('rumble.sprocketfield6@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Rumble', 'Sprocketfield', '555-494-7252', 1, 1),
+  ('rumble.rattlebridge7@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Rumble', 'Rattlebridge', '555-641-5119', 1, 1),
+  ('puddle.dazzlebrook8@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Puddle', 'Dazzlebrook', '555-111-2876', 1, 1),
+  ('yonder.snugglesworth9@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Yonder', 'Snugglesworth', '555-649-5371', 1, 1),
+  ('gribble.fandangle10@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Gribble', 'Fandangle', '555-448-2827', 1, 1),
+  ('zephyr.squigglesby11@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Zephyr', 'Squigglesby', '555-261-8433', 1, 1),
+  ('pretzel.muddlecombe12@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Pretzel', 'Muddlecombe', '555-996-5315', 1, 1),
+  ('waffle.puddlejump13@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Waffle', 'Puddlejump', '555-282-9317', 1, 1),
+  ('quibble.dazzlebrook14@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Quibble', 'Dazzlebrook', '555-740-5889', 1, 1),
+  ('frenzo.bumblecraft15@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Frenzo', 'Bumblecraft', '555-723-4258', 1, 1),
+  ('grovel.ticklewood16@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Grovel', 'Ticklewood', '555-880-3646', 1, 1),
+  ('cricket.puddlejump17@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Cricket', 'Puddlejump', '555-643-1009', 1, 1),
+  ('rumble.gribblesnatch18@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Rumble', 'Gribblesnatch', '555-600-1319', 1, 1),
+  ('ziggle.bogglesworth19@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Ziggle', 'Bogglesworth', '555-471-6038', 1, 1),
+  ('doodle.twinklehop20@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Doodle', 'Twinklehop', '555-346-2290', 1, 1),
+  ('lolly.muddlecombe21@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Lolly', 'Muddlecombe', '555-597-2133', 1, 1),
+  ('plumber.fizzlewick22@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Plumber', 'Fizzlewick', '555-884-3060', 1, 1),
+  ('twinkle.crumbleton23@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Twinkle', 'Crumbleton', '555-586-3705', 1, 1),
+  ('muffle.bumblecraft24@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Muffle', 'Bumblecraft', '555-993-7932', 1, 1),
+  ('tarnish.bogglesworth25@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Tarnish', 'Bogglesworth', '555-652-4295', 1, 1),
+  ('flumox.wobblestone26@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Flumox', 'Wobblestone', '555-508-7118', 1, 1),
+  ('mizzle.snugglesworth27@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Mizzle', 'Snugglesworth', '555-629-8397', 1, 1),
+  ('ziggle.featherpot28@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Ziggle', 'Featherpot', '555-330-2049', 1, 1),
+  ('icicle.thunderbottom29@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Icicle', 'Thunderbottom', '555-702-4770', 1, 1),
+  ('blimzy.featherpot30@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Blimzy', 'Featherpot', '555-107-2163', 1, 1),
+  ('flumox.fandangle31@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Flumox', 'Fandangle', '555-160-4750', 1, 1),
+  ('wobble.snugglesworth32@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Wobble', 'Snugglesworth', '555-132-6413', 1, 1),
+  ('wobble.bumblecraft33@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Wobble', 'Bumblecraft', '555-343-5562', 1, 1),
+  ('snickle.nimblefoot34@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Snickle', 'Nimblefoot', '555-319-9834', 1, 1),
+  ('twinkle.muddlecombe35@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Twinkle', 'Muddlecombe', '555-684-8744', 1, 1),
+  ('doodle.yodelston36@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Doodle', 'Yodelston', '555-584-7669', 1, 1),
+  ('bramble.nozzlepop37@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Bramble', 'Nozzlepop', '555-199-8062', 1, 1),
+  ('xylo.squigglesby38@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Xylo', 'Squigglesby', '555-520-8651', 1, 1),
+  ('hobnob.twinklehop39@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Hobnob', 'Twinklehop', '555-789-2612', 1, 1),
+  ('twizzle.wumblesby40@example-test.local', 'PLACEHOLDER_HASH_SET_BY_TOOLS_SET_TEMP_PASSWORDS', 'Twizzle', 'Wumblesby', '555-845-6559', 1, 1);
 
--- ---- Staff (3) ----
--- Must be inserted before admins: admins.user_id now FKs to staff.user_id
--- (every admin is also staff), so the admin's staff row has to exist first.
+-- ---- Staff (10) ----
+-- Must be inserted before admins: admins.user_id FKs to staff.user_id.
 INSERT INTO staff (user_id) VALUES
   (1),
   (2),
-  (3);
+  (3),
+  (4),
+  (5),
+  (6),
+  (7),
+  (8),
+  (9),
+  (10);
 
--- ---- Admin (1) ----
--- References the staff row above.
-INSERT INTO admins (user_id) VALUES (1);
+-- ---- Admins (5) ----
+INSERT INTO admins (user_id) VALUES
+  (1),
+  (2),
+  (3),
+  (4),
+  (5);
 
--- ---- Customers (4, all approved) ----
+-- ---- Customers (30, all approved) ----
 INSERT INTO customers (user_id, lab_id, supervising_pi_id, registration_status) VALUES
-  (4, 1, 1, 'approved'), -- Alice Carter, NCI / Molecular Imaging Lab / Dr. Carter
-  (5, 2, 2, 'approved'), -- Brian Kim, NIMH / Neuroimaging Lab / Dr. Ellison
-  (6, 3, 2, 'approved'), -- Deepa Patel, NINDS / Cerebrovascular Imaging Lab / Dr. Ellison
-  (7, 1, 1, 'approved'); -- Evan Feng, NCI / Molecular Imaging Lab / Dr. Carter (lab-mate of Alice)
+  (11, 2, 2, 'approved'),
+  (12, 4, 6, 'approved'),
+  (13, 8, 6, 'approved'),
+  (14, 7, 2, 'approved'),
+  (15, 5, 4, 'approved'),
+  (16, 4, 6, 'approved'),
+  (17, 8, 6, 'approved'),
+  (18, 1, 3, 'approved'),
+  (19, 2, 2, 'approved'),
+  (20, 3, 3, 'approved'),
+  (21, 8, 6, 'approved'),
+  (22, 4, 6, 'approved'),
+  (23, 1, 3, 'approved'),
+  (24, 7, 2, 'approved'),
+  (25, 7, 2, 'approved'),
+  (26, 8, 6, 'approved'),
+  (27, 7, 2, 'approved'),
+  (28, 3, 6, 'approved'),
+  (29, 5, 4, 'approved'),
+  (30, 1, 3, 'approved'),
+  (31, 6, 4, 'approved'),
+  (32, 1, 3, 'approved'),
+  (33, 3, 6, 'approved'),
+  (34, 2, 2, 'approved'),
+  (35, 2, 2, 'approved'),
+  (36, 4, 6, 'approved'),
+  (37, 2, 2, 'approved'),
+  (38, 1, 3, 'approved'),
+  (39, 7, 2, 'approved'),
+  (40, 5, 4, 'approved');
 
 -- ---- Nuclides (5) ----
 INSERT INTO nuclides (name, active) VALUES
@@ -116,95 +184,199 @@ INSERT INTO nuclides (name, active) VALUES
   ('Y-86', 1);
 
 -- ---- Products (10) ----
--- Flat catalog rows: nuclide + name + a single fixed delivery_method.
--- Real department list from a July 2026 meeting, explicitly flagged
--- there as incomplete. Products 3 and 4 are the same name+nuclide
--- ([F18]FDG) seeded twice under two different delivery_method values --
--- this exercises the dual-row convention (two product rows for a
--- product offered more than one way) and is here for manual testing.
 INSERT INTO products (nuclide_id, name, delivery_method, active) VALUES
-  (1, '[C11]CO2',          'direct_delivery', 1), -- 1
-  (1, '[C11]Methane',      'direct_delivery', 1), -- 2
-  (2, '[F18]FDG',          'radiopharmacy',   1), -- 3
-  (2, '[F18]FDG',          'pick_up',         1), -- 4: same name+nuclide as #3, different delivery_method
-  (2, '[F18]F-Dopa',       'radiopharmacy',   1), -- 5
-  (2, '[F18]F-Dopamine',   'radiopharmacy',   1), -- 6
-  (3, '[Ga68]Ga Dotatate', 'radiopharmacy',   1), -- 7
-  (4, '[Zr89]Zr Oxalate',  'pick_up',         1), -- 8
-  (4, '[Zr89]Zr Chloride', 'pick_up',         1), -- 9
-  (5, '[Y86]Y Solution',   'pick_up',         1); -- 10
+  (1, '[C11]CO2', 'direct_delivery', 1),
+  (1, '[C11]Methane', 'direct_delivery', 1),
+  (2, '[F18]FDG', 'radiopharmacy', 1),
+  (2, '[F18]FDG', 'pick_up', 1),
+  (2, '[F18]F-Dopa', 'radiopharmacy', 1),
+  (2, '[F18]F-Dopamine', 'radiopharmacy', 1),
+  (3, '[Ga68]Ga Dotatate', 'radiopharmacy', 1),
+  (4, '[Zr89]Zr Oxalate', 'pick_up', 1),
+  (4, '[Zr89]Zr Chloride', 'pick_up', 1),
+  (5, '[Y86]Y Solution', 'pick_up', 1);
 
--- ---- lab_delivery_locations (4) ----
--- Lab 1 gets two locations to show a lab can have more than one.
+-- ---- lab_delivery_locations (8, one per lab) ----
 INSERT INTO lab_delivery_locations (lab_id, name, room, active) VALUES
-  (1, 'Molecular Imaging Lab - Injection Suite', 'B1D43-A', 1), -- 1
-  (1, 'Molecular Imaging Lab - Loading Dock', 'B1D40', 1),      -- 2
-  (2, 'Neuroimaging Lab - Delivery Bay', '2C401', 1),           -- 3
-  (3, 'Cerebrovascular Imaging Lab - Front Desk', 'C107', 1);   -- 4
+  (1, 'Molecular Imaging Lab - Delivery Point', 'B1D43', 1),
+  (2, 'Neuroimaging Lab - Delivery Point', '2C401', 1),
+  (3, 'Cerebrovascular Imaging Lab - Delivery Point', 'C107', 1),
+  (4, 'Cardiac Imaging Lab - Delivery Point', '4B210', 1),
+  (5, 'Oncology Tracer Lab - Delivery Point', '1B550', 1),
+  (6, 'Pediatric Imaging Lab - Delivery Point', '5D112', 1),
+  (7, 'Metabolic Imaging Lab - Delivery Point', '3C075', 1),
+  (8, 'Musculoskeletal Imaging Lab - Delivery Point', '2A118', 1);
 
--- ---- lab_product_users (2) ----
--- Unregistered lab members who can be the actual dose recipient on an
--- order placed by someone else in their lab. Only Tom Reyes is
--- referenced by a seeded order; Priya Nair is here for future testing.
+-- ---- lab_product_users (5, fictitious names) ----
 INSERT INTO lab_product_users (lab_id, first_name, last_name, email, active) VALUES
-  (1, 'Tom', 'Reyes', 'tom.reyes@nih.gov', 1),  -- 1: Molecular Imaging Lab
-  (2, 'Priya', 'Nair', 'priya.nair@nih.gov', 1); -- 2: Neuroimaging Lab
+  (2, 'Muffle', 'Wumblesby', 'muffle.wumblesby902@example-test.local', 1),
+  (3, 'Yodel', 'Wobblestone', 'yodel.wobblestone903@example-test.local', 1),
+  (4, 'Plumber', 'Bogglesworth', 'plumber.bogglesworth904@example-test.local', 1),
+  (5, 'Ivory', 'Gigglesnort', 'ivory.gigglesnort905@example-test.local', 1),
+  (8, 'Tarnish', 'Bumblecraft', 'tarnish.bumblecraft908@example-test.local', 1);
 
--- ---- Orders (10, spanning pending/accepted/completed/cancelled + a return) ----
--- location_id is populated only for orders on direct_delivery products
--- (orders 4 and 8, both [C11] cyclotron products) -- per the current
--- business rule, only direct_delivery requires a delivery location, so
--- location_id is NULL on every other order here.
--- chargeable is listed explicitly (not left to the DB default, now 1) so
--- the seed keeps a mix of both states -- orders 2 and 6 are the "not
--- chargeable" exceptions the UI highlights.
--- requested_datetime on the still-open orders (pending/accepted: 1, 2, 3,
--- 4, 8, 10) is computed relative to CURDATE() rather than hardcoded, so
--- the staff dashboard's Due Today & Upcoming overdue/due-today/upcoming
--- tiering always has one of each to show, regardless of what day the
--- seed is (re)loaded -- a fixed literal date would silently drift into
--- "all overdue" once real time passed it. completed/cancelled orders
--- (5, 6, 7, 9) keep literal historical dates since their due date no
--- longer drives any dashboard state.
+-- ---- Orders (50) ----
 INSERT INTO orders (customer_id, product_id, location_id, product_user_id, activity_mci, requested_datetime, notes, status, cancellation_reason, chargeable, created_at, updated_at) VALUES
-  (4, 3, NULL, NULL, 10.000, TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '09:30:00'), NULL, 'pending', NULL, 1, '2026-07-10 14:22:00', '2026-07-10 14:22:00'), -- 1: Alice / FDG (radiopharmacy) / pending / overdue
-  (7, 7, NULL, NULL, 5.500, TIMESTAMP(CURDATE(), '23:30:00'), NULL, 'pending', NULL, 0, '2026-07-11 09:15:00', '2026-07-11 09:15:00'), -- 2: Evan / Ga Dotatate / pending / not chargeable / due today
-  (5, 5, NULL, NULL, 8.750, TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 8 DAY), '13:00:00'), NULL, 'accepted', NULL, 1, '2026-07-08 10:00:00', '2026-07-09 11:30:00'), -- 3: Brian / F-Dopa / accepted / overdue
-  (6, 1, 4, NULL, 15.000, TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 10 DAY), '07:45:00'), 'Beam current 40 uA, bombardment time 20 min, EOB activity approx 18 Ci. Please deliver directly to the cyclotron target line at Bldg 10 C107 loading dock.', 'accepted', NULL, 1, '2026-07-07 08:00:00', '2026-07-07 16:00:00'), -- 4: Deepa / CO2 (direct_delivery) / accepted / cyclotron notes / overdue
-  (4, 8, NULL, 1, 3.200, '2026-07-05 10:00:00', NULL, 'completed', NULL, 1, '2026-06-28 09:00:00', '2026-07-05 15:00:00'), -- 5: Alice / Zr Oxalate (pick_up) / completed / product_user Tom Reyes
-  (7, 3, NULL, NULL, 12.000, '2026-07-02 09:00:00', NULL, 'completed', NULL, 0, '2026-06-25 08:30:00', '2026-07-02 14:00:00'), -- 6: Evan / FDG (radiopharmacy) / completed / not chargeable
-  (5, 6, NULL, NULL, 9.400, '2026-06-20 11:00:00', NULL, 'cancelled', 'Lab no longer needs this dose -- study protocol changed.', 1, '2026-06-15 09:00:00', '2026-06-16 10:00:00'), -- 7: Brian / F-Dopamine / cancelled
-  (6, 2, 4, NULL, 6.800, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 1 DAY), '08:00:00'), 'Bombardment approx 25 min at 35 uA, EOB activity approx 12 Ci. Please have ready for direct pickup at the cyclotron target station.', 'pending', NULL, 1, '2026-07-13 10:00:00', '2026-07-13 10:00:00'), -- 8: Deepa / Methane (direct_delivery) / pending / cyclotron notes / upcoming
-  (4, 5, NULL, NULL, 7.500, '2026-06-10 09:00:00', NULL, 'completed', NULL, 1, '2026-06-05 08:00:00', '2026-06-10 13:00:00'), -- 9: Alice / F-Dopa / completed
-  (4, 7, NULL, NULL, 4.900, TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 30 DAY), '09:00:00'), NULL, 'pending', NULL, 1, '2026-05-25 08:00:00', '2026-06-02 10:00:00'); -- 10: Alice / Ga Dotatate / accepted then returned to pending / overdue, oldest waiting-for-acceptance
+  (28, 1, 3, NULL, 4.678, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -9 DAY), '20:00:00'), 'Beam current 42 uA, bombardment time 19 min, EOB activity approx 16 Ci.', 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (29, 9, NULL, NULL, 5.221, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -1 DAY), '12:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (39, 1, 7, NULL, 16.484, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY), '20:00:00'), 'Beam current 27 uA, bombardment time 18 min, EOB activity approx 13 Ci.', 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (24, 10, NULL, NULL, 14.242, TIMESTAMP(DATE_ADD('2026-05-06', INTERVAL 2 DAY), '07:00:00'), NULL, 'completed', NULL, 1, '2026-05-06 08:00:00', TIMESTAMP(DATE_ADD('2026-05-06', INTERVAL 9 DAY), '15:00:00')),
+  (36, 7, NULL, NULL, 15.034, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -3 DAY), '11:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (16, 2, 4, NULL, 8.738, TIMESTAMP(DATE_ADD('2026-07-12', INTERVAL 3 DAY), '19:00:00'), 'Beam current 35 uA, bombardment time 22 min, EOB activity approx 11 Ci.', 'completed', NULL, 0, '2026-07-12 08:00:00', TIMESTAMP(DATE_ADD('2026-07-12', INTERVAL 12 DAY), '15:00:00')),
+  (11, 4, NULL, NULL, 8.977, TIMESTAMP(DATE_ADD('2026-04-09', INTERVAL 3 DAY), '15:00:00'), NULL, 'completed', NULL, 1, '2026-04-09 08:00:00', TIMESTAMP(DATE_ADD('2026-04-09', INTERVAL 11 DAY), '15:00:00')),
+  (21, 1, 8, NULL, 4.73, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -7 DAY), '16:00:00'), 'Beam current 25 uA, bombardment time 23 min, EOB activity approx 8 Ci.', 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (24, 6, NULL, NULL, 13.928, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 9 DAY), '15:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (14, 7, NULL, NULL, 16.493, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -9 DAY), '18:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (24, 1, 7, NULL, 10.799, TIMESTAMP(DATE_ADD('2026-07-03', INTERVAL 3 DAY), '12:00:00'), 'Beam current 41 uA, bombardment time 21 min, EOB activity approx 13 Ci.', 'completed', NULL, 1, '2026-07-03 08:00:00', TIMESTAMP(DATE_ADD('2026-07-03', INTERVAL 10 DAY), '15:00:00')),
+  (27, 5, NULL, NULL, 13.003, TIMESTAMP(DATE_ADD('2026-06-18', INTERVAL 2 DAY), '13:00:00'), NULL, 'completed', NULL, 1, '2026-06-18 08:00:00', TIMESTAMP(DATE_ADD('2026-06-18', INTERVAL 7 DAY), '15:00:00')),
+  (30, 10, NULL, NULL, 7.514, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -10 DAY), '11:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (17, 7, NULL, NULL, 14.786, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 0 DAY), '14:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (25, 4, NULL, NULL, 10.668, TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 3 DAY), '17:00:00'), NULL, 'completed', NULL, 1, '2026-05-03 08:00:00', TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 10 DAY), '15:00:00')),
+  (13, 4, NULL, NULL, 13.092, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -4 DAY), '09:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (11, 1, 2, NULL, 6.673, TIMESTAMP(DATE_ADD('2026-07-19', INTERVAL 2 DAY), '18:00:00'), 'Beam current 44 uA, bombardment time 17 min, EOB activity approx 15 Ci.', 'completed', NULL, 1, '2026-07-19 08:00:00', TIMESTAMP(DATE_ADD('2026-07-19', INTERVAL 11 DAY), '15:00:00')),
+  (23, 4, NULL, NULL, 5.214, TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 2 DAY), '19:00:00'), NULL, 'cancelled', 'Lab no longer needs this dose -- protocol changed.', 1, '2026-04-14 08:00:00', TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 7 DAY), '15:00:00')),
+  (12, 9, NULL, NULL, 6.738, TIMESTAMP(DATE_ADD('2026-07-05', INTERVAL 4 DAY), '15:00:00'), NULL, 'completed', NULL, 1, '2026-07-05 08:00:00', TIMESTAMP(DATE_ADD('2026-07-05', INTERVAL 11 DAY), '15:00:00')),
+  (21, 8, NULL, NULL, 12.19, TIMESTAMP(DATE_ADD('2026-07-18', INTERVAL 4 DAY), '18:00:00'), NULL, 'completed', NULL, 1, '2026-07-18 08:00:00', TIMESTAMP(DATE_ADD('2026-07-18', INTERVAL 7 DAY), '15:00:00')),
+  (19, 4, NULL, NULL, 15.598, TIMESTAMP(DATE_ADD('2026-07-08', INTERVAL 3 DAY), '08:00:00'), NULL, 'cancelled', 'Lab no longer needs this dose -- protocol changed.', 1, '2026-07-08 08:00:00', TIMESTAMP(DATE_ADD('2026-07-08', INTERVAL 9 DAY), '15:00:00')),
+  (19, 6, NULL, NULL, 7.796, TIMESTAMP(DATE_ADD('2026-05-05', INTERVAL 2 DAY), '18:00:00'), NULL, 'completed', NULL, 1, '2026-05-05 08:00:00', TIMESTAMP(DATE_ADD('2026-05-05', INTERVAL 9 DAY), '15:00:00')),
+  (13, 7, NULL, NULL, 9.114, TIMESTAMP(DATE_ADD('2026-07-02', INTERVAL 2 DAY), '13:00:00'), NULL, 'completed', NULL, 1, '2026-07-02 08:00:00', TIMESTAMP(DATE_ADD('2026-07-02', INTERVAL 12 DAY), '15:00:00')),
+  (33, 1, 3, NULL, 15.851, TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 4 DAY), '20:00:00'), 'Beam current 32 uA, bombardment time 30 min, EOB activity approx 8 Ci.', 'completed', NULL, 1, '2026-06-10 08:00:00', TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 12 DAY), '15:00:00')),
+  (34, 9, NULL, NULL, 14.998, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 5 DAY), '10:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (19, 7, NULL, NULL, 10.285, TIMESTAMP(DATE_ADD('2026-07-06', INTERVAL 4 DAY), '16:00:00'), NULL, 'completed', NULL, 1, '2026-07-06 08:00:00', TIMESTAMP(DATE_ADD('2026-07-06', INTERVAL 7 DAY), '15:00:00')),
+  (40, 7, NULL, NULL, 11.878, TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 2 DAY), '14:00:00'), NULL, 'cancelled', 'Lab no longer needs this dose -- protocol changed.', 1, '2026-04-14 08:00:00', TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 12 DAY), '15:00:00')),
+  (19, 7, NULL, NULL, 7.91, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 0 DAY), '19:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (19, 7, NULL, NULL, 6.784, TIMESTAMP(DATE_ADD('2026-04-18', INTERVAL 1 DAY), '10:00:00'), NULL, 'completed', NULL, 0, '2026-04-18 08:00:00', TIMESTAMP(DATE_ADD('2026-04-18', INTERVAL 8 DAY), '15:00:00')),
+  (35, 1, 2, NULL, 17.244, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -6 DAY), '14:00:00'), 'Beam current 20 uA, bombardment time 19 min, EOB activity approx 11 Ci.', 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (32, 2, 1, NULL, 11.46, TIMESTAMP(DATE_ADD('2026-06-06', INTERVAL 5 DAY), '18:00:00'), 'Beam current 42 uA, bombardment time 23 min, EOB activity approx 20 Ci.', 'completed', NULL, 1, '2026-06-06 08:00:00', TIMESTAMP(DATE_ADD('2026-06-06', INTERVAL 10 DAY), '15:00:00')),
+  (20, 2, 3, NULL, 11.68, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -4 DAY), '08:00:00'), 'Beam current 38 uA, bombardment time 27 min, EOB activity approx 14 Ci.', 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (29, 4, NULL, NULL, 4.529, TIMESTAMP(DATE_ADD('2026-04-19', INTERVAL 1 DAY), '15:00:00'), NULL, 'cancelled', 'Lab no longer needs this dose -- protocol changed.', 1, '2026-04-19 08:00:00', TIMESTAMP(DATE_ADD('2026-04-19', INTERVAL 8 DAY), '15:00:00')),
+  (13, 9, NULL, NULL, 12.713, TIMESTAMP(DATE_ADD('2026-07-16', INTERVAL 1 DAY), '12:00:00'), NULL, 'cancelled', 'Lab no longer needs this dose -- protocol changed.', 0, '2026-07-16 08:00:00', TIMESTAMP(DATE_ADD('2026-07-16', INTERVAL 9 DAY), '15:00:00')),
+  (24, 3, NULL, NULL, 14.007, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -2 DAY), '16:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (36, 9, NULL, NULL, 14.62, TIMESTAMP(DATE_ADD('2026-06-11', INTERVAL 2 DAY), '08:00:00'), NULL, 'completed', NULL, 1, '2026-06-11 08:00:00', TIMESTAMP(DATE_ADD('2026-06-11', INTERVAL 12 DAY), '15:00:00')),
+  (18, 8, NULL, NULL, 11.548, TIMESTAMP(DATE_ADD('2026-06-01', INTERVAL 4 DAY), '12:00:00'), NULL, 'completed', NULL, 1, '2026-06-01 08:00:00', TIMESTAMP(DATE_ADD('2026-06-01', INTERVAL 12 DAY), '15:00:00')),
+  (17, 6, NULL, NULL, 14.967, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 9 DAY), '18:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (39, 5, NULL, NULL, 11.337, TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 2 DAY), '13:00:00'), NULL, 'completed', NULL, 1, '2026-05-03 08:00:00', TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 11 DAY), '15:00:00')),
+  (35, 4, NULL, NULL, 13.359, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 5 DAY), '14:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (13, 5, NULL, NULL, 6.324, TIMESTAMP(DATE_ADD('2026-06-19', INTERVAL 3 DAY), '15:00:00'), NULL, 'completed', NULL, 1, '2026-06-19 08:00:00', TIMESTAMP(DATE_ADD('2026-06-19', INTERVAL 9 DAY), '15:00:00')),
+  (24, 9, NULL, NULL, 7.962, TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 3 DAY), '08:00:00'), NULL, 'completed', NULL, 1, '2026-06-10 08:00:00', TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 7 DAY), '15:00:00')),
+  (14, 9, NULL, NULL, 17.263, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -4 DAY), '10:00:00'), NULL, 'pending', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (34, 8, NULL, NULL, 7.147, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 6 DAY), '16:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (14, 4, NULL, NULL, 7.444, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -1 DAY), '07:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (15, 5, NULL, NULL, 3.683, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -1 DAY), '18:00:00'), NULL, 'accepted', NULL, 0, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (31, 8, NULL, NULL, 4.539, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -1 DAY), '14:00:00'), NULL, 'pending', NULL, 0, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (26, 8, NULL, NULL, 8.111, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -2 DAY), '20:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (14, 2, 7, NULL, 9.011, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -6 DAY), '19:00:00'), 'Beam current 40 uA, bombardment time 16 min, EOB activity approx 10 Ci.', 'pending', NULL, 0, '2026-07-05 08:00:00', '2026-07-05 08:00:00'),
+  (29, 5, NULL, NULL, 4.278, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY), '19:00:00'), NULL, 'accepted', NULL, 1, '2026-07-05 08:00:00', '2026-07-05 08:00:00');
 
--- ---- order_audit_log (21 rows) ----
--- Every order has at least its creation row (status_from NULL). Orders
--- 3/4/7 get a second row for their one transition; 5/6/9 get a third for
--- completion; order 10 gets a third row demonstrating the return rule:
--- accepted -> pending (the only legal source status for a return), with
--- no separate 'returned' status value used. completed is terminal, so
--- unlike the pre-lifecycle-design placeholder this replaced, a return
--- can never happen after completion.
+-- ---- order_audit_log (110 rows) ----
 INSERT INTO order_audit_log (order_id, status_from, status_to, changed_by_user_id, changed_at) VALUES
-  (1, NULL, 'pending', 4, '2026-07-10 14:22:00'),
-  (2, NULL, 'pending', 7, '2026-07-11 09:15:00'),
-  (3, NULL, 'pending', 5, '2026-07-08 10:00:00'),
-  (3, 'pending', 'accepted', 2, '2026-07-09 11:30:00'),
-  (4, NULL, 'pending', 6, '2026-07-07 08:00:00'),
-  (4, 'pending', 'accepted', 3, '2026-07-07 16:00:00'),
-  (5, NULL, 'pending', 4, '2026-06-28 09:00:00'),
-  (5, 'pending', 'accepted', 2, '2026-06-29 10:00:00'),
-  (5, 'accepted', 'completed', 2, '2026-07-05 15:00:00'),
-  (6, NULL, 'pending', 7, '2026-06-25 08:30:00'),
-  (6, 'pending', 'accepted', 2, '2026-06-26 09:00:00'),
-  (6, 'accepted', 'completed', 2, '2026-07-02 14:00:00'),
-  (7, NULL, 'pending', 5, '2026-06-15 09:00:00'),
-  (7, 'pending', 'cancelled', 5, '2026-06-16 10:00:00'),
-  (8, NULL, 'pending', 6, '2026-07-13 10:00:00'),
-  (9, NULL, 'pending', 4, '2026-06-05 08:00:00'),
-  (9, 'pending', 'accepted', 2, '2026-06-06 09:00:00'),
-  (9, 'accepted', 'completed', 2, '2026-06-10 13:00:00'),
-  (10, NULL, 'pending', 4, '2026-05-25 08:00:00'),
-  (10, 'pending', 'accepted', 2, '2026-05-26 09:00:00'),
-  (10, 'accepted', 'pending', 2, '2026-06-02 10:00:00');
+  (1, NULL, 'pending', 28, '2026-07-05 08:00:00'),
+  (1, 'pending', 'accepted', 6, '2026-07-05 08:00:00'),
+  (2, NULL, 'pending', 29, '2026-07-05 08:00:00'),
+  (3, NULL, 'pending', 39, '2026-07-05 08:00:00'),
+  (4, NULL, 'pending', 24, '2026-05-06 08:00:00'),
+  (4, 'pending', 'accepted', 3, '2026-05-06 08:00:00'),
+  (4, 'accepted', 'completed', 6, TIMESTAMP(DATE_ADD('2026-05-06', INTERVAL 9 DAY), '15:00:00')),
+  (5, NULL, 'pending', 36, '2026-07-05 08:00:00'),
+  (6, NULL, 'pending', 16, '2026-07-12 08:00:00'),
+  (6, 'pending', 'accepted', 4, '2026-07-12 08:00:00'),
+  (6, 'accepted', 'completed', 4, TIMESTAMP(DATE_ADD('2026-07-12', INTERVAL 12 DAY), '15:00:00')),
+  (7, NULL, 'pending', 11, '2026-04-09 08:00:00'),
+  (7, 'pending', 'accepted', 7, '2026-04-09 08:00:00'),
+  (7, 'accepted', 'completed', 9, TIMESTAMP(DATE_ADD('2026-04-09', INTERVAL 11 DAY), '15:00:00')),
+  (8, NULL, 'pending', 21, '2026-07-05 08:00:00'),
+  (9, NULL, 'pending', 24, '2026-07-05 08:00:00'),
+  (10, NULL, 'pending', 14, '2026-07-05 08:00:00'),
+  (11, NULL, 'pending', 24, '2026-07-03 08:00:00'),
+  (11, 'pending', 'accepted', 2, '2026-07-03 08:00:00'),
+  (11, 'accepted', 'completed', 5, TIMESTAMP(DATE_ADD('2026-07-03', INTERVAL 10 DAY), '15:00:00')),
+  (12, NULL, 'pending', 27, '2026-06-18 08:00:00'),
+  (12, 'pending', 'accepted', 7, '2026-06-18 08:00:00'),
+  (12, 'accepted', 'completed', 3, TIMESTAMP(DATE_ADD('2026-06-18', INTERVAL 7 DAY), '15:00:00')),
+  (13, NULL, 'pending', 30, '2026-07-05 08:00:00'),
+  (13, 'pending', 'accepted', 5, '2026-07-05 08:00:00'),
+  (14, NULL, 'pending', 17, '2026-07-05 08:00:00'),
+  (14, 'pending', 'accepted', 8, '2026-07-05 08:00:00'),
+  (15, NULL, 'pending', 25, '2026-05-03 08:00:00'),
+  (15, 'pending', 'accepted', 10, '2026-05-03 08:00:00'),
+  (15, 'accepted', 'completed', 6, TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 10 DAY), '15:00:00')),
+  (16, NULL, 'pending', 13, '2026-07-05 08:00:00'),
+  (17, NULL, 'pending', 11, '2026-07-19 08:00:00'),
+  (17, 'pending', 'accepted', 7, '2026-07-19 08:00:00'),
+  (17, 'accepted', 'completed', 8, TIMESTAMP(DATE_ADD('2026-07-19', INTERVAL 11 DAY), '15:00:00')),
+  (18, NULL, 'pending', 23, '2026-04-14 08:00:00'),
+  (18, 'pending', 'accepted', 9, '2026-04-14 08:00:00'),
+  (18, 'pending', 'cancelled', 8, TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 7 DAY), '15:00:00')),
+  (19, NULL, 'pending', 12, '2026-07-05 08:00:00'),
+  (19, 'pending', 'accepted', 9, '2026-07-05 08:00:00'),
+  (19, 'accepted', 'completed', 10, TIMESTAMP(DATE_ADD('2026-07-05', INTERVAL 11 DAY), '15:00:00')),
+  (20, NULL, 'pending', 21, '2026-07-18 08:00:00'),
+  (20, 'pending', 'accepted', 8, '2026-07-18 08:00:00'),
+  (20, 'accepted', 'completed', 8, TIMESTAMP(DATE_ADD('2026-07-18', INTERVAL 7 DAY), '15:00:00')),
+  (21, NULL, 'pending', 19, '2026-07-08 08:00:00'),
+  (21, 'pending', 'accepted', 5, '2026-07-08 08:00:00'),
+  (21, 'pending', 'cancelled', 4, TIMESTAMP(DATE_ADD('2026-07-08', INTERVAL 9 DAY), '15:00:00')),
+  (22, NULL, 'pending', 19, '2026-05-05 08:00:00'),
+  (22, 'pending', 'accepted', 3, '2026-05-05 08:00:00'),
+  (22, 'accepted', 'completed', 4, TIMESTAMP(DATE_ADD('2026-05-05', INTERVAL 9 DAY), '15:00:00')),
+  (23, NULL, 'pending', 13, '2026-07-02 08:00:00'),
+  (23, 'pending', 'accepted', 7, '2026-07-02 08:00:00'),
+  (23, 'accepted', 'completed', 10, TIMESTAMP(DATE_ADD('2026-07-02', INTERVAL 12 DAY), '15:00:00')),
+  (24, NULL, 'pending', 33, '2026-06-10 08:00:00'),
+  (24, 'pending', 'accepted', 7, '2026-06-10 08:00:00'),
+  (24, 'accepted', 'completed', 9, TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 12 DAY), '15:00:00')),
+  (25, NULL, 'pending', 34, '2026-07-05 08:00:00'),
+  (26, NULL, 'pending', 19, '2026-07-06 08:00:00'),
+  (26, 'pending', 'accepted', 9, '2026-07-06 08:00:00'),
+  (26, 'accepted', 'completed', 1, TIMESTAMP(DATE_ADD('2026-07-06', INTERVAL 7 DAY), '15:00:00')),
+  (27, NULL, 'pending', 40, '2026-04-14 08:00:00'),
+  (27, 'pending', 'accepted', 3, '2026-04-14 08:00:00'),
+  (27, 'pending', 'cancelled', 1, TIMESTAMP(DATE_ADD('2026-04-14', INTERVAL 12 DAY), '15:00:00')),
+  (28, NULL, 'pending', 19, '2026-07-05 08:00:00'),
+  (28, 'pending', 'accepted', 7, '2026-07-05 08:00:00'),
+  (29, NULL, 'pending', 19, '2026-04-18 08:00:00'),
+  (29, 'pending', 'accepted', 2, '2026-04-18 08:00:00'),
+  (29, 'accepted', 'completed', 1, TIMESTAMP(DATE_ADD('2026-04-18', INTERVAL 8 DAY), '15:00:00')),
+  (30, NULL, 'pending', 35, '2026-07-05 08:00:00'),
+  (31, NULL, 'pending', 32, '2026-06-06 08:00:00'),
+  (31, 'pending', 'accepted', 2, '2026-06-06 08:00:00'),
+  (31, 'accepted', 'completed', 3, TIMESTAMP(DATE_ADD('2026-06-06', INTERVAL 10 DAY), '15:00:00')),
+  (32, NULL, 'pending', 20, '2026-07-05 08:00:00'),
+  (33, NULL, 'pending', 29, '2026-04-19 08:00:00'),
+  (33, 'pending', 'accepted', 7, '2026-04-19 08:00:00'),
+  (33, 'pending', 'cancelled', 6, TIMESTAMP(DATE_ADD('2026-04-19', INTERVAL 8 DAY), '15:00:00')),
+  (34, NULL, 'pending', 13, '2026-07-16 08:00:00'),
+  (34, 'pending', 'accepted', 8, '2026-07-16 08:00:00'),
+  (34, 'pending', 'cancelled', 3, TIMESTAMP(DATE_ADD('2026-07-16', INTERVAL 9 DAY), '15:00:00')),
+  (35, NULL, 'pending', 24, '2026-07-05 08:00:00'),
+  (36, NULL, 'pending', 36, '2026-06-11 08:00:00'),
+  (36, 'pending', 'accepted', 5, '2026-06-11 08:00:00'),
+  (36, 'accepted', 'completed', 8, TIMESTAMP(DATE_ADD('2026-06-11', INTERVAL 12 DAY), '15:00:00')),
+  (37, NULL, 'pending', 18, '2026-06-01 08:00:00'),
+  (37, 'pending', 'accepted', 3, '2026-06-01 08:00:00'),
+  (37, 'accepted', 'completed', 8, TIMESTAMP(DATE_ADD('2026-06-01', INTERVAL 12 DAY), '15:00:00')),
+  (38, NULL, 'pending', 17, '2026-07-05 08:00:00'),
+  (39, NULL, 'pending', 39, '2026-05-03 08:00:00'),
+  (39, 'pending', 'accepted', 8, '2026-05-03 08:00:00'),
+  (39, 'accepted', 'completed', 9, TIMESTAMP(DATE_ADD('2026-05-03', INTERVAL 11 DAY), '15:00:00')),
+  (40, NULL, 'pending', 35, '2026-07-05 08:00:00'),
+  (40, 'pending', 'accepted', 1, '2026-07-05 08:00:00'),
+  (41, NULL, 'pending', 13, '2026-06-19 08:00:00'),
+  (41, 'pending', 'accepted', 9, '2026-06-19 08:00:00'),
+  (41, 'accepted', 'completed', 6, TIMESTAMP(DATE_ADD('2026-06-19', INTERVAL 9 DAY), '15:00:00')),
+  (42, NULL, 'pending', 24, '2026-06-10 08:00:00'),
+  (42, 'pending', 'accepted', 4, '2026-06-10 08:00:00'),
+  (42, 'accepted', 'completed', 6, TIMESTAMP(DATE_ADD('2026-06-10', INTERVAL 7 DAY), '15:00:00')),
+  (43, NULL, 'pending', 14, '2026-07-05 08:00:00'),
+  (44, NULL, 'pending', 34, '2026-07-05 08:00:00'),
+  (44, 'pending', 'accepted', 5, '2026-07-05 08:00:00'),
+  (45, NULL, 'pending', 14, '2026-07-05 08:00:00'),
+  (45, 'pending', 'accepted', 9, '2026-07-05 08:00:00'),
+  (46, NULL, 'pending', 15, '2026-07-05 08:00:00'),
+  (46, 'pending', 'accepted', 3, '2026-07-05 08:00:00'),
+  (47, NULL, 'pending', 31, '2026-07-05 08:00:00'),
+  (48, NULL, 'pending', 26, '2026-07-05 08:00:00'),
+  (48, 'pending', 'accepted', 8, '2026-07-05 08:00:00'),
+  (49, NULL, 'pending', 14, '2026-07-05 08:00:00'),
+  (50, NULL, 'pending', 29, '2026-07-05 08:00:00'),
+  (50, 'pending', 'accepted', 7, '2026-07-05 08:00:00');

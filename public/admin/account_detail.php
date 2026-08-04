@@ -433,7 +433,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
 
                             <div class="<?= field_class($profileErrors, 'email') ?>">
                                 <label for="email">Email <span class="required-mark">*</span></label>
-                                <input type="email" id="email" name="email" value="<?= e($profileOld['email']) ?>" required>
+                                <input type="email" id="email" name="email" value="<?= e($profileOld['email']) ?>" maxlength="50" required>
                                 <span class="field-hint">This is also their username for logging in.</span>
                                 <?= field_error($profileErrors, 'email') ?>
                             </div>
@@ -441,19 +441,19 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                             <div class="field-row">
                                 <div class="<?= field_class($profileErrors, 'first_name') ?>">
                                     <label for="first_name">First name <span class="required-mark">*</span></label>
-                                    <input type="text" id="first_name" name="first_name" value="<?= e($profileOld['first_name']) ?>" required>
+                                    <input type="text" id="first_name" name="first_name" value="<?= e($profileOld['first_name']) ?>" maxlength="100" required>
                                     <?= field_error($profileErrors, 'first_name') ?>
                                 </div>
                                 <div class="<?= field_class($profileErrors, 'last_name') ?>">
                                     <label for="last_name">Last name <span class="required-mark">*</span></label>
-                                    <input type="text" id="last_name" name="last_name" value="<?= e($profileOld['last_name']) ?>" required>
+                                    <input type="text" id="last_name" name="last_name" value="<?= e($profileOld['last_name']) ?>" maxlength="100" required>
                                     <?= field_error($profileErrors, 'last_name') ?>
                                 </div>
                             </div>
 
                             <div class="<?= field_class($profileErrors, 'phone') ?>">
                                 <label for="phone">Phone <span class="required-mark">*</span></label>
-                                <input type="text" id="phone" name="phone" value="<?= e($profileOld['phone']) ?>" required>
+                                <input type="text" id="phone" name="phone" value="<?= e($profileOld['phone']) ?>" maxlength="20" required>
                                 <?= field_error($profileErrors, 'phone') ?>
                             </div>
 

@@ -35,10 +35,11 @@
                 </button>
             </div>
             <div class="modal__body">
-                <p class="modal__message">This cannot be undone.</p>
+                <p class="modal__message"><?= ($_SESSION['role'] ?? null) === 'customer' ? 'This cannot be undone.' : 'This order can be reopened later if needed.' ?></p>
                 <div class="<?= field_class($cancelErrors, 'cancellation_reason', 'field mb-0') ?>">
                     <label for="cancellation_reason">Cancellation reason <span class="required-mark">*</span></label>
                     <textarea id="cancellation_reason" name="cancellation_reason" maxlength="500" required data-modal-focus><?= e($cancelReasonOld) ?></textarea>
+                    <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
                     <?= field_error($cancelErrors, 'cancellation_reason') ?>
                 </div>
             </div>

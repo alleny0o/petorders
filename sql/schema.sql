@@ -136,7 +136,11 @@ CREATE TABLE lockout_events (
   failed_attempts  TINYINT UNSIGNED NOT NULL,
   locked_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_lockout_events_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  KEY idx_lockout_events_user_id (user_id)
+  KEY idx_lockout_events_user_id (user_id),
+  -- Admin dashboard reads a locked_at >= 7-day window; rows older than
+  -- 90 days are pruned by tools/prune_lockout_events.php (growth here is
+  -- attacker-controlled, not order-volume-controlled).
+  KEY idx_lockout_events_locked_at (locked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- No category assignment: any staff member can process any order
@@ -207,7 +211,10 @@ CREATE TABLE customer_registration_requests (
   CONSTRAINT fk_reg_requests_lab      FOREIGN KEY (lab_id)               REFERENCES labs (lab_id),
   CONSTRAINT fk_reg_requests_pi       FOREIGN KEY (pi_id)                REFERENCES pis (pi_id),
   CONSTRAINT fk_reg_requests_reviewer FOREIGN KEY (reviewed_by_admin_id) REFERENCES users (user_id) ON DELETE SET NULL,
-  KEY idx_reg_requests_status (status),
+  -- Composite: the (status) prefix serves every status-only lookup
+  -- (pending queue/preview); reviewed_at serves the admin dashboard's
+  -- 7-day rejected window without scanning all historical rejections.
+  KEY idx_reg_requests_status_reviewed (status, reviewed_at),
   KEY idx_reg_requests_email (email),
   KEY idx_reg_requests_lab_id (lab_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -351,14 +358,18 @@ CREATE TABLE orders (
   CONSTRAINT fk_orders_product         FOREIGN KEY (product_id)         REFERENCES products (product_id),
   CONSTRAINT fk_orders_location        FOREIGN KEY (location_id)        REFERENCES lab_delivery_locations (location_id),
   CONSTRAINT fk_orders_product_user    FOREIGN KEY (product_user_id)    REFERENCES lab_product_users (product_user_id),
-  KEY idx_orders_customer_id (customer_id),
+  -- Composite: the (customer_id) prefix backs fk_orders_customer and
+  -- every customer-scoped lookup; requested_datetime serves the customer
+  -- dashboard's date-bounded stat queries (customer/dashboard.php).
+  KEY idx_orders_customer_requested (customer_id, requested_datetime),
   KEY idx_orders_product_id (product_id),
   KEY idx_orders_location_id (location_id),
   KEY idx_orders_product_user_id (product_user_id),
   KEY idx_orders_status (status),
   KEY idx_orders_requested_datetime (requested_datetime),
   KEY idx_orders_status_requested (status, requested_datetime),
-  KEY idx_orders_status_updated (status, updated_at)
+  KEY idx_orders_status_updated (status, updated_at),
+  KEY idx_orders_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Status-only, not field-level diffing -- just status_from, status_to,

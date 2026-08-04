@@ -7,6 +7,17 @@ require_role('admin');
 $pdo = get_db();
 $adminId = (int) $_SESSION['user_id'];
 
+// Pagination state parsed + canonicalized BEFORE the POST block so the
+// reject PRG below can rebuild the current page's URL via build_query()
+// (same ordering as nuclides.php). Pagination here is robustness, not
+// day-to-day perf: register.php is public/unauthenticated, so a spam
+// burst must not make this page render unboundedly -- normal pending
+// queues never fill a page.
+$page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
+    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
+canonicalize_get(['page' => $page, 'page_size' => $pageSize]);
+
 $flash = null;
 $rejectErrors = [];
 $rejectOld = [];
@@ -99,8 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'reject' && $requestId > 0) {
         $reason = trim($_POST['reason'] ?? '');
 
-        if ($reason === '') {
-            $rejectErrors[$requestId] = 'A reason is required to reject a request.';
+        if ($reason === '' || mb_strlen($reason) > 500) {
+            $rejectErrors[$requestId] = $reason === ''
+                ? 'A reason is required to reject a request.'
+                : 'Reason must be 500 characters or fewer.';
             $rejectOld[$requestId] = $reason;
 
             // $rejectErrors is keyed by request_id (this page's own
@@ -127,8 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // PRG with an arrival-flag toast, same convention as the
                 // admin CRUD list pages -- a no-redirect JSON success would
                 // leave the reject modal open and the rejected row sitting
-                // in the pending list until a manual refresh.
-                $dest = '/admin/registrations.php?rejected=1';
+                // in the pending list until a manual refresh. build_query()
+                // carries the current page/page_size (canonicalized above)
+                // through the redirect.
+                $dest = '/admin/registrations.php' . build_query(['rejected' => '1']);
                 if (request_wants_json()) {
                     json_response(['ok' => true, 'redirect' => $dest]);
                 }
@@ -142,30 +157,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // client half is petordersCleanArrivalFlags() in the script at the bottom.
 $arrival = consume_arrival_flags(['rejected']);
 
+// Bare count is row-identical to the joined list below: all three FKs
+// are NOT NULL and enforced, so the inner joins can't drop rows. Rides
+// the (status, reviewed_at) index's status prefix.
+$totalCount = (int) $pdo->query(
+    "SELECT COUNT(*) FROM customer_registration_requests WHERE status = 'pending'"
+)->fetchColumn();
+
+$pagination = paginate($totalCount, $page, $pageSize);
+$page = $pagination['page'];
+$totalPages = $pagination['totalPages'];
+$offset = $pagination['offset'];
+// Keep $_GET in sync with the clamped page so build_query() links carry
+// the page actually rendered.
+canonicalize_get(['page' => $page]);
+
 // Institute is derived via lab_id -> labs.institute_id, per the
 // nuclide/product-style "always derive, never duplicate" rule.
-// prior_rejections/last_rejection_reason surface resubmissions: rejection
-// is a soft block (register.php only stops pending duplicates), so a
-// pending request whose email was rejected before would otherwise look
-// identical to a first-time applicant.
+// LIMIT/OFFSET interpolated directly: both are server-computed ints
+// (paginate() output), same convention as every other list page. The
+// request_id tiebreak runs in the same direction as the primary sort
+// (house invariant) so equal-timestamp rows can't shuffle across pages.
+// Deliberately no (status, submitted_at) index: pending is a work queue,
+// small by nature; a spam burst inflates the filesort input but the
+// rendered work stays bounded by the LIMIT.
 $requests = $pdo->query(
     "SELECT r.request_id, r.first_name, r.last_name, r.email, r.phone, r.submitted_at,
-            l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name,
-            (SELECT COUNT(*)
-             FROM customer_registration_requests pr
-             WHERE pr.email = r.email AND pr.status = 'rejected') AS prior_rejections,
-            (SELECT pr.rejection_reason
-             FROM customer_registration_requests pr
-             WHERE pr.email = r.email AND pr.status = 'rejected'
-             ORDER BY pr.submitted_at DESC, pr.reviewed_at DESC, pr.request_id DESC
-             LIMIT 1) AS last_rejection_reason
+            l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name
      FROM customer_registration_requests r
      JOIN labs l ON l.lab_id = r.lab_id
      JOIN institutes i ON i.institute_id = l.institute_id
      JOIN pis p ON p.pi_id = r.pi_id
      WHERE r.status = 'pending'
-     ORDER BY r.submitted_at DESC"
+     ORDER BY r.submitted_at DESC, r.request_id DESC
+     LIMIT $offset, $pageSize"
 )->fetchAll();
+
+// prior_rejections/last_rejection_reason surface resubmissions: rejection
+// is a soft block (register.php only stops pending duplicates), so a
+// pending request whose email was rejected before would otherwise look
+// identical to a first-time applicant. Fetched as ONE batch bounded to
+// this page's emails -- not per-row correlated subqueries (2 extra
+// lookups per row), and deliberately not a derived table over ALL
+// rejected rows (that history only grows; this stays O(page)). The
+// window ORDER BY matches the old per-row subquery's tiebreak exactly.
+// Window functions are in-stack (MySQL 8.0 / MariaDB 10.11).
+$rejectionStats = [];
+if ($requests) {
+    $emails = array_values(array_unique(array_column($requests, 'email')));
+    $placeholders = implode(', ', array_fill(0, count($emails), '?'));
+    $rejStatsStmt = $pdo->prepare(
+        "SELECT email, prior_rejections, rejection_reason AS last_rejection_reason
+         FROM (
+             SELECT email, rejection_reason,
+                    COUNT(*)     OVER (PARTITION BY email) AS prior_rejections,
+                    ROW_NUMBER() OVER (PARTITION BY email
+                        ORDER BY submitted_at DESC, reviewed_at DESC, request_id DESC) AS rn
+             FROM customer_registration_requests
+             WHERE status = 'rejected' AND email IN ($placeholders)
+         ) ranked
+         WHERE rn = 1"
+    );
+    $rejStatsStmt->execute($emails);
+    foreach ($rejStatsStmt->fetchAll() as $row) {
+        $rejectionStats[$row['email']] = $row;
+    }
+}
+foreach ($requests as $i => $r) {
+    $rejStat = $rejectionStats[$r['email']] ?? null;
+    $requests[$i]['prior_rejections'] = $rejStat !== null ? (int) $rejStat['prior_rejections'] : 0;
+    $requests[$i]['last_rejection_reason'] = $rejStat !== null ? $rejStat['last_rejection_reason'] : null;
+}
 
 // When a reject fails validation, the page re-renders and reopens the
 // modal for that request (see the inline script at the bottom).
@@ -274,6 +336,24 @@ $pageTitle = 'Registrations';
                             </tbody>
                         </table>
                     </div>
+
+                    <?php
+                    // No search/filter dimension on this page, so no
+                    // hidden fields to carry -- an empty array is valid
+                    // per the partial's contract.
+                    $tablePagination = [
+                        'idPrefix' => 'registrations-',
+                        'itemLabel' => 'Requests',
+                        'hiddenFields' => [],
+                        'page' => $page,
+                        'totalPages' => $totalPages,
+                        'pageSize' => $pageSize,
+                        'rangeStart' => $pagination['rangeStart'],
+                        'rangeEnd' => $pagination['rangeEnd'],
+                        'totalCount' => $totalCount,
+                    ];
+                    include __DIR__ . '/../../src/partials/table_pagination.php';
+                    ?>
                 <?php endif; ?>
             </div>
 
@@ -292,7 +372,8 @@ $pageTitle = 'Registrations';
                             <div class="alert alert--error" data-error-banner-for="reject-form" <?= $rejectErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= $rejectErrors ? 'field field--invalid' : 'field' ?> mb-0">
                                 <label for="reject-reason">Reason <span class="required-mark">*</span></label>
-                                <textarea id="reject-reason" name="reason" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
+                                <textarea id="reject-reason" name="reason" maxlength="500" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
+                                <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
                                 <?php if ($rejectErrors): ?>
                                     <span class="field-error"><?= e((string) reset($rejectErrors)) ?></span>
                                 <?php endif; ?>

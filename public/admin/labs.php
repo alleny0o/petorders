@@ -11,15 +11,28 @@ $pdo = get_db();
 ['created' => $justCreated, 'updated' => $justUpdated, 'activated' => $justActivated, 'deactivated' => $justDeactivated]
     = consume_arrival_flags(['created', 'updated', 'activated', 'deactivated']);
 
+// Get and clean the search query
 $q = trim($_GET['q'] ?? '');
-// Status is the DERIVED effective-availability state, same shape as
-// products.php: active = l.active AND i.active, unavailable = l.active
-// but institute off, inactive = l.active off.
-$status = in_array($_GET['status'] ?? '', ['active', 'unavailable', 'inactive'], true) ? $_GET['status'] : '';
-$instituteFilter = ctype_digit((string) ($_GET['institute'] ?? '')) ? (int) $_GET['institute'] : 0;
-$page = isset($_GET['page']) && ctype_digit((string) $_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$pageSize = in_array((int) ($_GET['page_size'] ?? 0), PAGE_SIZE_OPTIONS, true)
-    ? (int) $_GET['page_size'] : DEFAULT_PAGE_SIZE;
+
+// Whitelist specific status values. Note that status is the DERIVED effective-availability state with
+// active = l.active AND i.active
+// unavailable = l.active but i.active off
+// inactive = l.active off
+$allowedStatuses = ['active', 'unavailable', 'inactive'];
+$statusInput     = $_GET['status'] ?? '';
+$status          = in_array($statusInput, $allowedStatuses, true) ? $statusInput : '';
+
+// Filter the Institute ID
+$instituteInput = $_GET['institute'] ?? '';
+$instituteFilter = ctype_digit((string) $instituteInput) ? (int) $instituteInput : 0;
+
+// Ensure page numbers are a positive integer
+$pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
+$page      = ($pageInput !== false && $pageInput > 0) ? $pageInput : 1;
+
+// Ensure page size matches one of our allowed options
+$pageSizeInput = filter_var($_GET['page_size'] ?? 0, FILTER_VALIDATE_INT);
+$pageSize      = in_array($pageSizeInput, PAGE_SIZE_OPTIONS, true) ? $pageSizeInput : DEFAULT_PAGE_SIZE;
 
 // Canonicalize so every link built via build_query() below carries the
 // real applied values -- same convention as products.php.
@@ -916,6 +929,7 @@ document.addEventListener('DOMContentLoaded', function () {
         opt.className = 'pi-select__option';
         opt.setAttribute('role', 'option');
         var label = document.createElement('span');
+        label.className = 'pi-select__option-label';
         label.textContent = box.dataset.piName + (box.dataset.piActive === '0' ? ' (inactive)' : '');
         opt.appendChild(label);
         var count = countLabelFor(box);

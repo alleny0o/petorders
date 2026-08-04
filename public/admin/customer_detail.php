@@ -308,7 +308,11 @@ $labs = [];
 $pis = [];
 $piLabIds = [];
 
-if ($customer !== null) {
+// Only the $editing branch below consumes these four lists, and every
+// path into that branch keeps edit=1 (the edit form's action URL carries
+// it, so a no-JS validation-failure re-render still lands here) -- the
+// read-only view and the toggle/reset re-renders skip all four queries.
+if ($editing) {
     $stmt = $pdo->prepare('SELECT institute_id, name, shorthand_name, active FROM institutes WHERE active = 1 OR institute_id = ? ORDER BY shorthand_name');
     $stmt->execute([$currentInstituteId]);
     $institutes = $stmt->fetchAll();
@@ -448,7 +452,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
 
                         <div class="<?= field_class($fieldErrors, 'email') ?>">
                             <label for="email">Email <span class="required-mark">*</span></label>
-                            <input type="email" id="email" name="email" value="<?= e($editOld['email']) ?>" required>
+                            <input type="email" id="email" name="email" value="<?= e($editOld['email']) ?>" maxlength="50" required>
                             <span class="field-hint">This is also their username for logging in.</span>
                             <?= field_error($fieldErrors, 'email') ?>
                         </div>
@@ -456,19 +460,19 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                         <div class="field-row">
                             <div class="<?= field_class($fieldErrors, 'first_name') ?>">
                                 <label for="first_name">First name <span class="required-mark">*</span></label>
-                                <input type="text" id="first_name" name="first_name" value="<?= e($editOld['first_name']) ?>" required>
+                                <input type="text" id="first_name" name="first_name" value="<?= e($editOld['first_name']) ?>" maxlength="100" required>
                                 <?= field_error($fieldErrors, 'first_name') ?>
                             </div>
                             <div class="<?= field_class($fieldErrors, 'last_name') ?>">
                                 <label for="last_name">Last name <span class="required-mark">*</span></label>
-                                <input type="text" id="last_name" name="last_name" value="<?= e($editOld['last_name']) ?>" required>
+                                <input type="text" id="last_name" name="last_name" value="<?= e($editOld['last_name']) ?>" maxlength="100" required>
                                 <?= field_error($fieldErrors, 'last_name') ?>
                             </div>
                         </div>
 
                         <div class="<?= field_class($fieldErrors, 'phone') ?>">
                             <label for="phone">Phone <span class="required-mark">*</span></label>
-                            <input type="text" id="phone" name="phone" value="<?= e($editOld['phone']) ?>" required>
+                            <input type="text" id="phone" name="phone" value="<?= e($editOld['phone']) ?>" maxlength="20" required>
                             <?= field_error($fieldErrors, 'phone') ?>
                         </div>
 
@@ -476,7 +480,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             <span class="form-section__title">Institute &amp; Lab</span>
 
                             <div class="field">
-                                <label for="institute_id">Institute</label>
+                                <label for="institute_id">Institute <span class="required-mark">*</span></label>
                                 <select id="institute_id" name="institute_id">
                                     <option value="">Select institute&hellip;</option>
                                     <?php foreach ($institutes as $institute): ?>
