@@ -6,7 +6,9 @@
  * reject-with-reason modal on admin/registrations.php: required
  * textarea, X-close + Cancel + Esc + backdrop all wired automatically
  * by petordersOpenModal(), reopened by the page's bottom script on a
- * reason_required validation failure.
+ * reason_required validation failure. Both pages' bottom scripts also
+ * wire dirty-tracking (petordersWireModalDirtyTracking, script.js), so
+ * closing with a typed reason prompts before discarding.
  *
  * Included (not called), same convention as table_pagination.php:
  * reads $order, $cancelErrors, and $cancelReasonOld from the caller's

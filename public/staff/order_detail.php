@@ -587,13 +587,38 @@ document.addEventListener('DOMContentLoaded', function () {
     // reopen-on-error convention as customer/order_detail.php's version. ----
     var cancelTrigger = document.getElementById('cancel-order-trigger');
     var cancelModal = document.getElementById('cancel-order-modal');
+    var cancelTracking = null;
+    if (cancelModal) {
+        // Dirty-tracking + discard-confirm-on-close, shared wiring
+        // (script.js) -- same shape as admin/registrations.php's reject
+        // modal. onDiscard clears the reason so a confirmed discard
+        // doesn't linger into a reopen.
+        var cancelReasonField = document.getElementById('cancellation_reason');
+        cancelTracking = window.petordersWireModalDirtyTracking(
+            cancelModal,
+            cancelModal.querySelector('form'),
+            function (form) {
+                var values = {};
+                Array.prototype.forEach.call(form.elements, function (el) {
+                    if (!el.name) return;
+                    values[el.name] = el.value;
+                });
+                return values;
+            },
+            { title: 'Discard this cancellation?', message: 'The reason you typed will be discarded.' },
+            function () { cancelReasonField.value = ''; }
+        );
+    }
     if (cancelTrigger && cancelModal) {
         cancelTrigger.addEventListener('click', function (e) {
             window.petordersOpenModal(cancelModal, { opener: e.currentTarget });
+            cancelTracking.markPristine();
         });
     }
     <?php if ($cancelErrors): ?>
-    if (cancelModal) { window.petordersOpenModal(cancelModal); }
+    // markPristine() on the error reopen too: the repopulated reason is
+    // the baseline, so closing without further edits shouldn't prompt.
+    if (cancelModal) { window.petordersOpenModal(cancelModal); cancelTracking.markPristine(); }
     <?php endif; ?>
 
     // ---- Live character counter for Notes: same behavior as
