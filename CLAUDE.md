@@ -103,7 +103,7 @@ petorders/
 
   sql/
     schema.sql, seed.sql (broad dev/test data),
-    EER Diagram.webp (data-model diagram)
+    eer-diagram.png (data-model diagram)
 
   tools/
     set_temp_passwords.php (dev-only, seeded accounts)
@@ -318,6 +318,16 @@ removed; don't re-add.
   app is intranet-only behind badge access, so disclosing lockout state
   was judged acceptable there. Don't "fix" it back to a generic message
   without revisiting that decision.
+- The public registration status page (`registration_status.php`)
+  shows the rejection reason to the applicant. **History:** the reason
+  was deliberately withheld in the same #57 security review
+  (admin-authored free text on an unauthenticated page), then
+  deliberately shown — the same intranet-only reasoning as the #96
+  lockout-countdown restore, plus the reason is written under the
+  reject modal's no-PHI hint and rendered `e()`-escaped. The page
+  still reads only `customer_registration_requests`, never
+  `users`/`customers` (no account enumeration). Don't re-hide the
+  reason without revisiting that decision.
 - Order IDs sequential, never reused.
 - Deactivating a customer never hides/auto-cancels historical orders.
 - Admin triggers password resets but never views/sets the actual
