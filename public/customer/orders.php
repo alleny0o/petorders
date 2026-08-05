@@ -27,7 +27,7 @@ $q = trim($_GET['q'] ?? '');
 // a digits-only term, include any non-digit (e.g. "F-18").
 $qIsId = $q !== '' && ctype_digit($q);
 // Whitelisted against the real enums -- an unknown value behaves like "all".
-$status = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true)
+$status = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'canceled'], true)
     ? $_GET['status'] : '';
 $fulfillment = in_array($_GET['fulfillment'] ?? '', ['radiopharmacy', 'pick_up', 'direct_delivery'], true)
     ? $_GET['fulfillment'] : '';
@@ -62,7 +62,7 @@ canonicalize_get([
 // rows for statuses that have orders, so absent statuses must stay 0.
 // (Everything else the $labId > 0 branch produces is assigned in full
 // there and only read inside the lab-assigned render branch.)
-$statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+$statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'canceled' => 0];
 
 if ($labId > 0) {
     // Lab-scoped: the c.lab_id join condition IS the access control (any
@@ -145,7 +145,7 @@ if ($labId > 0) {
         ['value' => 'pending',   'label' => 'Pending',   'count' => $statusCounts['pending']],
         ['value' => 'accepted',  'label' => 'Accepted',  'count' => $statusCounts['accepted']],
         ['value' => 'completed', 'label' => 'Completed', 'count' => $statusCounts['completed']],
-        ['value' => 'cancelled', 'label' => 'Canceled', 'count' => $statusCounts['cancelled']],
+        ['value' => 'canceled',  'label' => 'Canceled', 'count' => $statusCounts['canceled']],
     ];
 
     $where = $filterWhere;

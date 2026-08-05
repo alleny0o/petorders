@@ -2,19 +2,19 @@
 /**
  * Cancellation Reason card, shared by customer/order_detail.php and
  * staff/order_detail.php (was byte-identical between the two before
- * this extraction). Shown whenever the order is cancelled, regardless
- * of who cancelled it -- a customer already knows their own reason
+ * this extraction). Shown whenever the order is canceled, regardless
+ * of who canceled it -- a customer already knows their own reason
  * from entering it, but a staff-initiated cancel is the case this card
  * actually exists for. Same detail-list row styling as the Order
  * Details/Delivery cards, not a bare paragraph.
  *
  * Included (not called): reads $order and $canceledByLabel from the
  * caller's scope; assigns nothing into that scope. Renders nothing at
- * all unless the order is cancelled with a stored reason, so callers
+ * all unless the order is canceled with a stored reason, so callers
  * include it unconditionally.
  */
 ?>
-<?php if ($order['status'] === 'cancelled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
+<?php if ($order['status'] === 'canceled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
     <div class="card">
         <span class="card__title">Cancellation Reason</span>
         <div class="detail-list">

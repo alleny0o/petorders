@@ -20,7 +20,7 @@ $queueSearch = trim($_GET['q'] ?? '');
 // [F18]FDG order) reads as false positives. To text-search a term that
 // happens to be digits, include any non-digit (e.g. "F-18").
 $queueSearchIsId = $queueSearch !== '' && ctype_digit($queueSearch);
-$queueStatus = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true)
+$queueStatus = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'canceled'], true)
     ? $_GET['status'] : '';
 $queueFulfillment = in_array($_GET['fulfillment'] ?? '', ['radiopharmacy', 'pick_up', 'direct_delivery'], true)
     ? $_GET['fulfillment'] : '';
@@ -99,7 +99,7 @@ $queueFilterWhereSql = where_clause($queueFilterWhere);
 // to a PK (schema.sql), so no join can add or remove rows.
 $queueCountsStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $queueFilterJoins $queueFilterWhereSql GROUP BY o.status");
 $queueCountsStmt->execute($queueFilterParams);
-$queueStatusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+$queueStatusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'canceled' => 0];
 foreach ($queueCountsStmt->fetchAll() as $row) {
     $queueStatusCounts[$row['status']] = (int) $row['c'];
 }
@@ -111,12 +111,12 @@ $queueTabs = [
     ['value' => 'pending',   'label' => 'Pending',   'count' => $queueStatusCounts['pending']],
     ['value' => 'accepted',  'label' => 'Accepted',  'count' => $queueStatusCounts['accepted']],
     ['value' => 'completed', 'label' => 'Completed', 'count' => $queueStatusCounts['completed']],
-    ['value' => 'cancelled', 'label' => 'Canceled', 'count' => $queueStatusCounts['cancelled']],
+    ['value' => 'canceled',  'label' => 'Canceled', 'count' => $queueStatusCounts['canceled']],
 ];
 
 // pending/accepted (actionable) sort soonest-due first -- "delivery
 // timing is the whole game" for a radiotracer department.
-// completed/cancelled (retrospective) sort most-recently-finished
+// completed/canceled (retrospective) sort most-recently-finished
 // first, since requested_datetime is no longer the operative date once
 // an order is done. All (a mixed bag of active and terminal orders) has
 // no single meaningful due-date ordering, so it falls back to newest-
@@ -136,7 +136,7 @@ $queueTabs = [
 // triage anyway.
 if (in_array($queueStatus, ['pending', 'accepted'], true)) {
     $queueOrderBy = 'o.requested_datetime ASC, o.order_id ASC';
-} elseif (in_array($queueStatus, ['completed', 'cancelled'], true)) {
+} elseif (in_array($queueStatus, ['completed', 'canceled'], true)) {
     $queueOrderBy = 'o.updated_at DESC, o.order_id DESC';
 } else {
     $queueOrderBy = 'o.requested_datetime DESC, o.order_id DESC';

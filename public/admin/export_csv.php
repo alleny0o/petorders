@@ -12,7 +12,7 @@ $pdo = get_db();
 // convention as admin/products.php's own filter parsing.
 $start_date = $_GET['start_date'] ?? null;
 $end_date   = $_GET['end_date'] ?? null;
-$status     = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'cancelled'], true) ? $_GET['status'] : '';
+$status     = in_array($_GET['status'] ?? '', ['pending', 'accepted', 'completed', 'canceled'], true) ? $_GET['status'] : '';
 $institute  = ctype_digit((string) ($_GET['institute'] ?? '')) ? (int) $_GET['institute'] : 0;
 $nuclide    = ctype_digit((string) ($_GET['nuclide'] ?? '')) ? (int) $_GET['nuclide'] : 0;
 $product    = ctype_digit((string) ($_GET['product'] ?? '')) ? (int) $_GET['product'] : 0;

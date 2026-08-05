@@ -136,8 +136,8 @@ _Four states (pending, accepted, completed, canceled), five transitions (accept,
 | accept     | staff                                                    | pending → accepted                  |
 | return     | staff                                                    | accepted → pending                  |
 | complete   | staff                                                    | accepted → completed (**terminal**) |
-| cancel     | customer (own pending order) or staff (pending/accepted) | → cancelled                         |
-| reopen     | staff                                                    | cancelled → pending                 |
+| cancel     | customer (own pending order) or staff (pending/accepted) | → canceled                          |
+| reopen     | staff                                                    | canceled → pending                  |
 
 Hard rules:
 
@@ -218,8 +218,8 @@ All in `src/helpers.php` unless noted:
 | `validate_order_input()`                                                      | full order-form validation and normalization (lab scoping, direct-delivery location requirement, 24h HH:MM time)           |
 | `get_new_order_form_data()`                                                   | nuclides/products/locations/product-users for the order form, availability-filtered                                        |
 | `fetch_order_audit_trail()` / `describe_order_transition()`                   | audit feed and human-readable labels                                                                                       |
-| `fetch_order_cancellation_actor()`                                            | who performed the → cancelled transition (staff/admin collapse to "Staff")                                                 |
-| `order_status_label()`                                                        | `orders.status` display label; only override is `cancelled` → "Canceled" (American spelling), everything else is `ucfirst()` |
+| `fetch_order_cancellation_actor()`                                            | who performed the → canceled transition (staff/admin collapse to "Staff")                                                  |
+| `order_status_label()`                                                        | `orders.status` display label, a plain `ucfirst()` (the enum literal is 'canceled', American spelling, so no override is needed) |
 | `can_edit_order_notes()`                                                      | notes-edit permission: staff/admin always, customer only on their own order                                                |
 | `csrf_token()` / `csrf_field()` / `verify_csrf()`                             | CSRF token, hidden form field, and POST verification                                                                       |
 | `e()`                                                                         | HTML escaping (htmlspecialchars, ENT_QUOTES, UTF-8)                                                                        |

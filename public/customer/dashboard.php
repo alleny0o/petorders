@@ -54,7 +54,7 @@ if ($labId > 0) {
          JOIN customers c ON c.user_id = o.customer_id AND c.lab_id = ?';
 
     // Zero-seeded: GROUP BY omits absent statuses.
-    $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+    $statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'canceled' => 0];
     $statusStmt = $pdo->prepare("SELECT o.status, COUNT(*) AS c $labJoin GROUP BY o.status");
     $statusStmt->execute([$labId]);
     foreach ($statusStmt->fetchAll() as $row) {
