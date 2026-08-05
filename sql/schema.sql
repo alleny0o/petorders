@@ -315,7 +315,7 @@ CREATE TABLE lab_product_users (
 -- as a normal row in order_audit_log, not a status of its own. order_id
 -- is a plain AUTO_INCREMENT: MySQL/MariaDB never reuses an
 -- AUTO_INCREMENT value even after the owning row's status becomes
--- 'cancelled' (and this app never DELETEs orders), satisfying
+-- 'canceled' (and this app never DELETEs orders), satisfying
 -- "sequential, never reused" with no extra bookkeeping. product_user_id
 -- is nullable -- NULL means the ordering customer is the recipient; a
 -- row is only required when someone else is. delivery method is no
@@ -330,7 +330,7 @@ CREATE TABLE lab_product_users (
 -- no cost column of any kind here -- this project does not track cost.
 -- cancellation_reason is nullable at the DB level for the same reason as
 -- location_id above: it's only conditionally required (whenever a
--- transition sets status to 'cancelled', from either the customer or
+-- transition sets status to 'canceled', from either the customer or
 -- staff cancel path), which transition_order_status() (src/helpers.php)
 -- enforces at the app layer rather than as a DB constraint. It's
 -- structured data tied specifically to the cancel event -- distinct from
@@ -349,7 +349,7 @@ CREATE TABLE orders (
   activity_mci         DECIMAL(8,3) NOT NULL,
   requested_datetime   DATETIME NOT NULL,
   notes                TEXT NULL,
-  status               ENUM('pending', 'accepted', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+  status               ENUM('pending', 'accepted', 'completed', 'canceled') NOT NULL DEFAULT 'pending',
   cancellation_reason  VARCHAR(500) NULL,
   chargeable           TINYINT(1) NOT NULL DEFAULT 1,
   created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -382,8 +382,8 @@ CREATE TABLE orders (
 CREATE TABLE order_audit_log (
   audit_id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   order_id           INT UNSIGNED NOT NULL,
-  status_from        ENUM('pending', 'accepted', 'completed', 'cancelled') NULL,
-  status_to          ENUM('pending', 'accepted', 'completed', 'cancelled') NOT NULL,
+  status_from        ENUM('pending', 'accepted', 'completed', 'canceled') NULL,
+  status_to          ENUM('pending', 'accepted', 'completed', 'canceled') NOT NULL,
   changed_by_user_id INT UNSIGNED NOT NULL,
   changed_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_audit_log_order      FOREIGN KEY (order_id)           REFERENCES orders (order_id) ON DELETE CASCADE,

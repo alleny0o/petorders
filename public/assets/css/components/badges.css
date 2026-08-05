@@ -52,7 +52,7 @@
   background: var(--status-error-tint);
 }
 .badge--inactive,
-.badge--cancelled {
+.badge--canceled {
   --badge-dot: var(--status-neutral);
   color: var(--status-neutral-text);
   background: var(--status-neutral-tint);

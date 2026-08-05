@@ -18,7 +18,7 @@ $pdo = get_db();
 // requested_datetime, not created_at.
 $todayStart = date('Y-m-d 00:00:00');
 
-$statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'cancelled' => 0];
+$statusCounts = ['pending' => 0, 'accepted' => 0, 'completed' => 0, 'canceled' => 0];
 foreach ($pdo->query('SELECT status, COUNT(*) AS c FROM orders GROUP BY status') as $statusRow) {
     $statusCounts[$statusRow['status']] = (int) $statusRow['c'];
 }

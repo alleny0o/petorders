@@ -478,7 +478,7 @@ function can_edit_order_notes(string $role, bool $isOwnOrder): bool
  * below, same as can_edit_order_notes() above -- $_SESSION['role'] holds
  * the literal role, and admin can do everything staff can per the Roles
  * table). $cancellationReason is required (non-empty, <=500 chars)
- * whenever $toStatus is 'cancelled', from either actor -- structured data
+ * whenever $toStatus is 'canceled', from either actor -- structured data
  * tied to the cancel event, distinct from the general notes field.
  * Returns ['ok' => true] on success, or ['ok' => false, 'reason' =>
  * 'reason_required' | 'not_transitionable'] so each call site can render
@@ -492,18 +492,18 @@ function transition_order_status(PDO $pdo, int $orderId, string $toStatus, strin
 
     $transitions = [
         'customer' => [
-            'cancelled' => ['pending'],
+            'canceled' => ['pending'],
         ],
         'staff' => [
             'accepted'  => ['pending'],
-            // 'return' (accepted -> pending) and 'reopen' (cancelled ->
+            // 'return' (accepted -> pending) and 'reopen' (canceled ->
             // pending) share this one target -- the state machine doesn't
             // distinguish them, only the UI copy does (see
             // describe_order_transition() below). completed is the only
-            // truly terminal status now that cancelled can be reopened.
-            'pending'   => ['accepted', 'cancelled'],
+            // truly terminal status now that canceled can be reopened.
+            'pending'   => ['accepted', 'canceled'],
             'completed' => ['accepted'],
-            'cancelled' => ['pending', 'accepted'],
+            'canceled'  => ['pending', 'accepted'],
         ],
     ];
 
@@ -513,7 +513,7 @@ function transition_order_status(PDO $pdo, int $orderId, string $toStatus, strin
     $allowedFrom = $transitions[$actorRole][$toStatus];
 
     $reason = null;
-    if ($toStatus === 'cancelled') {
+    if ($toStatus === 'canceled') {
         $reason = trim((string) $cancellationReason);
         if ($reason === '' || mb_strlen($reason) > 500) {
             return ['ok' => false, 'reason' => 'reason_required'];
@@ -543,10 +543,10 @@ function transition_order_status(PDO $pdo, int $orderId, string $toStatus, strin
             return ['ok' => false, 'reason' => 'not_transitionable'];
         }
 
-        if ($toStatus === 'cancelled') {
+        if ($toStatus === 'canceled') {
             $pdo->prepare('UPDATE orders SET status = ?, cancellation_reason = ? WHERE order_id = ?')
                 ->execute([$toStatus, $reason, $orderId]);
-        } elseif ($toStatus === 'pending' && $fromStatus === 'cancelled') {
+        } elseif ($toStatus === 'pending' && $fromStatus === 'canceled') {
             // Reopening: clear the stale reason so it doesn't keep showing
             // on an order that's active again -- the cancel event itself
             // stays visible as its own permanent row in order_audit_log,
@@ -572,7 +572,7 @@ function transition_order_status(PDO $pdo, int $orderId, string $toStatus, strin
 }
 
 /**
- * Who performed the -> cancelled transition on this order, per
+ * Who performed the -> canceled transition on this order, per
  * order_audit_log (written atomically by transition_order_status()
  * above). is_customer distinguishes customer from staff/admin via the
  * same table-membership check determine_role() (src/auth.php) uses --
@@ -580,7 +580,7 @@ function transition_order_status(PDO $pdo, int $orderId, string $toStatus, strin
  * (this app has no reason to name an individual staff member to a
  * customer); shared by customer/order_detail.php and
  * staff/order_detail.php, which both need this exact lookup. Only
- * meaningful for a cancelled order, so the single -> cancelled row
+ * meaningful for a canceled order, so the single -> canceled row
  * (cancel is terminal) is exactly the one we want.
  */
 function fetch_order_cancellation_actor(PDO $pdo, int $orderId): ?array
@@ -590,7 +590,7 @@ function fetch_order_cancellation_actor(PDO $pdo, int $orderId): ?array
          FROM order_audit_log al
          JOIN users u ON u.user_id = al.changed_by_user_id
          LEFT JOIN customers c ON c.user_id = al.changed_by_user_id
-         WHERE al.order_id = ? AND al.status_to = \'cancelled\'
+         WHERE al.order_id = ? AND al.status_to = \'canceled\'
          ORDER BY al.changed_at DESC
          LIMIT 1'
     );
@@ -604,7 +604,7 @@ function fetch_order_cancellation_actor(PDO $pdo, int $orderId): ?array
  * Full order_audit_log history for one order, oldest first, each row
  * resolved to its actor's name/username and customer-vs-staff role (same
  * join shape as fetch_order_cancellation_actor() above, generalized to
- * every row instead of just the -> cancelled one). Built for
+ * every row instead of just the -> canceled one). Built for
  * staff/order_detail.php's Activity card -- staff sees the real actor
  * name there (not the customer-facing "Staff" collapse), since knowing
  * which colleague did what is the whole point of an internal audit
@@ -628,15 +628,12 @@ function fetch_order_audit_trail(PDO $pdo, int $orderId): array
 }
 
 /**
- * Display label for an orders.status value. A plain ucfirst() of the raw
- * DB value would print "Cancelled" (the stored enum spelling, British);
- * this is the one override needed to show the American "Canceled" in the
- * UI without touching the enum itself. Every other status already
- * ucfirst()s correctly as-is.
+ * Display label for an orders.status value: a plain ucfirst() of the raw
+ * DB value.
  */
 function order_status_label(string $status): string
 {
-    return $status === 'cancelled' ? 'Canceled' : ucfirst($status);
+    return ucfirst($status);
 }
 
 /**
@@ -654,10 +651,10 @@ function describe_order_transition(?string $from, string $to): string
     $descriptions = [
         'pending_accepted'   => 'Accepted',
         'accepted_pending'   => 'Returned to pending',
-        'cancelled_pending'  => 'Reopened',
+        'canceled_pending'   => 'Reopened',
         'accepted_completed' => 'Marked completed',
-        'pending_cancelled'  => 'Canceled',
-        'accepted_cancelled' => 'Canceled',
+        'pending_canceled'   => 'Canceled',
+        'accepted_canceled'  => 'Canceled',
     ];
 
     return $descriptions[$from . '_' . $to] ?? (order_status_label($from) . ' → ' . order_status_label($to));

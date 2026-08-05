@@ -106,7 +106,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // shared validation the customer-cancel path and this page's own
         // cancel branch below go through, so this page can't drift from
         // the state machine. 'return' (accepted -> pending) and 'reopen'
-        // (cancelled -> pending) are the same transition as far as
+        // (canceled -> pending) are the same transition as far as
         // transition_order_status() is concerned -- only the copy here
         // (and which status the button renders under) distinguishes them.
         $toStatus = ['accept' => 'accepted', 'return' => 'pending', 'complete' => 'completed', 'reopen' => 'pending'][$action];
@@ -129,12 +129,12 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $order = fetch_order_for_staff($pdo, $orderId);
         $notesEditable = $order !== null && can_edit_order_notes($staffRole, false);
     } elseif ($action === 'cancel') {
-        // Staff-initiated pending|accepted -> cancelled. Same shared
+        // Staff-initiated pending|accepted -> canceled. Same shared
         // reason-modal pattern as customer/order_detail.php -- on
         // failure, fall through to render instead of redirecting, so the
         // modal can reopen with the error.
         $cancelReasonOld = trim((string) ($_POST['cancellation_reason'] ?? ''));
-        $result = transition_order_status($pdo, $orderId, 'cancelled', $staffRole, $staffUserId, $cancelReasonOld);
+        $result = transition_order_status($pdo, $orderId, 'canceled', $staffRole, $staffUserId, $cancelReasonOld);
 
         if ($result['ok']) {
             $dest = '/staff/order_detail.php?id=' . $orderId . '&canceled=1';
@@ -181,7 +181,7 @@ if ($order !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // too, even though the Activity card below (a separate feature) names
 // the actual staff member -- this card is deliberately the same output
 // as the customer-facing one.
-$cancellationActor = ($order !== null && $order['status'] === 'cancelled')
+$cancellationActor = ($order !== null && $order['status'] === 'canceled')
     ? fetch_order_cancellation_actor($pdo, (int) $order['order_id'])
     : null;
 $canceledByLabel = null;
@@ -310,7 +310,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                                 <button type="submit" class="btn btn--primary">Complete</button>
                             </form>
                             <button type="button" class="btn btn--danger" id="cancel-order-trigger" aria-haspopup="dialog">Cancel Order</button>
-                        <?php elseif ($order['status'] === 'cancelled'): ?>
+                        <?php elseif ($order['status'] === 'canceled'): ?>
                             <?php // Same weight as Return (btn--secondary, plain
                                   // data-confirm) -- reopening needs no
                                   // justification, unlike canceling, so no
@@ -435,7 +435,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
 
                 <?php // Cancellation Reason + Notes cards: shared partials (see
                       // their headers for the variable contracts; the
-                      // cancellation card self-guards on cancelled+reason). ?>
+                      // cancellation card self-guards on canceled+reason). ?>
                 <?php include __DIR__ . '/../../src/partials/order_cancellation_card.php'; ?>
 
                 <?php include __DIR__ . '/../../src/partials/order_notes_card.php'; ?>
@@ -530,7 +530,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
                 </dl>
             <?php endif; ?>
 
-            <?php if ($order['status'] === 'cancelled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
+            <?php if ($order['status'] === 'canceled' && $order['cancellation_reason'] !== null && $order['cancellation_reason'] !== ''): ?>
                 <div class="order-print__section-title">Cancellation Reason</div>
                 <dl class="order-print__grid">
                     <?php if ($canceledByLabel !== null): ?>

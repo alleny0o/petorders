@@ -248,7 +248,7 @@ for all order types; cyclotron-run specifics go in Notes, not a separate
 table.
 
 **Lifecycle:** `orders.status` ∈ `pending`, `accepted`, `completed`,
-`cancelled`. All transitions go through `transition_order_status()`
+`canceled`. All transitions go through `transition_order_status()`
 (`src/helpers.php`), the single validated path, audit-logged atomically.
 Order creation is deliberately not a transition: `customer/new_order.php`
 inserts the order and its `NULL → 'pending'` audit row directly, in the
@@ -260,8 +260,8 @@ same transaction; the one intentional `order_audit_log` write outside
 | accept | staff | pending → accepted |
 | return | staff | accepted → pending |
 | complete | staff | accepted → completed (terminal) |
-| cancel | customer (own order) or staff (any) | pending/accepted → cancelled |
-| reopen | staff | cancelled → pending |
+| cancel | customer (own order) or staff (any) | pending/accepted → canceled |
+| reopen | staff | canceled → pending |
 
 `completed` is the only true terminal status. `orders.cancellation_reason`
 (varchar 500) is required on every cancel, cleared on reopen.

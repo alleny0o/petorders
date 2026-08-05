@@ -70,7 +70,7 @@ try {
     
     $pdo->beginTransaction();
 
-    $statuses = ['pending', 'accepted', 'completed', 'cancelled'];
+    $statuses = ['pending', 'accepted', 'completed', 'canceled'];
     $sample_notes = [
         "Please rush if possible.", 
         "Standard morning delivery.", 
