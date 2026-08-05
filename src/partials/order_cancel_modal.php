@@ -42,6 +42,7 @@
                     <label for="cancellation_reason">Cancellation reason <span class="required-mark">*</span></label>
                     <textarea id="cancellation_reason" name="cancellation_reason" maxlength="500" required data-modal-focus><?= e($cancelReasonOld) ?></textarea>
                     <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
+                    <span class="field-hint char-count" id="cancellation-reason-char-count"><?= mb_strlen($cancelReasonOld) ?>/500</span>
                     <?= field_error($cancelErrors, 'cancellation_reason') ?>
                 </div>
             </div>
