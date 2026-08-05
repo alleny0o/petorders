@@ -4,7 +4,7 @@ PETOrders is the NIH PET Department's internal web application for
 ordering radiopharmaceutical products. Lab members (customers) place
 orders for products by nuclide. PET Department staff process those
 orders through a simple lifecycle (pending, accepted, completed,
-cancelled). Administrators manage accounts, the product catalog, the
+canceled). Administrators manage accounts, the product catalog, the
 institute/lab/PI directory, and reporting.
 
 ## Documentation

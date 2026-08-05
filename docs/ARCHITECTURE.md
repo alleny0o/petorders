@@ -128,8 +128,8 @@ _Availability is computed live, not cascaded. Both the nuclide and the product m
 
 ## Order lifecycle: the state machine
 
-![Order lifecycle state machine: pending, accepted, completed, cancelled with all five transitions](images/architecture/order-lifecycle.png)
-_Four states (pending, accepted, completed, cancelled), five transitions (accept, return, complete, cancel, reopen). Completed is the only terminal state._
+![Order lifecycle state machine: pending, accepted, completed, canceled with all five transitions](images/architecture/order-lifecycle.png)
+_Four states (pending, accepted, completed, canceled), five transitions (accept, return, complete, cancel, reopen). Completed is the only terminal state._
 
 | Transition | Who                                                      | Path                                |
 | ---------- | -------------------------------------------------------- | ----------------------------------- |
@@ -205,7 +205,7 @@ handler receives the submit. `order_cancel_modal.php` branches its
 hidden `action` on session role (`cancel_order` customer vs `cancel`
 staff, a pre-existing naming split kept as-is so neither handler
 changed). `order_cancellation_card.php` renders nothing unless the
-order is cancelled with a stored reason, so it's included
+order is canceled with a stored reason, so it's included
 unconditionally.
 
 ## Shared helpers: check here before writing new logic
@@ -278,7 +278,7 @@ centralize it.
 | Destructive actions | `data-confirm*` attributes intercepted by `script.js` into a custom modal, never `window.confirm`                                      |
 | List pages          | `.status-tabs` strip with live counts, explicit-submit filter forms (never live-as-you-type), shared pagination partial (`table_pagination.php`, fed via `$tablePagination`; see the gotcha section). Query strings stay clean: links (`build_query()`) and native form submits (`initFilterFormCleanup()` in script.js) both omit empty/default params and never emit a bare `?` |
 | Count queries       | Joins that exist solely to back the optional search box are added only when the search term is active, never unconditionally. Each tab-counts query joins only what its active filters reference: full join set when searching, `products` alone for the fulfillment filter, bare `orders` otherwise (`staff/orders.php`, `customer/orders.php`). Performance only. Results are identical in every branch, since every droppable join targets a PK via a NOT-NULL FK |
-| List sorting        | Intentionally divergent: `customer/orders.php` keeps one fixed newest-requested-first sort on every tab (order history), `staff/orders.php` sorts per status tab (triage: pending/accepted soonest-requested first, completed/cancelled most recently updated first). Commented in both files; don't align them |
+| List sorting        | Intentionally divergent: `customer/orders.php` keeps one fixed newest-requested-first sort on every tab (order history), `staff/orders.php` sorts per status tab (triage: pending/accepted soonest-requested first, completed/canceled most recently updated first). Commented in both files; don't align them |
 | Create/edit modals  | One skeleton (copy `admin/nuclides.php`'s Add modal). Dirty-tracking + discard-confirm are shared via `window.petordersWireModalDirtyTracking()` in script.js. Each page supplies its own `snapshotForm()` since what counts as a field value varies (labs.php keys its `pi_ids[]` roster by name+value, products.php skips disabled locked-mirror fields). Modal shell intentionally not a shared partial. The one exception is `order_cancel_modal.php`, shared by the two order_detail pages |
 | Order times         | 24-hour `HH:MM` text inputs (pattern-validated), never a native time picker. Real department requirement                               |
 | Badges              | Dotted pills for statuses, square no-dot chips for facts (role, "Not chargeable")                                                      |

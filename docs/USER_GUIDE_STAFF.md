@@ -137,7 +137,7 @@ On a canceled order, click **Reopen** and confirm. The order returns to
 Pending, not Accepted: it re-enters the queue from the start. The old
 cancellation reason is cleared.
 
-![Cancelled order with the Reopen button and cancellation reason card](images/staff/order-detail-cancelled.png)
+![Canceled order with the Reopen button and cancellation reason card](images/staff/order-detail-cancelled.png)
 _A canceled order shows who canceled it and why, and offers Reopen._
 
 ## 9. The Chargeable flag
