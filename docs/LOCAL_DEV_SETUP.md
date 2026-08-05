@@ -57,14 +57,14 @@ whether your local DB needs them are documented in full in
 | Data                                                                                     | Count |
 | ---------------------------------------------------------------------------------------- | ----- |
 | Institutes                                                                               | 27    |
-| Labs                                                                                     | 3     |
-| PIs (with lab↔PI pairings)                                                               | 2     |
-| Accounts (1 admin, 2 staff, 4 customers)                                                 | 7     |
+| Labs                                                                                     | 8     |
+| PIs (with lab↔PI pairings)                                                               | 6     |
+| Accounts (5 admin, 5 staff, 30 customers)                                                | 40    |
 | Nuclides                                                                                 | 5     |
 | Products (one seeded under two fulfillment methods, to exercise the dual-row convention) | 10    |
-| Delivery locations                                                                       | 4     |
-| Product users                                                                            | 2     |
-| Orders (spanning every status, dated relative to today so dashboards stay populated)     | 15    |
+| Delivery locations (one per lab)                                                         | 8     |
+| Product users                                                                            | 5     |
+| Orders (all four statuses, mix of relative-to-today and fixed dates)                     | 50    |
 
 ## 3. Configure the app
 
@@ -100,7 +100,7 @@ change on first login:
 
 ```
 Temp password for all accounts: TempPass123!
-Rows updated: 7
+Rows updated: 40
 ```
 
 Safe to re-run any time you want to reset all dev accounts (e.g. after
@@ -117,17 +117,18 @@ rule, see
 
 Open `http://localhost:8888/login.php`. Sign in as any seeded account,
 password `TempPass123!` (you'll be prompted to set a real one, 12+
-characters with a letter and a number):
+characters with a letter and a number). All 40 accounts share that
+password; here's a representative sample (full counts above):
 
-| Username                | Role                             |
-| ----------------------- | -------------------------------- |
-| `robert.nguyen@nih.gov` | admin                            |
-| `maria.santos@nih.gov`  | staff                            |
-| `james.oconnor@nih.gov` | staff                            |
-| `alice.carter@nih.gov`  | customer (Molecular Imaging Lab) |
-| `brian.kim@nih.gov`     | customer                         |
-| `deepa.patel@nih.gov`   | customer                         |
-| `evan.feng@nih.gov`     | customer                         |
+| Username                                     | Role                                    |
+| --------------------------------------------- | ---------------------------------------- |
+| `puddle.fizzlewick1@example-test.local`      | admin                                   |
+| `rumble.sprocketfield6@example-test.local`   | staff                                   |
+| `rumble.rattlebridge7@example-test.local`    | staff                                   |
+| `zephyr.squigglesby11@example-test.local`    | customer (Neuroimaging Lab)             |
+| `pretzel.muddlecombe12@example-test.local`   | customer (Cardiac Imaging Lab)          |
+| `waffle.puddlejump13@example-test.local`     | customer (Musculoskeletal Imaging Lab)  |
+| `quibble.dazzlebrook14@example-test.local`   | customer (Metabolic Imaging Lab)        |
 
 ## 6. seed.sql vs. bootstrap_admin.php: don't mix them up
 
@@ -136,7 +137,7 @@ Two very different setup paths share the `tools/` folder:
 |                   | Dev sandbox (this guide)                                                   | Production launch                                                                                               |
 | ----------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Database contents | `schema.sql` + `seed.sql`                                                  | `schema.sql` only                                                                                               |
-| Accounts          | 7 seeded accounts                                                          | exactly 1 real admin                                                                                            |
+| Accounts          | 40 seeded accounts                                                         | exactly 1 real admin                                                                                            |
 | Tool              | `tools/set_temp_passwords.php`, bulk-resets all accounts to `TempPass123!` | `tools/bootstrap_admin.php <email> <first> <last> <phone>`, creates the single admin, prints a random one-time password |
 | Guard             | none (re-runnable)                                                         | refuses to run if `users` has any rows                                                                          |
 

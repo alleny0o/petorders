@@ -198,7 +198,7 @@ handles the submit. `order_cancel_modal.php` branches its hidden
 `action` on session role (`cancel_order` for customer vs `cancel` for
 staff; a pre-existing naming split kept as-is so neither POST handler
 changed). `order_cancellation_card.php` renders nothing unless the
-order is cancelled with a stored reason, so callers include it
+order is canceled with a stored reason, so callers include it
 unconditionally.
 
 ## Database
@@ -411,7 +411,7 @@ on the deactivated customer account, no linkage.
 - Intentional list-sort divergence: `customer/orders.php` keeps one
   fixed newest-requested-first sort on every tab (it's order history);
   `staff/orders.php` sorts per status tab (it's triage:
-  pending/accepted soonest-requested first, completed/cancelled most
+  pending/accepted soonest-requested first, completed/canceled most
   recently updated first). Commented in both files; don't align them.
 
 ## Admin CRUD Page Conventions

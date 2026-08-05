@@ -8,7 +8,7 @@ A few things that apply everywhere:
 - **Your view is your lab's view.** Orders placed by anyone in your lab
   show up in your lists and dashboard, and your lab-mates can see yours.
 - **You are signed out after 15 minutes of inactivity.** If the app sends
-  you back to the login page, that's usually why. Just log in again.
+  you back to the login page, that's usually why. Log in again.
 - **A small blue dot** next to an order means it's been updated since
   you last looked.
 
@@ -90,7 +90,7 @@ Two things to know about logging in:
   try again. The fields clear after each failed attempt, so retype both.
 - After several wrong attempts in a row, your account locks for about
   15 minutes and the login page says "Account temporarily locked" with
-  the minutes remaining. Wait it out and try again; even the right
+  the minutes remaining. Wait it out and try again. Even the right
   password won't work until the lock expires.
 
 ## 4. Your dashboard
@@ -102,7 +102,7 @@ _The dashboard: your lab's order counts on top, recent orders below, and your la
 
 | Section       | What it shows                                                                                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stat tiles    | Pending Orders (with a note when any are past their requested time), Upcoming Orders (orders requested for today or later, with the next requested time), Requested This Month, and Total Orders, all for your whole lab. Click a tile to jump to the matching filtered list |
+| Stat tiles    | Four tiles for your whole lab: Pending Orders (flags any past their requested time), Upcoming Orders (requested for today or later, with the next requested time), Requested This Month, and Total Orders. Click a tile to jump to its matching filtered list |
 | Recent Orders | The five of your lab's orders with the most recent requested times. Click **View** to open one                                                                             |
 | My Lab        | Your lab and institute, with a **View full info** button showing your full account details                                                                                 |
 | Quick Links   | Shortcuts to Delivery Locations and Product Users (sections 10 and 11)                                                                                                     |
@@ -117,33 +117,33 @@ _The New Order form. Fields appear in the order you fill them: nuclide first, th
 
 Work top to bottom:
 
-1. **Nuclide**, pick the nuclide first. The product list depends on it.
-2. **Product**, pick the product. Each option shows how it's fulfilled
+1. **Nuclide**: pick the nuclide first. The product list depends on it.
+2. **Product**: pick the product. Each option shows how it's fulfilled
    (Radiopharmacy, Pick Up, or Direct Delivery). Fulfillment is fixed
    per product. If the same product appears twice, that's two
-   fulfillment options, pick the one you need.
-3. **Delivery location**, this field only appears when you've picked a
-   Direct Delivery product. Choose where in your lab the dose should
-   go. If the list is empty, there's a link to add a location first
-   (see section 10).
+   fulfillment options; pick the one you need.
+3. **Delivery location**: appears only when you've picked a Direct
+   Delivery product. Choose where in your lab the dose should go. If
+   the list is empty, there's a link to add a location first (see
+   section 10).
 
    ![New order form showing the delivery location field for a Direct Delivery product](images/customer/new-order-delivery-location.png)
    _The Delivery section appears only for Direct Delivery products._
 
-4. **Activity (mCi)**, the requested activity.
-5. **Requested date**, pick the date.
-6. **Requested time**, type the time in 24-hour format, like `14:30`
+4. **Activity (mCi)**: the requested activity.
+5. **Requested date**: pick the date.
+6. **Requested time**: type the time in 24-hour format, like `14:30`
    for 2:30 PM.
-7. **Notes** (optional), anything staff should know about this order,
+7. **Notes** (optional): anything staff should know about this order,
    up to 500 characters. For special requests (for example,
-   cyclotron-run specifics), this is the place to put them.
-8. **Product user** (optional), who will receive the dose. Leave it on
+   cyclotron-run specifics), put them here.
+8. **Product user** (optional): who will receive the dose. Leave it on
    "I'm the recipient..." if it's you, or pick someone from your lab's
    product user list (see section 11).
 
-Click **Place order**. You'll be asked to confirm. After confirming, you land on the new order's page with an "Order
-placed." message. The order starts out Pending, staff take it from
-there.
+Click **Place order**, then confirm. You'll land on the new order's page
+with an "Order placed" message. The order starts out Pending. Staff
+take it from there.
 
 If you close the form partway through, you'll be asked whether to
 discard what you entered, so you won't lose work to a stray click.
@@ -171,16 +171,16 @@ _An order's detail page: status at the top, full order details below, and a Prin
 ## 7. Editing a pending order
 
 Open one of your own orders while it's still Pending and you'll see an
-**Edit Order** button on the details card. (Orders your lab-mates
-placed, and orders that staff have already accepted, can't be edited. If
+**Edit Order** button on the details card. Orders your lab-mates placed,
+and orders that staff have already accepted, can't be edited. If
 something needs to change on those, put it in the Notes or contact
-staff.)
+staff.
 
 ![Order detail page in edit mode](images/customer/order-edit.png)
 _Editing a pending order, the same fields as the order form._
 
-Change what you need: nuclide, product, delivery location, activity,
-date, time, or product user, and click **Save Changes**, then confirm.
+Change what you need (nuclide, product, delivery location, activity,
+date, time, or product user), then click **Save Changes** and confirm.
 **Discard Changes** backs out without saving.
 
 ## 8. Adding or editing notes on an order
@@ -204,12 +204,12 @@ Type the reason for canceling (required) and click **Cancel Order**, or
 **Keep Order** to back out. The order moves to Canceled, and the reason
 is saved on the order for everyone to see.
 
-If you cancel by mistake, contact staff, they can reopen a canceled
+If you cancel by mistake, contact staff. They can reopen a canceled
 order.
 
 Once staff have accepted an order, you can no longer cancel it yourself.
-Contact staff and they can cancel it for you (staff will also record a
-reason).
+Contact staff. They can cancel it for you and will also record a
+reason.
 
 ## 10. Managing delivery locations
 
@@ -224,10 +224,10 @@ _Your lab's delivery locations. Only Active locations can be picked on new order
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | Add                   | Click **+ Add Location**, enter a Name (required) and Room (optional), click **Add Location**                                   |
 | Edit                  | Click Edit on a row to change its name or room                                                                                  |
-| Deactivate / Activate | Deactivating removes it from the choices on new orders. Doesn't touch past orders, nothing is ever deleted. Reactivate any time |
+| Deactivate / Activate | Deactivating removes it from the choices on new orders. Doesn't touch past orders. Nothing is ever deleted. Reactivate any time |
 
 ![Add delivery location dialog](images/customer/delivery-location-add-modal.png)
-_Adding a delivery location, just a name and an optional room._
+_Adding a delivery location: a name and an optional room._
 
 ## 11. Managing product users
 
@@ -259,6 +259,6 @@ _My Info is view-only. To change any of these details, contact an administrator.
 This information is view-only. If your lab, PI, phone, or name changes,
 an administrator makes the update for you.
 
-The one thing you manage yourself is your password, use **Change
+The one thing you manage yourself is your password. Use **Change
 Password** (linked from My Info). You'll need your current password,
 and the new one follows the same rules as in section 3.
