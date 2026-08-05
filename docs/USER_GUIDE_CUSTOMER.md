@@ -64,7 +64,7 @@ _The status page tells you whether your registration is Pending, Approved, or Re
 | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Pending  | An administrator hasn't reviewed it yet                                                                                        |
 | Approved | You're in. Your login details come from an administrator via NIH email. If you haven't received them, contact an administrator |
-| Rejected | Your request wasn't approved. Contact an administrator for details. You're welcome to submit a new registration                |
+| Rejected | Your request wasn't approved; the page shows the administrator's reason. You're welcome to submit a new registration, or contact an administrator if you have questions |
 
 ## 3. Logging in for the first time
 

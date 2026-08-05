@@ -362,18 +362,27 @@ $pageTitle = 'Registrations';
                  to the old inline <details> form. -->
             <div class="modal-overlay" id="reject-modal" hidden>
                 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
+                    <div class="modal__header">
+                        <h2 class="modal__title" id="reject-modal-title">Reject registration</h2>
+                        <button type="button" class="modal__close" data-modal-close aria-label="Close">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
                     <form method="post" id="reject-form" novalidate data-ajax-submit>
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="reject">
                         <input type="hidden" name="request_id" id="reject-request-id" value="<?= $rejectRetryId ?>">
                         <div class="modal__body">
-                            <h2 class="modal__title" id="reject-modal-title">Reject registration</h2>
                             <p class="modal__message">Rejecting <strong id="reject-applicant-name">this request</strong>. The applicant sees your reason on the status page and may submit a new registration.</p>
                             <div class="alert alert--error" data-error-banner-for="reject-form" <?= $rejectErrors ? '' : 'hidden' ?>>Please correct the errors below and resubmit.</div>
                             <div class="<?= $rejectErrors ? 'field field--invalid' : 'field' ?> mb-0">
                                 <label for="reject-reason">Reason <span class="required-mark">*</span></label>
                                 <textarea id="reject-reason" name="reason" maxlength="500" required data-modal-focus><?= e($rejectErrors ? (string) reset($rejectOld) : '') ?></textarea>
                                 <span class="field-hint">Do not include PHI (patient names, MRNs, or other protected health information) in this field.</span>
+                                <span class="field-hint char-count" id="reject-reason-char-count"><?= mb_strlen($rejectErrors ? (string) reset($rejectOld) : '') ?>/500</span>
                                 <?php if ($rejectErrors): ?>
                                     <span class="field-error"><?= e((string) reset($rejectErrors)) ?></span>
                                 <?php endif; ?>
@@ -394,23 +403,71 @@ document.addEventListener('DOMContentLoaded', function () {
   window.petordersCleanArrivalFlags(['rejected']);
 
   var modal = document.getElementById('reject-modal');
+  var form = document.getElementById('reject-form');
   var requestIdInput = document.getElementById('reject-request-id');
   var applicantLabel = document.getElementById('reject-applicant-name');
+  var reasonField = document.getElementById('reject-reason');
+  var reasonCounter = document.getElementById('reject-reason-char-count');
+
+  function snapshotForm(form) {
+    var values = {};
+    Array.prototype.forEach.call(form.elements, function (el) {
+      if (!el.name) return;
+      values[el.name] = el.value;
+    });
+    return values;
+  }
+
+  // Live character counter for the reason: same behavior as the order
+  // Notes counter (staff/order_detail.php).
+  function updateReasonCounter() {
+    reasonCounter.textContent = reasonField.value.length + '/' + reasonField.maxLength;
+  }
+  reasonField.addEventListener('input', updateReasonCounter);
+  updateReasonCounter();
+
+  // Dirty-tracking + discard-confirm-on-close, shared wiring
+  // (script.js). onDiscard clears the reason so a confirmed discard
+  // doesn't linger into a same-row reopen; the request_id hidden field
+  // is deliberately untouched (form.reset() would revert it to the
+  // server-rendered retry value).
+  var rejectTracking = window.petordersWireModalDirtyTracking(
+    modal,
+    form,
+    snapshotForm,
+    { title: 'Discard this rejection?', message: 'The reason you typed will be discarded.' },
+    function () { reasonField.value = ''; updateReasonCounter(); }
+  );
 
   document.querySelectorAll('.js-reject-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
+      if (btn.dataset.requestId !== requestIdInput.value) {
+        // Opening for a different applicant: drop any reason typed for
+        // the previous one, plus stale error styling (a server-rendered
+        // retry error belongs only to the request it was rendered for).
+        reasonField.value = '';
+        updateReasonCounter();
+        form.querySelectorAll('.field-error').forEach(function (el) { el.remove(); });
+        form.querySelectorAll('.field--invalid').forEach(function (el) { el.classList.remove('field--invalid'); });
+        var banner = form.querySelector('[data-error-banner-for="reject-form"]');
+        if (banner) { banner.hidden = true; }
+      }
       requestIdInput.value = btn.dataset.requestId;
       applicantLabel.textContent = btn.dataset.applicant;
       window.petordersOpenModal(modal, { opener: btn });
+      rejectTracking.markPristine();
     });
   });
 
   <?php if ($rejectErrors): ?>
   // Server-side validation failed — reopen the dialog with the error.
+  // markPristine() here too: the repopulated reason is the baseline, so
+  // closing without further edits shouldn't prompt to discard.
   (function () {
     var btn = document.querySelector('.js-reject-btn[data-request-id="<?= $rejectRetryId ?>"]');
     if (btn) { applicantLabel.textContent = btn.dataset.applicant; }
     window.petordersOpenModal(modal, { opener: btn || undefined });
+    rejectTracking.markPristine();
   })();
   <?php endif; ?>
 });

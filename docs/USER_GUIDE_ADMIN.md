@@ -80,12 +80,12 @@ The customer must change this password the first time they log in.
 ![Reject registration dialog with the required reason field](images/admin/registration-reject-modal.png)
 _Rejecting requires a reason._
 
-The reason is kept on record for admins: the dashboard's Rejected
-Registrations panel for the first 7 days, and the "Previously rejected"
-badge on any resubmission. The applicant's status page tells them only
-that their request was not approved and to contact an administrator, so
-be prepared to explain the reason if they get in touch. Rejected
-applicants can submit a new registration.
+**The applicant sees your reason.** The registration status page shows
+the rejection reason verbatim to the applicant, so write it for their
+eyes — and never include PHI. The reason is also kept on record for
+admins: the dashboard's Rejected Registrations panel for the first
+7 days, and the "Previously rejected" badge on any resubmission.
+Rejected applicants can submit a new registration.
 
 ## 3. Managing customers
 

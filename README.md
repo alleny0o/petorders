@@ -36,7 +36,7 @@ Screenshots referenced by the user guides live in
 Only `public/` is served by Apache; `src/` (application code and DB
 credentials), `sql/`, `tools/`, and `config/` sit above the web root and
 are unreachable by URL. The data model is diagrammed in
-[`sql/EER Diagram.webp`](<sql/EER Diagram.webp>).
+[`sql/eer-diagram.png`](sql/eer-diagram.png).
 
 ## The three roles
 
