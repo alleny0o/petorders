@@ -608,6 +608,18 @@ document.addEventListener('DOMContentLoaded', function () {
             { title: 'Discard this cancellation?', message: 'The reason you typed will be discarded.' },
             function () { cancelReasonField.value = ''; }
         );
+
+        // Live character counter for the reason: same behavior as the
+        // Notes counter below and the reject-reason counter on
+        // admin/registrations.php.
+        var cancelReasonCounter = document.getElementById('cancellation-reason-char-count');
+        if (cancelReasonField && cancelReasonCounter) {
+            var updateCancelReasonCounter = function () {
+                cancelReasonCounter.textContent = cancelReasonField.value.length + '/' + cancelReasonField.maxLength;
+            };
+            cancelReasonField.addEventListener('input', updateCancelReasonCounter);
+            updateCancelReasonCounter();
+        }
     }
     if (cancelTrigger && cancelModal) {
         cancelTrigger.addEventListener('click', function (e) {
