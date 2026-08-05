@@ -24,7 +24,7 @@ synthetic orders, no staff/customer accounts, and no demo banner.
 2. [AWS infrastructure](#2-aws-infrastructure)
 3. [AWS-specific quirks (vs. a NIH RHEL install)](#3-aws-specific-quirks-vs-a-nih-rhel-install)
 4. [DNS (Cloudflare)](#4-dns-cloudflare)
-5. [HTTP Basic Auth (demo-only layer)](#5-http-basic-auth-demo-only-layer)
+5. [HTTP Basic Auth (history)](#5-http-basic-auth-history)
 6. [Cost](#6-cost)
 7. [Teardown](#7-teardown)
 
@@ -37,7 +37,7 @@ synthetic orders, no staff/customer accounts, and no demo banner.
 | URL | `https://demo.ccpetd.com` |
 | HTTPS | Let's Encrypt cert via certbot, auto-renewal scheduled |
 | HTTP behavior | 301 redirect to HTTPS |
-| Access control | HTTP Basic Auth (Apache level) in front of the entire site, then the app's own login |
+| Access control | The app's own login only (an HTTP Basic Auth layer ran temporarily; see [§5](#5-http-basic-auth-history)) |
 | Accounts | One admin (`demo.admin@example.com`), created via `tools/bootstrap_admin.php` |
 | Data | None: empty schema, no seed data, no orders |
 | Credentials | Bitwarden only, shared out-of-band. Nothing committed to git. |
@@ -77,7 +77,7 @@ Security group `petorders-demo-sg`, inbound:
 | No firewalld | `firewall-cmd: command not found` on this AMI. The AWS security group is the only firewall layer; DEPLOYMENT.md's firewalld step is a no-op here (guide now notes this case). |
 | PHP source | RHEL 8 AppStream tops out at PHP 8.2, and the demo intentionally ran PHP **8.3.33** from the Remi repo (`php:remi-8.3` module stream) instead of the 7.4.33 production target. App ran with zero code changes, noted in DEPLOYMENT.md as a version-bump data point. |
 | Cert issuance | `certbot --apache` (Let's Encrypt) instead of an IT-issued cert. Required port 80 reachable during issuance; certbot generated its own `:443` vhost (`petorders-le-ssl.conf`) and the HTTP→HTTPS redirect. This path is what surfaced the SSL sequencing trap now documented in DEPLOYMENT.md §5. |
-| Internet exposure | Automated bots probed `/.env`, `/.git`, `/.aws`, and cgi-bin paths within minutes of DNS going live. All denied (403/404) by the app's `.htaccess` hardening. This motivated the Basic Auth layer below. |
+| Internet exposure | Automated bots probed `/.env`, `/.git`, `/.aws`, and cgi-bin paths within minutes of DNS going live. All denied (403/404) by the app's `.htaccess` hardening. This motivated the temporary Basic Auth layer described in [§5](#5-http-basic-auth-history). |
 
 ## 4. DNS (Cloudflare)
 
@@ -91,10 +91,15 @@ One record in the `ccpetd.com` zone:
 > reach the EC2 box directly. Proxying through Cloudflare would add an
 > unnecessary layer (and mask visitor IPs) for a disposable demo.
 
-## 5. HTTP Basic Auth (demo-only layer)
+## 5. HTTP Basic Auth (history)
 
-Not part of the production design (intranet app); added here because
-the demo is internet-reachable.
+Not part of the production design (intranet app). An HTTP Basic Auth
+layer was added at the Apache level in front of the entire site,
+motivated by the bot probing noted in §3, requiring a second prompt
+before the app's own login. It has since been removed; the site is
+now reachable directly, gated by the app's own login only. Kept here
+for reference in case a future internet-reachable demo wants the same
+layer:
 
 ```bash
 sudo htpasswd -c /etc/httpd/.htpasswd-petorders demo
@@ -115,9 +120,7 @@ Require valid-user
 sudo apachectl configtest && sudo systemctl restart httpd
 ```
 
-Verified: browser-native auth prompt appears before anything loads;
-after Basic Auth, the normal PETOrders login page is served. The
-`.htpasswd` file lives outside the document root and can never be
+The `.htpasswd` file lives outside the document root and can never be
 served.
 
 ## 6. Cost

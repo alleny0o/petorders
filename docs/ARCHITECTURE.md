@@ -90,11 +90,11 @@ and is structurally unreachable by URL. Never move application code into
 
 ## Role model
 
-`users` has no role column. Role is membership in a marker table.
+Role is membership in a marker table, not a column on `users`.
 
-<img src="images/architecture/role-model.png" width="33%" alt="Description">
+<img src="images/architecture/role-model.png" width="33%" alt="Role model: users has no role column; role comes from membership in customers, staff, or admins">
 
-_`users` has no role column. Role comes from membership in `customers`, `staff`, or `admins` (a subset of `staff`). Customers are further scoped by `lab_id`._
+_Role comes from membership in `customers`, `staff`, or `admins` (a subset of `staff`). Customers are further scoped by `lab_id`._
 
 | Table       | Notes                                                                                     |
 | ----------- | ----------------------------------------------------------------------------------------- |

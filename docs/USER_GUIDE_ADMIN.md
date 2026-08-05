@@ -9,8 +9,8 @@ directory (institutes, labs, PIs), and exporting reports.
 Two rules that shape almost everything below:
 
 - **Nothing is ever deleted.** Nuclides, products, institutes, labs,
-  PIs, delivery locations, and accounts are deactivated, which only
-  affects what can be chosen going forward. History is never touched.
+  PIs, delivery locations, and accounts are deactivated instead, which
+  only affects what can be chosen going forward, never past history.
 - **PETOrders never sends email.** Every temporary password the system
   generates is shown to you exactly once, on screen. You relay it to
   the person via NIH email yourself.
@@ -109,14 +109,12 @@ rule to know about lab and PI changes:
 | Changing to a different lab or PI | Requires the new choice to be active, and the lab and PI must be paired (the PI is on that lab's roster, see section 7). Inactive entries show "(inactive)" in the dropdowns. |
 
 **Deactivate Customer** signs them out immediately and blocks future
-logins. Their order history stays fully intact and visible, nothing is
-hidden or canceled. **Reactivate Customer** restores access.
+logins, without touching their order history. **Reactivate Customer**
+restores access.
 
 **Reset Password** generates a new temporary password (their current
-password stops working immediately, and any lockout is cleared):
-
-![Temporary password banner after a customer password reset](images/admin/customer-reset-password-banner.png)
-_Like approval passwords, a reset password is shown once, for a short time. Copy it right away and relay it via NIH email._
+password stops working immediately, and any lockout is cleared), shown
+in the same one-time banner as an approval password (section 2).
 
 The banner is deliberately short-lived: it appears once and expires
 after about a minute. If you miss it, run Reset Password again.

@@ -100,16 +100,13 @@ On an accepted order, click **Return** and confirm. The order goes back
 to Pending in the queue, and the customer regains the ability to edit or
 cancel it.
 
-![Accepted order with Return, Complete, and Cancel buttons](images/staff/order-detail-accepted.png)
-_An accepted order offers Return, Complete, and Cancel Order._
-
 ## 6. Completing an order
 
 When: the order has been fulfilled, the dose was delivered or picked up.
 
-On an accepted order, click **Complete** and confirm. This is final. A
-completed order can never change status again: there is no undo and no
-reopen. If you're not certain, leave it accepted until you are.
+On an accepted order, click **Complete** and confirm. This is final: a
+completed order has no undo and no reopen. If you're not certain, leave
+it accepted until you are.
 
 ## 7. Canceling an order
 
@@ -136,9 +133,6 @@ on.
 On a canceled order, click **Reopen** and confirm. The order returns to
 Pending, not Accepted: it re-enters the queue from the start. The old
 cancellation reason is cleared.
-
-![Canceled order with the Reopen button and cancellation reason card](images/staff/order-detail-cancelled.png)
-_A canceled order shows who canceled it and why, and offers Reopen._
 
 ## 9. The Chargeable flag
 
