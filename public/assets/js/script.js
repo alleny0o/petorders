@@ -1250,7 +1250,7 @@ function initFieldErrorClearing() {
 function initAjaxForms() {
   document.querySelectorAll('form[data-ajax-submit]').forEach((form) => {
     form.addEventListener('submit', async (e) => {
-      // 1. Guard checks (confirm dialogs & double-submit protection)
+      // Guard checks (confirm dialogs & double-submit protection)
       if (e.defaultPrevented || form.dataset.submitting === 'true') return;
       e.preventDefault();
       form.dataset.submitting = 'true';
