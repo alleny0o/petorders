@@ -148,7 +148,7 @@ if ($petordersNeedsOrderForm && !isset($petordersLayout['nuclides'])) {
         <div class="my-info-identity__avatar"><?= e($petordersLayout['initials']) ?></div>
         <div>
           <div class="my-info-identity__name"><?= e($petordersLayout['name']) ?></div>
-          <div class="my-info-identity__username"><?= e($petordersLayout['account']['username']) ?> (used to log in)</div>
+          <div class="my-info-identity__username"><?= e($petordersLayout['account']['username']) ?></div>
         </div>
       </div>
 

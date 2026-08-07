@@ -47,12 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (mb_strlen($old['last_name']) > 100) {
         $fieldErrors['last_name'] = 'Last name must be 100 characters or fewer.';
     }
-    if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
-        $fieldErrors['email'] = 'A valid email is required.';
-    } elseif (mb_strlen($old['email']) > 50) {
+    // if ($old['email'] === '' || !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+    //     $fieldErrors['email'] = 'A valid email is required.';
+    if (mb_strlen($old['email']) > 50) {
         // 50, not the column's 254: on approval this email becomes
         // users.username, which is VARCHAR(50).
-        $fieldErrors['email'] = 'Email must be 50 characters or fewer.';
+        $fieldErrors['email'] = 'Username must be 50 characters or fewer.';
     }
     if ($old['phone'] === '') {
         $fieldErrors['phone'] = 'Phone is required.';
@@ -109,14 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("SELECT 1 FROM customer_registration_requests WHERE email = ? AND status = 'pending'");
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $fieldErrors['email'] = 'A registration for this email is already pending.';
+            $fieldErrors['email'] = 'A registration for this username is already pending.';
         }
     }
     if (!$fieldErrors) {
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = ? AND active = 1');
         $stmt->execute([$old['email']]);
         if ($stmt->fetchColumn()) {
-            $fieldErrors['email'] = 'An account already exists for this email.';
+            $fieldErrors['email'] = 'An account already exists for this username.';
         }
     }
 
@@ -262,9 +262,8 @@ $pageTitle = 'Register';
 
                 <div class="field-row">
                   <div class="<?= field_class($fieldErrors, 'email') ?>">
-                    <label for="email">Email <span class="required-mark">*</span></label>
+                    <label for="email">Username <span class="required-mark">*</span></label>
                     <input type="email" id="email" name="email" value="<?= e($old['email']) ?>" maxlength="50" required>
-                    <span class="field-hint">This becomes your username.</span>
                     <?= field_error($fieldErrors, 'email') ?>
                   </div>
                   <div class="<?= field_class($fieldErrors, 'phone') ?>">
