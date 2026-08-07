@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$request['email']]);
                 if ($stmt->fetchColumn()) {
                     $pdo->rollBack();
-                    $flash = ['type' => 'error', 'message' => 'An active account already exists for this username.'];
+                    $flash = ['type' => 'error', 'message' => 'An active account already exists for this email.'];
                 } else {
                     $tempPassword = generate_temp_password();
                     $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (PDOException $e) {
             $pdo->rollBack();
-            $flash = ['type' => 'error', 'message' => 'Could not create the account. An account for this username may already exist.'];
+            $flash = ['type' => 'error', 'message' => 'Could not create the account. An account for this email may already exist.'];
         }
     } elseif ($action === 'reject' && $requestId > 0) {
         $reason = trim($_POST['reason'] ?? '');
@@ -285,7 +285,7 @@ $pageTitle = 'Registrations';
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Username</th>
+                                    <th>Email</th>
                                     <th>Institute</th>
                                     <th>Lab</th>
                                     <th>PI</th>
