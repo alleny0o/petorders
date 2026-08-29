@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         record_password_history($pdo, (int) $_SESSION['user_id'], $currentHash);
 
         $pdo->prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?')
-            ->execute([password_hash($newPassword, PASSWORD_BCRYPT), $_SESSION['user_id']]);
+            ->execute([password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]), $_SESSION['user_id']]);
 
         $_SESSION['must_change_password'] = false;
 
@@ -117,7 +117,7 @@ $pageTitle = 'Change Password';
         </div>
       </div>
     </div>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 // DOMContentLoaded (app convention -- script.js, layout partials).
 document.addEventListener('DOMContentLoaded', function () {
     // ---- Live character counter for the new password: same pattern as

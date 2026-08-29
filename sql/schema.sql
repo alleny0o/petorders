@@ -14,6 +14,8 @@ DROP TABLE IF EXISTS customer_registration_requests;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS auth_events;
+DROP TABLE IF EXISTS request_throttle;
 DROP TABLE IF EXISTS lockout_events;
 DROP TABLE IF EXISTS password_history;
 DROP TABLE IF EXISTS users;
@@ -141,6 +143,52 @@ CREATE TABLE lockout_events (
   -- 90 days are pruned by tools/prune_lockout_events.php (growth here is
   -- attacker-controlled, not order-volume-controlled).
   KEY idx_lockout_events_locked_at (locked_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- Per-IP request throttling (findings H1, M5). Complements lockout_events,
+-- which counts failures per ACCOUNT and therefore cannot see one source
+-- spraying attempts across many usernames, nor an anonymous flood of
+-- registration submissions.
+--
+-- One row per (ip_address, action). ip_address is VARCHAR(45) to hold a full
+-- IPv6 address. Growth is attacker-controlled, so prune it on the same
+-- schedule as lockout_events (tools/prune_lockout_events.php).
+--
+-- NOTE for shared-egress networks: on an intranet behind NAT, a forward proxy
+-- or a VDI pool, many users share one source IP and therefore one counter. The
+-- THROTTLE_* limits in src/helpers.php are set generously for that reason.
+CREATE TABLE request_throttle (
+  ip_address        VARCHAR(45) NOT NULL,
+  action            VARCHAR(32) NOT NULL,
+  attempt_count     INT UNSIGNED NOT NULL DEFAULT 0,
+  window_started_at DATETIME NOT NULL,
+  blocked_until     DATETIME NULL,
+  PRIMARY KEY (ip_address, action),
+  KEY idx_request_throttle_blocked_until (blocked_until),
+  KEY idx_request_throttle_window (window_started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Authentication audit trail. Previously only LOCKOUTS were recorded, so a
+-- successful login left no trace and "who accessed this system, from where,
+-- and when" was unanswerable after an incident.
+--
+-- user_id is nullable: a failed login against an unknown username has no user
+-- to attribute it to. ON DELETE SET NULL rather than CASCADE so deleting a
+-- user does not erase the record that they signed in.
+CREATE TABLE auth_events (
+  event_id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id            INT UNSIGNED NULL,
+  username_attempted VARCHAR(50) NOT NULL,
+  event_type         VARCHAR(32) NOT NULL,
+  ip_address         VARCHAR(45) NOT NULL,
+  user_agent         VARCHAR(255) NULL,
+  occurred_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_auth_events_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL,
+  KEY idx_auth_events_occurred_at (occurred_at),
+  KEY idx_auth_events_user_id (user_id),
+  KEY idx_auth_events_type_occurred (event_type, occurred_at),
+  KEY idx_auth_events_ip (ip_address)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- No category assignment: any staff member can process any order

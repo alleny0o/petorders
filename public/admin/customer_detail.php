@@ -22,6 +22,7 @@ function fetch_customer(PDO $pdo, int $userId): ?array
 {
     $stmt = $pdo->prepare(
         'SELECT u.user_id, u.username, u.active, u.created_at,
+                u.locked_until, u.failed_login_count,
                 u.first_name, u.last_name, u.phone, c.lab_id, c.supervising_pi_id,
                 c.registration_status,
                 l.institute_id, l.lab_name, i.name AS institute_name, i.shorthand_name AS institute_shorthand, p.pi_name
@@ -39,6 +40,10 @@ function fetch_customer(PDO $pdo, int $userId): ?array
 
 $userId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
 $customer = $userId > 0 ? fetch_customer($pdo, $userId) : null;
+// Lock state drives the Unlock button below (finding H1).
+$isLocked = $customer !== null
+    && $customer['locked_until'] !== null
+    && strtotime((string) $customer['locked_until']) > time();
 // Same server-side edit toggle as customer/order_detail.php's Order
 // Details card: ?edit=1 swaps the read-only Customer Details card for
 // the form. The form's action URL keeps edit=1 so a no-JS
@@ -239,9 +244,22 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             redirect($dest);
         }
+    } elseif ($action === 'unlock') {
+        // SECURITY (finding H1): clears a lockout without forcing a password
+        // change. See the matching branch in admin/account_detail.php.
+        $pdo->prepare('UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
+            ->execute([$userId]);
+
+        record_auth_event($pdo, 'admin_unlocked_account', $userId, (string) $customer['username']);
+
+        $dest = '/admin/customer_detail.php?id=' . $userId . '&unlocked=1';
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => $dest]);
+        }
+        redirect($dest);
     } elseif ($action === 'reset_password') {
         $tempPassword = generate_temp_password();
-        $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+        $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]);
 
         // Archive the outgoing hash so the pre-reset password still
         // counts toward the last-5 reuse check on the forced change.
@@ -282,7 +300,7 @@ if ($customer !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
 // client half is petordersCleanArrivalFlags() near the bottom.
-$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated']);
+$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated', 'unlocked']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
 // hygiene), shown only on a fresh ?reset=1 arrival for the SAME
@@ -369,6 +387,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                 <?= $arrival['updated'] ? toast_flash('success', 'Customer updated.') : '' ?>
                 <?= $arrival['reactivated'] ? toast_flash('success', 'Customer reactivated.') : '' ?>
                 <?= $arrival['deactivated'] ? toast_flash('success', 'Customer deactivated. They have been signed out and can no longer log in.') : '' ?>
+                <?= $arrival['unlocked'] ? toast_flash('success', 'Account unlocked. Their existing password still works.') : '' ?>
 
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
@@ -544,6 +563,18 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
                             </form>
                         <?php endif; ?>
 
+                        <?php if ($isLocked): ?>
+                            <?php // Finding H1: clears the lockout without forcing a password change. ?>
+                            <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="unlock-form" novalidate data-ajax-submit
+                                  data-confirm="Unlock <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? Their existing password will keep working."
+                                  data-confirm-title="Unlock account"
+                                  data-confirm-verb="Unlock">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="unlock">
+                                <button type="submit" class="btn btn--secondary">Unlock Account</button>
+                            </form>
+                        <?php endif; ?>
+
                         <form method="post" action="/admin/customer_detail.php?id=<?= (int) $userId ?>" id="reset-password-form" novalidate data-ajax-submit
                               data-confirm="Generate a new temporary password for <?= e($customer['first_name'] . ' ' . $customer['last_name']) ?>? Their current password will stop working immediately."
                               data-confirm-title="Reset password"
@@ -560,7 +591,7 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
     </div>
 </body>
 <?php if ($customer !== null): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
   var instituteSelect = document.getElementById('institute_id');
   var labSelect = document.getElementById('lab_id');
@@ -603,9 +634,9 @@ $pageTitle = $customer !== null ? ($customer['first_name'] . ' ' . $customer['la
   filterLabs();
 })();
 </script>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
-  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated']);
+  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'unlocked']);
 });
 </script>
 <?php endif; ?>

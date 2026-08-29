@@ -27,7 +27,7 @@ Screenshots referenced by the user guides live in
 
 | Layer           | Technology                                                                                                                 |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Language        | PHP 7.4, no framework, no ORM (PDO with prepared statements)                                                               |
+| Language        | PHP 8.3 (8.2 also supported; 7.4 is EOL and unsupported), no framework, no ORM (PDO with prepared statements)               |
 | Database        | MySQL 8.0 / MariaDB 10.11 (wire-compatible via PDO)                                                                        |
 | Frontend        | Vanilla CSS and JavaScript, no build step, no bundler                                                                      |
 | Dependencies    | **None.** No Composer, no npm, no CDN. Every asset is local, and the app makes no outbound requests (it never sends email) |

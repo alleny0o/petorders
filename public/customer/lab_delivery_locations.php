@@ -489,7 +489,7 @@ $pageTitle = 'Delivery Locations';
     </div>
 </body>
 <?php if ($labId > 0): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   function snapshotForm(form) {
     var values = {};

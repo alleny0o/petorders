@@ -39,7 +39,10 @@
             <?php endforeach; ?>
             <input type="hidden" name="page" value="1">
             <label for="<?= e($tablePagination['idPrefix']) ?>page-size" class="sr-only"><?= e($tablePagination['itemLabel']) ?> per page</label>
-            <select name="page_size" id="<?= e($tablePagination['idPrefix']) ?>page-size" onchange="if (this.form.requestSubmit) { this.form.requestSubmit(); } else { this.form.submit(); }">
+            <?php // data-auto-submit replaces an inline onchange= handler: inline event
+                  // attributes are blocked by the Content-Security-Policy in
+                  // send_security_headers() (finding M2). Wired in script.js. ?>
+            <select name="page_size" id="<?= e($tablePagination['idPrefix']) ?>page-size" data-auto-submit>
                 <?php foreach (PAGE_SIZE_OPTIONS as $option): ?>
                     <option value="<?= $option ?>" <?= $tablePagination['pageSize'] === $option ? 'selected' : '' ?>><?= $option ?> / page</option>
                 <?php endforeach; ?>

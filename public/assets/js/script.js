@@ -1370,6 +1370,26 @@ window.addEventListener('pageshow', (e) => {
 });
 
 
+// ===== Auto-submit selects =========================================
+// Replaces the inline onchange= handler that used to live on
+// table_pagination.php's page-size <select>. Inline event attributes are
+// blocked by the Content-Security-Policy emitted in send_security_headers()
+// (src/helpers.php), so the behaviour is delegated here instead. Any
+// <select data-auto-submit> submits its owning form on change.
+function initAutoSubmitSelects() {
+  document.addEventListener('change', (e) => {
+    const select = e.target.closest && e.target.closest('select[data-auto-submit]');
+    if (!select || !select.form) return;
+
+    if (select.form.requestSubmit) {
+      select.form.requestSubmit();
+    } else {
+      select.form.submit();
+    }
+  });
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   initSidebarToggle();
   initHamburgerToggle();
@@ -1384,4 +1404,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initAjaxForms();
   initCopyButtons();
   initReportsForm();
+  initAutoSubmitSelects();
 });

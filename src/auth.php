@@ -9,11 +9,55 @@ require_once __DIR__ . '/helpers.php';
 
 const SESSION_IDLE_LIMIT_SECONDS = 15 * 60;
 
-// Lockout thresholds and durations
+// Lockout thresholds and durations.
+//
+// SECURITY (finding H1): the second tier was previously a 365-day lock, which
+// let anyone who could guess a username permanently disable that account with
+// 10 unauthenticated POSTs -- and there is no way back into the app if the
+// account locked is the last admin. Both tiers are now bounded in hours, so a
+// lockout always self-heals. Brute-force resistance comes from the tiers plus
+// the per-IP throttle in login.php, not from the lock being effectively
+// permanent. Do not raise EXTENDED_LOCKOUT_SECONDS into days without also
+// providing an out-of-band unlock path.
 const FAILED_LOGIN_LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_SECONDS = 15 * 60;
 const FAILED_FULL_LOGIN_LOCKOUT_THRESHOLD = 10;
-const FULL_LOCKOUT_SECONDS = 60 * 60 * 24 * 365;
+const EXTENDED_LOCKOUT_SECONDS = 60 * 60; // 1 hour (was 1 year)
+
+// bcrypt work factor. PHP's default is 10; 12 is the current common baseline
+// and costs a few tens of milliseconds per verify, which is irrelevant at this
+// app's login volume. Existing hashes keep working -- password_verify() reads
+// the cost from the stored hash -- and are upgraded on next password change.
+const PASSWORD_BCRYPT_COST = 12;
+
+/**
+ * Appends an authentication event to auth_events (sql/schema.sql).
+ *
+ * The app previously recorded only lockouts, so there was no way to answer
+ * "who logged in, from where, and when" after an incident -- successful
+ * access left no trace at all. $userId is nullable: a failed login against an
+ * unknown username has no user to attribute.
+ *
+ * Never throws into the caller: an audit-write failure must not block a
+ * legitimate login, so it is logged and swallowed.
+ */
+function record_auth_event(PDO $pdo, string $eventType, ?int $userId, string $username): void
+{
+    try {
+        $pdo->prepare(
+            'INSERT INTO auth_events (user_id, username_attempted, event_type, ip_address, user_agent)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([
+            $userId,
+            safe_truncate_bytes($username, 50),
+            $eventType,
+            client_ip(),
+            safe_truncate_bytes((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 255),
+        ]);
+    } catch (Throwable $e) {
+        error_log('[AUDIT] failed to record auth event ' . $eventType . ': ' . $e->getMessage());
+    }
+}
 
 function lockout_message(string $lockedUntil): string
 {
@@ -36,12 +80,24 @@ function attempt_login(string $username, string $password): array
     $user = $stmt->fetch();
 
     if (!$user) {
+        record_auth_event($pdo, 'login_failed_unknown_user', null, $username);
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
     if ($user['locked_until'] !== null && strtotime($user['locked_until']) > time()) {
         error_log('Login attempt on locked account: username=' . $username);
+        record_auth_event($pdo, 'login_blocked_locked', (int) $user['user_id'], $username);
         return ['success' => false, 'reason' => lockout_message($user['locked_until'])];
+    }
+
+    // An expired lock resets the counter. Without this, an account that served
+    // its lock sat permanently at the threshold, so the very next wrong
+    // password re-locked it immediately -- the same practical outcome as the
+    // permanent lock removed above.
+    if ($user['locked_until'] !== null && strtotime($user['locked_until']) <= time()) {
+        $pdo->prepare('UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
+            ->execute([$user['user_id']]);
+        $user['failed_login_count'] = 0;
     }
 
     // Case: password is incorrect.
@@ -50,7 +106,7 @@ function attempt_login(string $username, string $password): array
         $lockedUntil = null;
         // Check if the number of failed login attempts have exceeded the threshold. If so, locked their accounts.
         if($failedCount >= FAILED_FULL_LOGIN_LOCKOUT_THRESHOLD) {
-            $lockedUntil = date('Y-m-d H:i:s', time() + FULL_LOCKOUT_SECONDS);
+            $lockedUntil = date('Y-m-d H:i:s', time() + EXTENDED_LOCKOUT_SECONDS);
         } else if ($failedCount >= FAILED_LOGIN_LOCKOUT_THRESHOLD) {
             $lockedUntil = date('Y-m-d H:i:s', time() + LOCKOUT_DURATION_SECONDS);
         } 
@@ -63,9 +119,11 @@ function attempt_login(string $username, string $password): array
         if ($lockedUntil !== null) {
             $pdo->prepare('INSERT INTO lockout_events (user_id, failed_attempts) VALUES (?, ?)')
                 ->execute([$user['user_id'], $failedCount]);
+            record_auth_event($pdo, 'account_locked', (int) $user['user_id'], $username);
             return ['success' => false, 'reason' => lockout_message($lockedUntil)];
         }
 
+        record_auth_event($pdo, 'login_failed_bad_password', (int) $user['user_id'], $username);
         return ['success' => false, 'reason' => 'Invalid username or password.'];
     }
 
@@ -74,6 +132,7 @@ function attempt_login(string $username, string $password): array
 
     $role = determine_role($pdo, (int) $user['user_id']);
     if ($role === null) {
+        record_auth_event($pdo, 'login_failed_no_role', (int) $user['user_id'], $username);
         return ['success' => false, 'reason' => 'Account has no assigned role.'];
     }
 
@@ -88,6 +147,10 @@ function attempt_login(string $username, string $password): array
     $_SESSION['role'] = $role;
     $_SESSION['must_change_password'] = (bool) $user['must_change_password'];
     $_SESSION['last_activity'] = time();
+    // Anchors the absolute session lifetime enforced in require_role().
+    $_SESSION['session_started'] = time();
+
+    record_auth_event($pdo, 'login_success', (int) $user['user_id'], $username);
 
     return ['success' => true, 'reason' => null];
 }
@@ -147,6 +210,15 @@ function require_role($allowedRoles): void
         redirect('/login.php');
     }
 
+    // Absolute cap, independent of activity: a session cookie that keeps being
+    // used still dies at SESSION_ABSOLUTE_LIMIT_SECONDS. Sessions predating
+    // this change have no session_started key and are treated as expired.
+    if ((time() - (int) ($_SESSION['session_started'] ?? 0)) > SESSION_ABSOLUTE_LIMIT_SECONDS) {
+        session_unset();
+        session_destroy();
+        redirect('/login.php');
+    }
+
     $satisfiesRequirement = false;
     foreach ((array) $allowedRoles as $required) {
         if (role_satisfies($_SESSION['role'], $required)) {
@@ -164,10 +236,11 @@ function require_role($allowedRoles): void
         redirect('/change_password.php');
     }
 
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('X-Frame-Options: DENY');
-    header('X-Content-Type-Options: nosniff');
+    // Security headers are sent for EVERY request (authenticated or not) by
+    // send_security_headers(), called from bootstrap_session() in
+    // src/helpers.php. They used to be set here, which silently excluded
+    // login.php, register.php, registration_status.php, 404.php and
+    // index.php -- see finding M1. Do not re-add them here.
 
     $_SESSION['last_activity'] = time();
 }

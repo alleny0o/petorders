@@ -242,7 +242,7 @@ $pageTitle = 'Customers';
         </main>
     </div>
 </body>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
   var instituteSelect = document.getElementById('filter_institute_id');
   var labSelect = document.getElementById('filter_lab_id');

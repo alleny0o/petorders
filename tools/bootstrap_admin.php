@@ -17,7 +17,19 @@
  * deployment at the database.
  */
 
+// SECURITY (finding H4): CLI-only guard. These maintenance scripts live outside
+// the document root by design (docs/DEPLOYMENT.md step 5 sets DocumentRoot to
+// public/), but that is a deployment convention, not an enforced boundary -- a
+// single AllowOverride or vhost mistake would expose them to unauthenticated
+// HTTP requests. This makes the boundary a property of the code instead.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit(1);
+}
+
 require __DIR__ . '/../src/db.php';
+// PASSWORD_BCRYPT_COST lives in auth.php alongside the rest of the password policy.
+require_once __DIR__ . '/../src/auth.php';
 
 /**
  * Deliberately duplicated per-file, not shared into src/helpers.php --
@@ -70,7 +82,7 @@ try {
     }
 
     $tempPassword = generate_temp_password();
-    $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+    $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]);
 
     $pdo->prepare(
         'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'

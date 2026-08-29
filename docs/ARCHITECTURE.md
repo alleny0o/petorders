@@ -29,7 +29,7 @@ reference for details.
 
 | Layer           | Choice                                      |
 | --------------- | ------------------------------------------- |
-| Language        | PHP 7.4, plain. No framework, no ORM        |
+| Language        | PHP 8.3, plain. No framework, no ORM        |
 | Database access | PDO, prepared statements throughout         |
 | Database        | MySQL 8.0 / MariaDB 10.11 (InnoDB, utf8mb4) |
 | CSS             | Vanilla, system fonts                       |
@@ -253,6 +253,53 @@ per-file on purpose (five copies: registrations, customer detail,
 account detail, accounts list, bootstrap tool). Copy the shape, don't
 centralize it.
 
+## Threat model
+
+**Read this before changing anything in the security posture table below.**
+
+This application is designed for **one** deployment shape:
+
+> An internal NIH server, reachable only from the NIH intranet, served over
+> HTTPS, behind network-level access control.
+
+That is a **precondition of the design**, not an observation about it. Several
+decisions are only defensible because of it, and a number of past decisions
+cited it explicitly as their justification.
+
+### What the intranet assumption is doing for us
+
+| Assumption | What depends on it |
+| --- | --- |
+| Requests come from inside the NIH network | The absence of any WAF, bot filtering, or CAPTCHA |
+| Callers are identifiable NIH staff | Registration being open and unauthenticated |
+| An attacker cannot reach the app anonymously from the internet | The lockout countdown message (PR #96), which discloses that a given username exists |
+| Network access is itself an access control | The absence of MFA |
+
+### What the intranet assumption is NOT doing for us
+
+An intranet is **not** a trust boundary. It does not stop a compromised
+workstation, a malicious insider, or malware moving laterally. Every control
+in the table below must hold against a caller who is already inside the
+network. In particular, do not reason "we're on the intranet, so this doesn't
+need a limit" — that reasoning produced finding H1 (a 365-day account lockout
+usable as a denial-of-service by anyone who could guess a username).
+
+### If this app is ever exposed to the internet
+
+Treat that as a **new project with a new threat model**, not a configuration
+change. At minimum, revisit every row above, and:
+
+- Put authentication in front of the whole site (HTTP Basic Auth at the Apache
+  level, or an SSO reverse proxy) — see `docs/DEMO_DEPLOYMENT.md` §5
+- Re-examine open registration: it is an unauthenticated write endpoint
+- Re-examine every message that distinguishes "no such account" from "that
+  account exists" (the lockout countdown, the registration duplicate messages)
+- Seed no real institute, lab or PI data into a public instance
+
+A public demo built from this codebase existed in August 2026
+(`docs/DEMO_DEPLOYMENT.md`). The Basic Auth layer that made it defensible was
+later removed, leaving the app's own login as the only gate. Do not repeat that.
+
 ## Security posture
 
 | Category        | Detail                                                                                                                                                                                                       |
@@ -260,10 +307,13 @@ centralize it.
 | SQL             | PDO with real prepared statements (`ATTR_EMULATE_PREPARES = false`), exceptions on error, utf8mb4 DSN charset                                                                                                |
 | CSRF            | Token on every POST, rotated at login                                                                                                                                                                        |
 | Sessions        | httponly + SameSite=Lax cookies, `secure` when `REQUIRE_SECURE_COOKIES` is on, 15-minute idle timeout, session ID regenerated at login                                                                       |
-| Login lockout   | 5 failed attempts locks for 15 minutes. The user is told the account is temporarily locked, with minutes remaining (shown on the locking attempt and on every attempt while locked). Recorded in `lockout_events`, logged server-side, surfaced on the admin dashboard. **The countdown message is a deliberate tradeoff:** it was removed in a security review (PR #57) as account-enumeration hardening, then knowingly restored (PR #96) because this app is intranet-only behind badge access. Don't revert it to a generic message without revisiting that decision |
-| Registration status page | Public, unauthenticated lookup (`registration_status.php`) reads only `customer_registration_requests` — never `users`/`customers` — so it can't enumerate approved accounts. **Showing the rejection reason is a deliberate tradeoff:** it was withheld in a security review (PR #57) as admin-authored free text on an unauthenticated page, then knowingly shown (same reasoning as the lockout countdown's PR #96 restore) because this app is intranet-only behind badge access, the reason is written under a no-PHI hint, and it renders escaped. Don't re-hide it without revisiting that decision |
+| Login lockout   | 5 failed attempts locks for 15 minutes; 10 locks for 1 hour. **Both tiers are deliberately bounded** — an earlier version locked for 365 days, which was usable as a permanent denial-of-service against any guessable username and left no recovery path through the UI (finding H1). Admins have a dedicated **Unlock Account** action (`admin/account_detail.php`, `admin/customer_detail.php`) that clears the lock without forcing a password change. An expired lock resets the failure counter, so a served lock does not re-trigger on the next mistyped password. Complemented by per-IP throttling (`throttle_*` in `src/helpers.php`), which catches one source spraying attempts across many accounts. The user is told the account is temporarily locked, with minutes remaining (shown on the locking attempt and on every attempt while locked). Recorded in `lockout_events`, logged server-side, surfaced on the admin dashboard. **The countdown message is a deliberate tradeoff:** it was removed in a security review (PR #57) as account-enumeration hardening, then knowingly restored (PR #96) because this app is intranet-only behind badge access. Don't revert it to a generic message without revisiting that decision |
 | Password policy | 12+ chars, at least one letter and one number, can't contain the username/email, can't match the last 5 passwords (`password_history`). Admins trigger resets but never see or choose a user's real password |
-| Every request   | `require_role()` re-checks `users.active` live and re-derives the role from table membership (which is why promote/demote and deactivation take effect on the target's next request). It also sets `Cache-Control: no-store`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and forces `/change_password.php` while a temp password is in effect |
+| Authenticated request | `require_role()` re-checks `users.active` live and re-derives the role from table membership (which is why promote/demote and deactivation take effect on the target's next request), enforces the 15-minute idle timeout and the 12-hour absolute session cap, and forces `/change_password.php` while a temp password is in effect |
+| Every request (incl. unauthenticated) | `send_security_headers()`, called from `bootstrap_session()`, sets `Content-Security-Policy` (nonce-based; no `unsafe-inline`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `Cache-Control: no-store`, and `Strict-Transport-Security` on HTTPS requests. **These used to live in `require_role()`**, which meant `login.php`, `register.php`, `registration_status.php`, `404.php` and `index.php` — including the login form itself — received none of them (finding M1). Do not move them back |
+| Inline scripts | Every inline `<script>` must carry `nonce="<?= e(csp_nonce()) ?>"` or the CSP will block it. Inline event attributes (`onclick=`, `onchange=`) are blocked outright — delegate in `script.js` instead (see `data-auto-submit`) |
+| Audit trail | `auth_events` records every login success, failure, lockout and admin unlock with source IP and user agent. Previously only lockouts were recorded, so successful access left no trace |
+| Registration status page | Returns status only. The admin-authored `rejection_reason` is **not** shown on this unauthenticated page (finding M4): escaping prevents XSS, but nothing prevents an admin from typing PHI or third-party detail into a field the whole network can read |
 | Inline-script JSON | Any `json_encode()` that echoes request-derived data into an inline `<script>` uses `JSON_HEX_TAG \| JSON_HEX_APOS \| JSON_HEX_QUOT \| JSON_HEX_AMP` (no `</script>`/quote breakouts). Pattern source: `toast_flash()`. Applied across the 7 error-modal-reopen blocks (admin nuclides/pis/labs/institutes/products, customer lab_delivery_locations/lab_product_users). Deliberately exempt: `json_response()` (a real JSON HTTP body) and `labs.php`'s `data-*` attribute encodes (`e()`-wrapped HTML attributes). Don't "fix" those |
 | Errors          | `display_errors` off. Global exception handler logs and renders a generic 500 page                                                                                                                           |
 | Timezone        | Pinned to `America/New_York` in code                                                                                                                                                                         |

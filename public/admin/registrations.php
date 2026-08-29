@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $flash = ['type' => 'error', 'message' => 'An active account already exists for this email.'];
                 } else {
                     $tempPassword = generate_temp_password();
-                    $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+                    $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]);
 
                     $pdo->prepare(
                         'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'
@@ -398,7 +398,7 @@ $pageTitle = 'Registrations';
         </main>
     </div>
 </body>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   window.petordersCleanArrivalFlags(['rejected']);
 

@@ -22,15 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Only ever reads customer_registration_requests — never users/
         // customers — so this page can't be used to enumerate whether an
         // approved account exists for a given email (same principle as the
-        // Phase B login hardening). rejection_reason IS shown here: a
-        // deliberate reversal of Security review #57, which withheld it
-        // from this unauthenticated page. Revisited the same way as the
-        // #96 lockout-countdown restore — the app is intranet-only behind
-        // badge access, the reason is admin-authored under a no-PHI hint
-        // (admin/registrations.php's reject modal), and it renders
-        // e()-escaped. Don't re-hide it without revisiting that decision.
+        // Phase B login hardening).
+        //
+        // SECURITY (finding M4): rejection_reason is no longer selected or
+        // displayed. It was withheld by security review #57, then restored on
+        // the reasoning that the app is intranet-only behind badge access.
+        // That reasoning is a deployment precondition, not a property of the
+        // code: the field is admin-authored free text on an UNAUTHENTICATED
+        // page, so the only thing keeping PHI or third-party detail out of it
+        // is admin discipline plus a UI hint. Escaping prevents XSS; it does
+        // not prevent disclosure. Rejected applicants are directed to an
+        // administrator instead. See docs/ARCHITECTURE.md "Threat model".
         $stmt = get_db()->prepare(
-            'SELECT status, rejection_reason
+            'SELECT status
              FROM customer_registration_requests
              WHERE email = ?
              ORDER BY request_id DESC
@@ -76,11 +80,8 @@ $pageTitle = 'Registration Status';
               <div class="alert alert--error">
                 <div><span class="badge badge--rejected">Rejected</span></div>
                 <div>Your registration was not approved.</div>
-                <?php // Reason is required on reject, but the column is nullable — guard anyway. ?>
-                <?php if (!empty($result['rejection_reason'])): ?>
-                  <div><strong>Reason:</strong> <?= e($result['rejection_reason']) ?></div>
-                <?php endif; ?>
-                <div>You may submit a new registration if you'd like, or contact an administrator if you have questions.</div>
+                <?php // Reason intentionally not shown on this unauthenticated page (finding M4). ?>
+                <div>Please contact an administrator for details. You may also submit a new registration.</div>
               </div>
             <?php elseif ($result['status'] === 'approved'): ?>
               <div class="alert alert--success">

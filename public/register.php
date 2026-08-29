@@ -23,6 +23,18 @@ $old = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
+    // Per-IP throttle (finding M5). This endpoint is unauthenticated and each
+    // submission writes a row plus an admin review task, so it is a queue- and
+    // table-flooding vector with no cost to the sender.
+    if (throttle_is_blocked(get_db(), 'register')) {
+        $tooMany = 'Too many registration attempts from this location. Please wait a few minutes and try again.';
+        if (request_wants_json()) {
+            json_response(['ok' => false, 'message' => $tooMany], 429);
+        }
+        http_response_code(429);
+        $fieldErrors['email'] = $tooMany;
+    }
+
     $old['institute_id']      = $_POST['institute_id'] ?? '';
     $old['lab_id']            = $_POST['lab_id'] ?? '';
     $old['first_name']        = trim($_POST['first_name'] ?? '');
@@ -134,6 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['phone'],
         ]);
 
+        throttle_record(get_db(), 'register', THROTTLE_REGISTER_MAX);
+
         if (request_wants_json()) {
             json_response(['ok' => true, 'redirect' => '/register.php?submitted=1']);
         }
@@ -159,7 +173,13 @@ $labs = $pdo->query(
      WHERE l.active = 1
      ORDER BY l.lab_name'
 )->fetchAll();
-$pis = $pdo->query('SELECT pi_id, pi_name, email FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
+// SECURITY (finding H2): `email` is deliberately NOT selected here. This page
+// is unauthenticated, so every column reaching it is public. Shipping each
+// active PI's email built a ready-made spear-phishing target list of NIH
+// principal investigators for anyone who loaded the registration form. The
+// name alone is enough to pick the right PI from the (already lab-filtered)
+// dropdown. Do not re-add email to this query or its <option> label.
+$pis = $pdo->query('SELECT pi_id, pi_name FROM pis WHERE active = 1 ORDER BY pi_name')->fetchAll();
 $labPiMap = $pdo->query(
     'SELECT lab_pis.lab_id, lab_pis.pi_id
      FROM lab_pis
@@ -279,7 +299,7 @@ $pageTitle = 'Register';
                   <select id="pi_id" name="pi_id" required>
                     <option value="">Select lab first…</option>
                     <?php foreach ($pis as $pi): ?>
-                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?> (<?= e($pi['email']) ?>)</option>
+                      <option value="<?= (int) $pi['pi_id'] ?>" data-lab-ids="<?= e(implode(' ', $piLabIds[$pi['pi_id']] ?? [])) ?>" <?= (string) $pi['pi_id'] === $old['pi_id'] ? 'selected' : '' ?>><?= e($pi['pi_name']) ?></option>
                     <?php endforeach; ?>
                   </select>
                   <span class="field-hint">Don't see your PI? Contact an admin.</span>
@@ -300,7 +320,7 @@ $pageTitle = 'Register';
     </div>
 </body>
 <script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 (function () {
   var instituteSelect = document.getElementById('institute_id');
   var labSelect = document.getElementById('lab_id');

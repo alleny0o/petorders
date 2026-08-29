@@ -672,7 +672,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
     <?php endif; ?>
 </body>
 <?php if ($order !== null): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
     // Strip one-time arrival-toast query flags (placed/canceled/
     // updated/notes_updated) from the URL bar once their toast has been

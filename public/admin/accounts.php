@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
         try {
             $tempPassword = generate_temp_password();
-            $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+            $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]);
 
             $pdo->prepare(
                 'INSERT INTO users (username, password_hash, first_name, last_name, phone, must_change_password, active) VALUES (?, ?, ?, ?, ?, 1, 1)'
@@ -471,7 +471,7 @@ $pageTitle = 'Accounts';
         </main>
     </div>
 </body>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   // Strip the one-time ?created=1 arrival flag from the URL bar once the
   // temp-password banner (or nothing, if the flash was already consumed)
