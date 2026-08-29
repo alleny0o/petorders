@@ -520,6 +520,11 @@ Manual only, no test tooling needed.
       `Set-Cookie: ... secure; HttpOnly; SameSite=Lax`, confirming
       `REQUIRE_SECURE_COOKIES` is active (check with
       `curl -I https://<hostname>/`)
+- [ ] The same `curl -I https://<hostname>/` response also includes
+      `Content-Security-Policy`, `Strict-Transport-Security`, and
+      `X-Frame-Options: DENY`, confirming `send_security_headers()`
+      (`src/helpers.php`) is active on every request, not just
+      authenticated ones
 - [ ] A DB-backed page (e.g. the registration page) renders instead of
       the generic error page, confirming the SELinux boolean from
       step 7 is set
