@@ -92,19 +92,27 @@ The seed file ships placeholder password hashes on purpose. No seeded
 account can log in until you run:
 
 ```bash
-php tools/set_temp_passwords.php
+php tools/set_temp_passwords.php --i-understand-this-is-not-production
 ```
 
-Sets every account's password to `TempPass123!` and forces a password
-change on first login:
+The `--i-understand-this-is-not-production` flag is required — the
+script refuses to run without it, since it resets the password of
+every account in whatever database `src/config.php` points at. Mints
+a unique, random temp password per account (not a shared one) and
+forces a password change on first login:
 
 ```
-Temp password for all accounts: TempPass123!
-Rows updated: 40
+puddle.fizzlewick1@example-test.local             kJ8mQ2xRt4nWp7Ls
+rumble.sprocketfield6@example-test.local          Fb3vN9zXc1qHt6Gd
+...
+Accounts updated: 40
+Each account must change its password at next login.
 ```
 
-Safe to re-run any time you want to reset all dev accounts (e.g. after
-testing password changes or lockouts).
+Each account's temp password is printed next to its username — copy
+the one for the account you want to log into. Safe to re-run any time
+you want to reset all dev accounts (e.g. after testing password
+changes or lockouts); it mints fresh passwords each time.
 
 ## 5. Point Apache at public/ and log in
 
@@ -115,10 +123,12 @@ MAMP: Preferences → Server → Document Root → `petorders/public`. Only
 rule, see
 [DEPLOYMENT.md](DEPLOYMENT.md#5-configure-apache-document-root-must-be-public).
 
-Open `http://localhost:8888/login.php`. Sign in as any seeded account,
-password `TempPass123!` (you'll be prompted to set a real one, 12+
-characters with a letter and a number). All 40 accounts share that
-password; here's a representative sample (full counts above):
+Open `http://localhost:8888/login.php`. Sign in as any seeded account
+using the temp password step 4 printed for it (you'll be prompted to
+set a real one, 12+ characters with a letter and a number). Each
+account has its own distinct temp password now, not a shared one;
+here's a representative sample of the accounts available (full counts
+above):
 
 | Username                                     | Role                                    |
 | --------------------------------------------- | ---------------------------------------- |
