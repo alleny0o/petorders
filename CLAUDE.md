@@ -319,15 +319,17 @@ removed; don't re-add.
   was judged acceptable there. Don't "fix" it back to a generic message
   without revisiting that decision.
 - The public registration status page (`registration_status.php`)
-  shows the rejection reason to the applicant. **History:** the reason
-  was deliberately withheld in the same #57 security review
-  (admin-authored free text on an unauthenticated page), then
-  deliberately shown — the same intranet-only reasoning as the #96
-  lockout-countdown restore, plus the reason is written under the
-  reject modal's no-PHI hint and rendered `e()`-escaped. The page
-  still reads only `customer_registration_requests`, never
-  `users`/`customers` (no account enumeration). Don't re-hide the
-  reason without revisiting that decision.
+  does NOT show the rejection reason to the applicant; it directs them to
+  contact an administrator instead. **History:** the reason was withheld in
+  the original #57 security review, then shown (#96-era intranet-only
+  reasoning), then withheld again in the security-hardening review (finding
+  M4): the intranet-only argument is a deployment precondition, not a
+  property of the code, and this is an unauthenticated page displaying
+  admin-authored free text, so admin discipline plus a UI hint isn't a
+  strong enough guarantee against PHI or third-party detail leaking through
+  it. The page still reads only `customer_registration_requests`, never
+  `users`/`customers` (no account enumeration). Don't re-show the reason
+  without revisiting that decision.
 - Order IDs sequential, never reused.
 - Deactivating a customer never hides/auto-cancels historical orders.
 - Admin triggers password resets but never views/sets the actual
