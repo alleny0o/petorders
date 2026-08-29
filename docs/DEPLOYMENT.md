@@ -241,6 +241,21 @@ ALTER TABLE orders DROP KEY idx_orders_customer_id;
 
 Verify with `SHOW INDEX FROM orders`.
 
+**If this database predates the security-hardening patch** (which added
+the `request_throttle` and `auth_events` tables, and lowered the
+extended-lockout tier from 365 days to 1 hour), apply the dedicated
+migration instead of hand-written ALTERs — it creates both tables
+(`IF NOT EXISTS`, safe to rerun) and releases any account still locked
+under the old 365-day rule:
+
+```bash
+sudo bash -c "mysql petorders < /var/www/petorders/sql/migrations/2026-08-18-security-hardening.sql"
+```
+
+A fresh load of the current `schema.sql` already includes both tables;
+this only concerns databases that predate the change. See the
+migration file's own header comment for the verification query.
+
 ---
 
 ## 4. Configure the app (src/config.php)
@@ -522,13 +537,17 @@ All boxes checked = done.
 
 - **Sessions time out after 15 min idle.** Returns to login on next
   click. By design.
-- **Lockout:** 5 failed attempts locks the account for 15 min. The
-  login page tells the user the account is temporarily locked and how
-  many minutes remain (a deliberate disclosure choice for this
+- **Lockout:** 5 failed attempts locks the account for 15 min; 10 failed
+  attempts locks it for 1 hour (both tiers are deliberately bounded —
+  see finding H1 in the security posture section of ARCHITECTURE.md).
+  The login page tells the user the account is temporarily locked and
+  how many minutes remain (a deliberate disclosure choice for this
   intranet-only app; see the security posture section of
-  ARCHITECTURE.md). Admins see every lockout from the past 7 days on
-  the Admin Dashboard (the list has no row cap; within that window
-  it's a complete record).
+  ARCHITECTURE.md). Admins can clear a lockout without forcing a
+  password reset via the **Unlock Account** action on
+  `admin/account_detail.php`/`admin/customer_detail.php`. Admins see
+  every lockout from the past 7 days on the Admin Dashboard (the list
+  has no row cap; within that window it's a complete record).
 - **Lockout history retention:** nothing in the app prunes
   `lockout_events`, and its growth rate is attacker-controlled (one row
   per lockout), so schedule `tools/prune_lockout_events.php` (deletes
