@@ -571,7 +571,7 @@ $pageTitle = $order !== null ? 'Order #' . (int) $order['order_id'] : 'Order Not
     <?php endif; ?>
 </body>
 <?php if ($order !== null): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
     // Strip one-time arrival-toast query flags once their toast has
     // been queued above -- same convention as customer/order_detail.php.

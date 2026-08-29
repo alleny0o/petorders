@@ -195,7 +195,7 @@
     </div>
 <?php endif; ?>
 <?php if ($labId > 0): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 // DOMContentLoaded (app convention -- script.js, layout_customer.php): in
 // the modal context the submit button lives in .modal__footer, which is
 // rendered AFTER this script in the DOM, so immediate execution would

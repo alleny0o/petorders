@@ -77,7 +77,7 @@
 
 <script src="<?= asset_url('/assets/js/script.js') ?>" defer></script>
 <?php if (($_SESSION['role'] ?? null) !== 'customer'): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   var trigger = document.getElementById('profile-edit-trigger');
   var modal = document.getElementById('profile-edit-modal');

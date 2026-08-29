@@ -200,7 +200,7 @@ if ($petordersNeedsOrderForm) {
 // script.js itself is loaded (defer) by _sidebar_footer.php above.
 ?>
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   // My Info triggers are marked with data-my-info-trigger -- same
   // convention as data-new-order-trigger below. The sidebar account

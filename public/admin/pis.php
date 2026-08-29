@@ -539,7 +539,7 @@ $pageTitle = 'PIs';
         </main>
     </div>
 </body>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
   function snapshotForm(form) {
     var values = {};

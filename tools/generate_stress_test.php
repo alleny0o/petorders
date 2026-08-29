@@ -1,4 +1,14 @@
 <?php
+// SECURITY (finding H4): CLI-only guard. These maintenance scripts live outside
+// the document root by design (docs/DEPLOYMENT.md step 5 sets DocumentRoot to
+// public/), but that is a deployment convention, not an enforced boundary -- a
+// single AllowOverride or vhost mistake would expose them to unauthenticated
+// HTTP requests. This makes the boundary a property of the code instead.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit(1);
+}
+
 require_once __DIR__ . '/../src/db.php';
 
 // ==============================================================================

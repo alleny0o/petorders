@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
 <link rel="manifest" href="/favicons/site.webmanifest">
 
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
     if (localStorage.getItem('petorders:sidebar') === 'collapsed') {
         document.documentElement.dataset.sidebar = 'collapsed';
     }

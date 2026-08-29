@@ -5,7 +5,7 @@ Gets you from a clean machine to a running app with a fully seeded test
 database.
 
 Reference dev environment is **MAMP on macOS** (what the app was built
-against), but any Apache + PHP 7.4 + MariaDB stack works. No
+against), but any Apache + PHP 8.2/8.3 + MariaDB stack works. No
 Composer, no npm, no build step. Clone it, configure it, load the
 database, done.
 
@@ -25,7 +25,7 @@ database, done.
 
 ## 1. Prerequisites
 
-- Apache + PHP 7.4 + MySQL (MAMP ships all three)
+- Apache + PHP 8.2 or 8.3 + MySQL (MAMP ships all three)
 - Git
 
 ## 2. Clone and create the database

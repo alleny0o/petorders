@@ -23,6 +23,7 @@ function fetch_account(PDO $pdo, int $userId): ?array
     $stmt = $pdo->prepare(
         'SELECT u.user_id, u.username, u.active, u.created_at,
                 u.first_name, u.last_name, u.phone,
+                u.locked_until, u.failed_login_count,
                 (a.user_id IS NOT NULL) AS is_admin
          FROM staff s
          JOIN users u ON u.user_id = s.user_id
@@ -38,6 +39,10 @@ function fetch_account(PDO $pdo, int $userId): ?array
 $userId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
 $account = $userId > 0 ? fetch_account($pdo, $userId) : null;
 $isSelf = $account !== null && $userId === (int) $_SESSION['user_id'];
+// Lock state drives the Unlock button below (finding H1).
+$isLocked = $account !== null
+    && $account['locked_until'] !== null
+    && strtotime((string) $account['locked_until']) > time();
 // Same server-side edit toggle as customer/order_detail.php's Order
 // Details card: ?edit=1 swaps the read-only Profile card for the form.
 // The form's action URL keeps edit=1 so a no-JS validation-error
@@ -269,6 +274,26 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } elseif ($action === 'unlock') {
+        // SECURITY (finding H1): dedicated unlock action. Previously the ONLY
+        // way to clear locked_until through the UI was to reset the account's
+        // password, which forced an unnecessary credential change on a user
+        // whose sole mistake was mistyping their password. Combined with the
+        // old 365-day lock, that made an account effectively unrecoverable
+        // without direct database access.
+        //
+        // Unlocking is deliberately separate from resetting: it clears the
+        // lock and the failure counter and touches nothing else.
+        $pdo->prepare('UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE user_id = ?')
+            ->execute([$userId]);
+
+        record_auth_event($pdo, 'admin_unlocked_account', $userId, (string) $account['username']);
+
+        $dest = '/admin/account_detail.php?id=' . $userId . '&unlocked=1';
+        if (request_wants_json()) {
+            json_response(['ok' => true, 'redirect' => $dest]);
+        }
+        redirect($dest);
     } elseif ($action === 'reset_password') {
         if ($isSelf) {
             // Resetting your own password while logged in has no
@@ -284,7 +309,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $tempPassword = generate_temp_password();
-            $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT);
+            $tempHash = password_hash($tempPassword, PASSWORD_BCRYPT, ['cost' => PASSWORD_BCRYPT_COST]);
 
             // Archive the outgoing hash so the pre-reset password still
             // counts toward the last-5 reuse check on the forced change.
@@ -326,7 +351,7 @@ if ($account !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Server half of the arrival-flag convention (see accounts.php) -- the
 // client half is petordersCleanArrivalFlags() near the bottom.
-$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
+$arrival = consume_arrival_flags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted', 'unlocked']);
 
 // Consume the flash: cleared on ANY load that finds it (read-once
 // hygiene), shown only on a fresh ?reset=1 arrival for the SAME account
@@ -380,6 +405,7 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                 <?= $arrival['deactivated'] ? toast_flash('success', 'Account deactivated. They have been signed out and can no longer log in.') : '' ?>
                 <?= $arrival['promoted'] ? toast_flash('success', 'Promoted to admin.') : '' ?>
                 <?= $arrival['demoted'] ? toast_flash('success', 'Demoted to staff.') : '' ?>
+                <?= $arrival['unlocked'] ? toast_flash('success', 'Account unlocked. Their existing password still works.') : '' ?>
 
                 <?php if ($tempPasswordReveal !== null): ?>
                     <div class="temp-password-banner">
@@ -532,6 +558,18 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
                             </form>
                         <?php endif; ?>
 
+                        <?php if ($isLocked): ?>
+                            <?php // Finding H1: clears the lockout without forcing a password change. ?>
+                            <form method="post" action="/admin/account_detail.php?id=<?= (int) $userId ?>" id="unlock-form" novalidate data-ajax-submit
+                                  data-confirm="Unlock <?= e($account['first_name'] . ' ' . $account['last_name']) ?>? Their existing password will keep working."
+                                  data-confirm-title="Unlock account"
+                                  data-confirm-verb="Unlock">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="unlock">
+                                <button type="submit" class="btn btn--secondary">Unlock Account</button>
+                            </form>
+                        <?php endif; ?>
+
                         <?php if ($isSelf): ?>
                             <button type="button" class="btn btn--secondary" disabled title="You cannot reset your own password here. Use Change Password instead.">Reset Password</button>
                         <?php else: ?>
@@ -555,9 +593,9 @@ $pageTitle = $account !== null ? ($account['first_name'] . ' ' . $account['last_
     </div>
 </body>
 <?php if ($account !== null): ?>
-<script>
+<script nonce="<?= e(csp_nonce()) ?>">
 document.addEventListener('DOMContentLoaded', function () {
-  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted']);
+  window.petordersCleanArrivalFlags(['updated', 'reset', 'reactivated', 'deactivated', 'promoted', 'demoted', 'unlocked']);
 });
 </script>
 <?php endif; ?>

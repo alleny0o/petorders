@@ -42,4 +42,25 @@ define('DB_PASS', 'CHANGE_ME');
 // Secure cookies require HTTPS.
 //   Local dev over plain HTTP -> false
 //   NIH server with real HTTPS -> true   (IMPORTANT: flip this on at deploy)
+//
+// If the app detects an HTTPS request while this is false, it writes a
+// [CONFIG] warning to the PHP error log on every request (see
+// bootstrap_session() in src/helpers.php) -- missing this at deploy time is
+// no longer silent, but the warning is not a substitute for setting it.
 define('REQUIRE_SECURE_COOKIES', false);
+
+// ---- Proxy / load balancer ----
+
+// Whether to believe the X-Forwarded-For / X-Forwarded-Proto request headers.
+//
+// Set this to TRUE **only** when the app sits behind a reverse proxy or load
+// balancer that overwrites those headers on every request (an AWS ALB, or an
+// Apache/nginx front end that sets them itself).
+//
+// Leave it FALSE for a direct-to-Apache install, which is the NIH RHEL
+// deployment described in docs/DEPLOYMENT.md. When it is true, ANY client can
+// forge these headers, which would let an attacker:
+//   - present a different source IP on each request and bypass the per-IP
+//     throttling in src/helpers.php entirely, and
+//   - claim the request arrived over HTTPS when it did not.
+define('TRUST_PROXY_HEADERS', false);

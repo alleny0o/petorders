@@ -4,7 +4,7 @@ Audience: IT staff deploying PETOrders for the first time. Assumes you
 know RHEL, Apache, and MariaDB in general, but nothing about this app.
 Follow the steps in order.
 
-What you're deploying: a self-contained PHP 7.4 app with a MariaDB
+What you're deploying: a self-contained PHP 8.3 app with a MariaDB
 database. No build step, no external services, no outbound network
 calls. The app never sends email and loads no assets from CDNs.
 Deployment = install prerequisites, put files on disk, create the
@@ -38,7 +38,7 @@ create the first admin.
 | ---------- | ----------------------------------------------------------------------- |
 | OS         | RHEL 8                                                                  |
 | Web server | Apache (httpd) with `mod_ssl`                                           |
-| PHP        | 7.4, with `pdo_mysql`                                                   |
+| PHP        | 8.3, with `pdo_mysql` (see the version note below)                       |
 | Database   | MariaDB 10.11                                                           |
 
 Check what's already installed:
@@ -63,8 +63,14 @@ sudo systemctl enable --now httpd
 If PHP or MariaDB are missing:
 
 ```bash
-# PHP 7.4
-sudo dnf module enable -y php:7.4
+# PHP 8.3.
+#
+# SECURITY: do NOT install php:7.4. PHP 7.4 reached end of life in
+# November 2022 and receives no upstream security patches (finding H3).
+# RHEL 8 AppStream tops out at 8.2, which is supported and acceptable; 8.3
+# comes from the Remi repo and is what the app has been validated on.
+sudo dnf module reset -y php
+sudo dnf module enable -y php:8.3
 sudo dnf install -y php php-mysqlnd php-json
 
 # MariaDB 10.11 (available natively as a RHEL 8 module stream)
@@ -86,10 +92,11 @@ sudo dnf install php-mbstring
 
 Re-run the check commands to confirm everything's in place.
 
-> **PHP version note:** the app has also been run successfully on PHP
-> 8.3 with zero code changes (verified August 2026). 7.4 remains the
-> supported target for production; treat this only as a data point for
-> a future version-bump decision.
+> **PHP version note:** the app runs on PHP 8.3 with zero code changes
+> (verified August 2026). If site policy pins you to RHEL 8 AppStream, use
+> `php:8.2` — also supported. **PHP 7.4 was the previous target and must no
+> longer be used:** it reached end of life in November 2022 and receives no
+> security patches (finding H3).
 
 ---
 
@@ -258,7 +265,8 @@ Set every constant:
 | `DB_NAME`                | `petorders`              | The database from step 3.                                                                                                                             |
 | `DB_USER`                | `petorders_app`          | The dedicated user from step 3, never `root`.                                                                                                         |
 | `DB_PASS`                | _(password from step 3)_ |                                                                                                                                                       |
-| `REQUIRE_SECURE_COOKIES` | `true`                   | **Must be `true` in production.** Marks session cookies HTTPS-only. Requires working HTTPS (step 6). Login won't work over plain HTTP with this set. |
+| `REQUIRE_SECURE_COOKIES` | `true`                   | **Must be `true` in production.** Marks session cookies HTTPS-only. Requires working HTTPS (step 6). Login won't work over plain HTTP with this set. If HTTPS is live and this is `false`, every request logs a `[CONFIG]` warning to the PHP error log. |
+| `TRUST_PROXY_HEADERS`    | `false`                  | **Leave `false`** for the direct-to-Apache install described here. Set `true` only behind a reverse proxy or load balancer that overwrites `X-Forwarded-For`/`X-Forwarded-Proto` on every request. If `true` without such a proxy, any client can forge its source IP and bypass the per-IP login and registration throttles entirely. |
 
 Optional but recommended: smoke-test the credentials from the CLI
 before touching Apache. It turns a wrong password into a 5-second
@@ -531,8 +539,14 @@ All boxes checked = done.
   0 3 1 * * php /var/www/petorders/tools/prune_lockout_events.php
   ```
 
+  The same script also prunes `request_throttle` (stale per-IP throttle rows)
+  and `auth_events` (the authentication audit trail, retained 400 days —
+  confirm that retention against NIH records policy before changing it).
+
   Running it manually now and then works too, and it's safe to rerun.
-- **Internet exposure:** any internet-reachable install will see
+- **Internet exposure:** this app is designed for intranet-only deployment;
+  see the threat model section of ARCHITECTURE.md, which lists what must be
+  revisited before any public exposure. Any internet-reachable install will see
   automated probes for `/.env`, `/.git`, and similar within minutes of
   DNS resolving (observed during validation). The app's `.htaccess`
   hardening denies these, but on the NIH intranet this shouldn't arise

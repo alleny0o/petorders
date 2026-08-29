@@ -48,6 +48,98 @@ function app_setting(string $key, $default = null)
 }
 
 /**
+ * Absolute session lifetime, independent of activity. SESSION_IDLE_LIMIT_SECONDS
+ * (src/auth.php) caps how long a session may sit idle; this caps how long one may
+ * live at all, so a continuously-active stolen session cookie still expires.
+ */
+const SESSION_ABSOLUTE_LIMIT_SECONDS = 12 * 60 * 60;
+
+/**
+ * Whether the current request arrived over TLS. Checks the standard CGI var
+ * plus the two proxy headers Apache/ELB set, but ONLY when the app is
+ * configured to sit behind a trusted proxy -- otherwise a client could forge
+ * X-Forwarded-Proto and talk the app into believing plain HTTP is secure.
+ */
+function request_is_https(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+        return true;
+    }
+    if ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+        return true;
+    }
+    if (defined('TRUST_PROXY_HEADERS') && TRUST_PROXY_HEADERS) {
+        if (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') {
+            return true;
+        }
+        if (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')) === 'on') {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Per-request CSP nonce. Every inline script block in this app must carry
+ * this nonce as a nonce="..." attribute, or the browser will refuse to run it once
+ * send_security_headers() has emitted the policy below.
+ */
+function csp_nonce(): string
+{
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(16));
+    }
+    return $nonce;
+}
+
+/**
+ * Response headers that must be on EVERY page, authenticated or not.
+ *
+ * Previously these lived in require_role() (src/auth.php), which by
+ * definition never runs on login.php, register.php, registration_status.php,
+ * 404.php or index.php -- leaving the login form itself with no
+ * clickjacking, MIME-sniffing or cache protection. Called from
+ * bootstrap_session() so every entry point is covered by construction.
+ */
+function send_security_headers(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    // No external origins anywhere in this app (no CDN, no Composer, no npm --
+    // see CLAUDE.md), so 'self' plus a nonce for the inline blocks is the whole
+    // policy. object-src/base-uri are locked off outright; frame-ancestors
+    // supersedes X-Frame-Options on modern browsers (kept below for old ones).
+    $csp = "default-src 'self'; "
+        . "script-src 'self' 'nonce-" . csp_nonce() . "'; "
+        . "style-src 'self'; "
+        . "img-src 'self'; "
+        . "font-src 'self'; "
+        . "connect-src 'self'; "
+        . "form-action 'self'; "
+        . "frame-ancestors 'none'; "
+        . "base-uri 'none'; "
+        . "object-src 'none'";
+
+    header('Content-Security-Policy: ' . $csp);
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: same-origin');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header_remove('X-Powered-By');
+
+    // HSTS only over a real TLS request: sending it over plain HTTP is
+    // ignored by browsers, and sending it from a dev box would pin localhost
+    // to HTTPS in the developer's browser for a year.
+    if (request_is_https()) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+
+/**
  * Starts the session with hardened cookie flags. Every page must call
  * this instead of a bare session_start() so HttpOnly/Secure are never
  * missed (CLAUDE.md documents it under "DRY -- check before writing
@@ -55,12 +147,146 @@ function app_setting(string $key, $default = null)
  */
 function bootstrap_session(): void
 {
+    // Deployment tripwire: HTTPS is live but the session cookie is not being
+    // marked Secure, so it will also be sent over plain HTTP. DEPLOYMENT.md
+    // step 4 requires REQUIRE_SECURE_COOKIES = true in production; this makes
+    // missing it loud in the error log instead of silent.
+    if (request_is_https() && !REQUIRE_SECURE_COOKIES) {
+        error_log(
+            '[CONFIG] Request served over HTTPS but REQUIRE_SECURE_COOKIES is false: '
+            . 'session cookies are NOT marked Secure. Set it to true in src/config.php.'
+        );
+    }
+
+    // Keep PHP's own session GC in step with the app's idle policy so the
+    // server-side session file cannot outlive the 15-minute rule in
+    // require_role() (and cannot be reaped well before it, either).
+    ini_set('session.gc_maxlifetime', (string) (SESSION_ABSOLUTE_LIMIT_SECONDS + 3600));
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+
     session_set_cookie_params([
         'httponly' => true,
         'secure'   => REQUIRE_SECURE_COOKIES,
         'samesite' => 'Lax',
     ]);
     session_start();
+    send_security_headers();
+}
+
+// ===== IP-based throttling =========================================
+// Complements the per-ACCOUNT lockout in src/auth.php, which cannot see an
+// attacker spreading attempts across many usernames (credential stuffing), nor
+// an anonymous flood of registration submissions. Backed by the
+// request_throttle table (sql/schema.sql).
+//
+// IMPORTANT deployment caveat: on an intranet where many users share one
+// egress IP (NAT, forward proxy, VDI pool), a per-IP counter is shared by all
+// of them. THROTTLE_* below are therefore set generously -- high enough that
+// no realistic group of humans trips them, low enough to blunt automation.
+// Re-tune them against real traffic before treating them as tight controls,
+// and see docs/DEPLOYMENT.md for the TRUST_PROXY_HEADERS setting that decides
+// whether X-Forwarded-For is believed.
+
+const THROTTLE_WINDOW_SECONDS = 15 * 60;
+const THROTTLE_BLOCK_SECONDS  = 15 * 60;
+const THROTTLE_LOGIN_MAX      = 30; // failed logins per IP per window
+const THROTTLE_REGISTER_MAX   = 10; // registration submissions per IP per window
+
+/**
+ * Client IP for throttling purposes. X-Forwarded-For is honoured only when
+ * TRUST_PROXY_HEADERS is on -- otherwise any client could send a random value
+ * per request and sidestep every counter below. When trusted, the LEFTMOST
+ * entry is taken (the original client) but only after the header is validated
+ * as an IP, so a garbage header degrades to REMOTE_ADDR rather than poisoning
+ * the table.
+ */
+function client_ip(): string
+{
+    if (defined('TRUST_PROXY_HEADERS') && TRUST_PROXY_HEADERS && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        foreach (explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']) as $candidate) {
+            $candidate = trim($candidate);
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                return $candidate;
+            }
+        }
+    }
+
+    $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
+}
+
+/**
+ * True when this IP is currently blocked for $action. Read-only: call this
+ * before doing the work, and throttle_register_failure() after a failure.
+ */
+function throttle_is_blocked(PDO $pdo, string $action): bool
+{
+    $stmt = $pdo->prepare(
+        'SELECT blocked_until FROM request_throttle WHERE ip_address = ? AND action = ?'
+    );
+    $stmt->execute([client_ip(), $action]);
+    $blockedUntil = $stmt->fetchColumn();
+
+    return $blockedUntil !== false
+        && $blockedUntil !== null
+        && strtotime((string) $blockedUntil) > time();
+}
+
+/**
+ * Records one countable event for this IP/action and blocks the IP once it
+ * exceeds $max within THROTTLE_WINDOW_SECONDS. The window is rolling-by-reset:
+ * once it lapses the counter starts over, so sparse legitimate failures never
+ * accumulate into a block.
+ *
+ * @return bool True if this event tripped the block.
+ */
+function throttle_record(PDO $pdo, string $action, int $max): bool
+{
+    $ip  = client_ip();
+    $now = time();
+
+    $stmt = $pdo->prepare(
+        'SELECT attempt_count, window_started_at FROM request_throttle
+         WHERE ip_address = ? AND action = ? FOR UPDATE'
+    );
+    $stmt->execute([$ip, $action]);
+    $row = $stmt->fetch();
+
+    if (!$row || (strtotime((string) $row['window_started_at']) + THROTTLE_WINDOW_SECONDS) <= $now) {
+        // No row yet, or the previous window has lapsed: (re)start at 1.
+        $pdo->prepare(
+            'INSERT INTO request_throttle (ip_address, action, attempt_count, window_started_at, blocked_until)
+             VALUES (?, ?, 1, ?, NULL)
+             ON DUPLICATE KEY UPDATE attempt_count = 1, window_started_at = VALUES(window_started_at), blocked_until = NULL'
+        )->execute([$ip, $action, date('Y-m-d H:i:s', $now)]);
+        return false;
+    }
+
+    $count       = (int) $row['attempt_count'] + 1;
+    $blockedUntil = $count > $max ? date('Y-m-d H:i:s', $now + THROTTLE_BLOCK_SECONDS) : null;
+
+    $pdo->prepare(
+        'UPDATE request_throttle SET attempt_count = ?, blocked_until = ?
+         WHERE ip_address = ? AND action = ?'
+    )->execute([$count, $blockedUntil, $ip, $action]);
+
+    if ($blockedUntil !== null) {
+        error_log(sprintf('[THROTTLE] action=%s ip=%s blocked after %d attempts', $action, $ip, $count));
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Clears an IP's counter for an action. Called on successful login so a user
+ * who fumbled their password a few times does not stay near the threshold.
+ */
+function throttle_clear(PDO $pdo, string $action): void
+{
+    $pdo->prepare('DELETE FROM request_throttle WHERE ip_address = ? AND action = ?')
+        ->execute([client_ip(), $action]);
 }
 
 function csrf_token(): string
@@ -85,6 +311,41 @@ function verify_csrf(): void
         http_response_code(403);
         die('Invalid CSRF token.');
     }
+}
+
+/**
+ * Truncates to at most $maxBytes bytes WITHOUT splitting a UTF-8 character,
+ * which would produce an invalid string that MySQL rejects on insert.
+ *
+ * Deliberately does not use mb_substr(): the audit path in src/auth.php must
+ * work even where the mbstring extension is absent, and a failed audit write
+ * is exactly the kind of silent gap this app should not have.
+ */
+function safe_truncate_bytes(string $value, int $maxBytes): string
+{
+    if (strlen($value) <= $maxBytes) {
+        return $value;
+    }
+
+    $cut = substr($value, 0, $maxBytes);
+
+    // Walk back off any partial multi-byte sequence at the tail: UTF-8
+    // continuation bytes match 10xxxxxx (0x80-0xBF).
+    $i = strlen($cut) - 1;
+    while ($i >= 0 && (ord($cut[$i]) & 0xC0) === 0x80) {
+        $i--;
+    }
+    // $i now points at the lead byte of the trailing sequence. Keep it only if
+    // the whole sequence survived the cut.
+    if ($i >= 0) {
+        $lead = ord($cut[$i]);
+        $len = $lead >= 0xF0 ? 4 : ($lead >= 0xE0 ? 3 : ($lead >= 0xC0 ? 2 : 1));
+        if ($i + $len > strlen($cut)) {
+            $cut = substr($cut, 0, $i);
+        }
+    }
+
+    return $cut;
 }
 
 function e(string $string): string
@@ -164,7 +425,7 @@ function asset_url(string $path): string
  * through a redirect); persistent messages (errors, temp passwords) stay
  * as inline .alert markup instead.
  * json_encode with the HEX flags makes the values safe to embed in
- * an inline <script> (no </script> or quote breakouts).
+ * an inline script block (no closing-tag or quote breakouts).
  */
 function toast_flash(string $type, string $message): string
 {
@@ -173,7 +434,7 @@ function toast_flash(string $type, string $message): string
         JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     );
 
-    return '<script>document.addEventListener("DOMContentLoaded",function(){'
+    return '<script nonce="' . e(csp_nonce()) . '">document.addEventListener("DOMContentLoaded",function(){'
         . 'window.showToast.apply(null,' . $args . ');});</script>';
 }
 

@@ -7,7 +7,7 @@ for maintenance, not to narrate how the app was built.
 
 ## Stack
 
-- PHP 7.4 (RHEL 8 compatible)
+- PHP 8.3 (8.2 also supported). NOT 7.4 -- end of life since Nov 2022, no security patches
 - MySQL 8.0 / MariaDB 10.11 (wire-compatible via PDO)
 - PDO with prepared statements; no ORM, no framework
 - Vanilla CSS (system fonts only, no external dependencies)
@@ -485,7 +485,7 @@ Branch → PR → merge. Never push directly to `main` (branch-protected).
 
 ## Deployment Target
 
-- RHEL 8 (PHP 7.4, MariaDB 10.11). No root access; hand off as schema +
+- RHEL 8 (PHP 8.3, MariaDB 10.11). No root access; hand off as schema +
   app files + config template + deployment doc.
 - HTTPS: self-signed locally, real cert on RHEL (IT-provided).
 - No external CDN; all assets local.
